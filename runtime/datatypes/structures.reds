@@ -139,7 +139,7 @@ red-integer!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- align value on 64-bit boundary
 	value	[integer!]								;-- 32-bit signed integer value
-	_pad	[integer!]	
+	_pad	[integer!]
 ]
 
 red-float!: alias struct! [
@@ -187,7 +187,7 @@ red-char!: alias struct! [
 	header 	[integer!]								;-- cell header
 	_pad1	[integer!]
 	value	[integer!]								;-- UCS-4 codepoint
-	_pad2	[integer!]	
+	_pad2	[integer!]
 ]
 
 red-point!: alias struct! [
@@ -240,7 +240,7 @@ red-function!: alias struct! [
 red-routine!: alias struct! [
 	header   [integer!]								;-- cell header
 	ret-type [integer!]								;-- return type (-1 if no return: in spec block)
-	spec	 [node!]								;-- routine spec block buffer reference	
+	spec	 [node!]								;-- routine spec block buffer reference
 	more	 [node!]								;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
@@ -296,4 +296,11 @@ red-image!: alias struct! [
 	head	[integer!]								;-- series's head index (zero-based)
 	node	[node!]									;-- internal buffer or platform-specific handle
 	size	[integer!]								;-- pair of size
+]
+
+red-bignum!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	sign	[integer!]
 ]

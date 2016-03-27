@@ -34,10 +34,37 @@ system/lexer: context [
 		unit: GET_UNIT(s)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		
+
 		ret: as red-binary! stack/arguments
 		ret/head: 0
 		ret/header: TYPE_BINARY
+		ret/node: switch base [
+			16 [binary/decode-16 p len unit]
+			2  [binary/decode-2  p len unit]
+			64 [binary/decode-64 p len unit]
+		]
+		if ret/node = null [ret/header: TYPE_NONE]			;-- return NONE!
+	]
+
+	make-bignum: routine [
+		start  [string!]
+		end    [string!]
+		base   [integer!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-bignum!]
+	][
+		s:  GET_BUFFER(start)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+
+		ret: as red-bignum! stack/arguments
+		ret/head: 0
+		ret/header: TYPE_BIGNUM
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
@@ -118,7 +145,7 @@ system/lexer: context [
 
 		c: string/get-char p unit
 		if any [
-			c = as-integer #"+" 
+			c = as-integer #"+"
 			c = as-integer #"-"
 		][
 			neg?: c = as-integer #"-"
@@ -313,7 +340,7 @@ system/lexer: context [
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
-		/part	
+		/part
 			length [integer! string!]
 		return: [block!]
 		/local
@@ -353,7 +380,7 @@ system/lexer: context [
 			cs/2:  charset "ABCDEF"						;-- hexa-upper
 			cs/3:  charset "abcdef"						;-- hexa-lower
 			cs/4:  union cs/1 cs/2						;-- hexa
-			cs/5:  union cs/4 cs/3						;-- hexa-char	
+			cs/5:  union cs/4 cs/3						;-- hexa-char
 			cs/6:  charset {/\^^,[](){}"#%$@:;}			;-- not-word-char
 			cs/7:  union union cs/6 cs/1 charset {'}	;-- not-word-1st
 			cs/8:  charset {[](){}"@:;}					;-- not-file-char
@@ -400,7 +427,7 @@ system/lexer: context [
 		ws: [
 			pos: #"^/" (
 				if count? [
-					line: line + 1 
+					line: line + 1
 					;append/only lines to block! stack/tail?
 				]
 			)
@@ -483,7 +510,7 @@ system/lexer: context [
 		nested-curly-braces: [
 			(cnt: 1)
 			any [
-				counted-newline 
+				counted-newline
 				| "^^{"
 				| "^^}"
 				| #"{" (cnt: cnt + 1)
@@ -510,7 +537,7 @@ system/lexer: context [
 		]
 
 		base-64-rule: [
-			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
+			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"
 			(base: 64)
 		]
 
@@ -565,12 +592,12 @@ system/lexer: context [
 			]
 			(pop stack)
 		]
-		
+
 		special-words: [
 			[
 				#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
 				| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
-					#"/" 
+					#"/"
 					ahead [slash-end | ws-no-count | control-char | end] (value: "//")
 					| (value: "/")
 				]
@@ -603,7 +630,7 @@ system/lexer: context [
 			#"'" (type: lit-word!) s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched
 				| (to-word stack copy/part s e type)	;-- lit-word matched
-			] 
+			]
 			opt [#":" (throw-error [type back s])]
 		]
 
@@ -622,7 +649,7 @@ system/lexer: context [
 			]
 			(to-word stack copy/part s e type)
 		]
-		
+
 		sticky-word-rule: [								;-- protect from sticky words typos
 			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
@@ -670,7 +697,7 @@ system/lexer: context [
 			opt [#"%" (type: percent!)]
 			sticky-word-rule
 		]
-		
+
 		map-rule: [
 			"#(" (append/only stack make block! 4)
 			any-value
@@ -689,7 +716,7 @@ system/lexer: context [
 
 		paren-rule: [
 			#"(" (append/only stack make paren! 4)
-			any-value 
+			any-value
 			#")" (pop stack)
 		]
 

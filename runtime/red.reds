@@ -12,10 +12,10 @@ Red/System [
 
 red: context [
 	;-- Runtime sub-system --
-	
+
 	#include %macros.reds
 	#include %tools.reds
-	
+
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
@@ -23,14 +23,14 @@ red: context [
 		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
-	
+
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
 	#include %crush.reds
-	
+
 	;-- Datatypes --
-	
+
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
@@ -38,7 +38,7 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
-	
+
 	;--------------------------------------------
 	;-- Import OS dependent image functions
 	;-- load-image: func [								;-- return handle
@@ -53,7 +53,7 @@ red: context [
 		FreeBSD  []
 		#default []
 	]
-	
+
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
@@ -96,12 +96,13 @@ red: context [
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
 	#include %datatypes/binary.reds
+	#include %datatypes/bignum.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
-	
+
 	;-- Debugging helpers --
-	
+
 	#include %debug-tools.reds
-	
+
 	;-- Core --
 	#include %actions.reds
 	#include %natives.reds
@@ -121,13 +122,13 @@ red: context [
 	verbosity:  0
 
 	;-- Booting... --
-	
+
 	init: does [
 		platform/init
 		init-mem										;@@ needs a local context
-		
+
 		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table
 
 		datatype/init
 		unset/init
@@ -171,15 +172,16 @@ red: context [
 		pair/init
 		percent/init
 		tuple/init
+		bignum/init
 		#if OS = 'Windows [image/init]					;-- temporary
-		
+
 		actions/init
-		
+
 		;-- initialize memory before anything else
 		alloc-node-frame nodes-per-frame				;-- 10k nodes
 		alloc-series-frame								;-- first frame of 1MB
 
-		root:	 	block/make-in null 2000	
+		root:	 	block/make-in null 2000
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
 
@@ -194,10 +196,10 @@ red: context [
 		_random/init
 		ownership/init
 		crypto/init
-		
+
 		stack/init
 		redbin/boot-load
-		
+
 		#if debug? = yes [
 			datatype/verbose:	verbosity
 			unset/verbose:		verbosity
@@ -236,6 +238,7 @@ red: context [
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity
+			bignum/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity

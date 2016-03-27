@@ -56,9 +56,10 @@ Red/System [
 	TYPE_SERIES											;-- 2A		42
 	TYPE_IMAGE											;-- 2B		43
 	TYPE_EVENT											;-- 2C		44
+	TYPE_BIGNUM											;-- 2d		45
 	TYPE_CLOSURE
 	TYPE_PORT
-	
+
 ]
 
 #enum actions! [
@@ -74,7 +75,7 @@ Red/System [
 	ACT_EVALPATH
 	ACT_SETPATH											;@@ Deprecate it?
 	ACT_COMPARE
-	
+
 	;-- Scalar actions --
 	ACT_ABSOLUTE
 	ACT_ADD
@@ -87,13 +88,13 @@ Red/System [
 	ACT_SUBTRACT
 	ACT_EVEN?
 	ACT_ODD?
-	
+
 	;-- Bitwise actions --
 	ACT_AND~
 	ACT_COMPLEMENT
 	ACT_OR~
 	ACT_XOR~
-	
+
 	;-- Series actions --
 	ACT_APPEND
 	ACT_AT
@@ -121,7 +122,7 @@ Red/System [
 	ACT_TAIL?
 	ACT_TAKE
 	ACT_TRIM
-	
+
 	;-- I/O actions --
 	ACT_CREATE
 	ACT_CLOSE
@@ -338,6 +339,7 @@ Red/System [
 		type = TYPE_FILE
 		type = TYPE_URL
 		type = TYPE_BINARY
+		type = TYPE_BIGNUM
 		type = TYPE_IMAGE
 	]
 ]
@@ -435,7 +437,7 @@ Red/System [
 	either a < b [-1][either a > b [1][0]]
 ]
 
-#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_WIDTH(size)  (size and FFFFh)
 #define IMAGE_HEIGHT(size) (size >> 16)
 
 #if debug? = yes [
