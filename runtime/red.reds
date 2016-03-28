@@ -238,7 +238,7 @@ red: context [
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity
-			bignum/verbose:		verbosity
+			bignum/verbose:		1
 			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity

@@ -94,9 +94,9 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! bignum!]
+		value2	 [number! char! pair! tuple! vector! bignum!]
+		return:  [number! char! pair! tuple! vector! bignum!]
 	]
 	#get-definition ACT_ADD
 ]
