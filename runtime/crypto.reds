@@ -15,11 +15,76 @@ crypto: context [
 	_md5:	0
 	_sha1:	0
 	_crc32: 0
+	_rsa:	0
+	_pkcs1:	0
+	_oaep:	0
+	_ssl:	0
 
 	init: does [
 		_md5:	symbol/make "md5"
 		_sha1:	symbol/make "sha1"
 		_crc32: symbol/make "crc32"
+		_rsa:	symbol/make "rsa"
+		_pkcs1:	symbol/make "pkcs1"
+		_oaep:	symbol/make "oaep"
+		_ssl:	symbol/make "ssl"
+	]
+	
+	rsa-context!: alias struct! [
+		ver			[integer!]
+		len			[integer!]
+		N			[red-bignum!]
+		E			[red-bignum!]
+		D			[red-bignum!]
+		P			[red-bignum!]
+		Q			[red-bignum!]
+		DP			[red-bignum!]
+		DQ			[red-bignum!]
+		QP			[red-bignum!]
+		RN			[red-bignum!]
+		RP			[red-bignum!]
+		RQ			[red-bignum!]
+		Vi			[red-bignum!]
+		Vf			[red-bignum!]
+		padding		[integer!]
+		hash_id		[integer!]
+	]
+	
+	rsa-init:  func [
+		ctx			[rsa-context!]
+		padding		[integer!]
+		hash_id		[integer!]
+	][
+		rsa-set-padding ctx padding hash_id
+	]
+	
+	rsa-set-padding: func [
+		ctx			[rsa-context!]
+		padding		[integer!]
+		hash_id		[integer!]
+	][
+		ctx/padding: padding
+		ctx/hash_id: hash_id
+	]
+	
+	rsa-check-pubkey: func [
+		ctx			[rsa-context!]
+		return:		[logic!]
+		/local
+			
+	][
+		if any [
+			ctx/N/used = 0
+			ctx/E/used = 0
+		][
+			return false
+		]
+		if any [
+			ctx/N/used = 0
+			ctx/E/used = 0
+		][
+			return false
+		]
 	]
 
 	#enum crypto-algorithm! [
@@ -91,6 +156,12 @@ crypto: context [
 		return:	[byte-ptr!]
 	][
 		get-digest data len ALG_SHA1
+	]
+	
+	pkcs1-v15-encrypt: func [
+	
+	][
+	
 	]
 
 #switch OS [
