@@ -15,6 +15,10 @@ bignum: context [
 	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
+	
+	#define BITS_TO_LIMBS(i)  ((i) / biL + as integer! ((i) % biL <> 0))
+	#define CHARS_TO_LIMBS(i) ((i) / ciL + as integer! ((i) % ciL <> 0))
+	
 	BN_MAX_LIMB:		1024			;-- support 1024 * 32 bits
 	BN_WINDOW_SIZE:		6				;-- Maximum window size used for modular exponentiation
 
@@ -1705,7 +1709,81 @@ bignum: context [
 			add N X X
 		]
 	]
+	
+	size: func [
+		X			[red-bignum!]
+		return: 	[integer!]
+	][
+		(bitlen( X ) + 7 ) >> 3
+	]
+	
+	read-binary: func [
+		X			[red-bignum!]
+		buf			[byte-ptr!]
+		buflen		[integer!]
+		/local
+			i		[integer!]
+			j		[integer!]
+			n		[integer!]
+			s	 	[series!]
+			p		[byte-ptr!]
+			px		[int-ptr!]
+			pc		[int-ptr!]
+	][
+		n: 0
+		while [n < buflen][
+			p: buf + n
+			if p/1 <> 0 [break]
+		]
+		
+		grow X CHARS_TO_LIMBS(buflen - n)
+		lset X 0
+		
+		s: GET_BUFFER(X)
+		px: as int-ptr! s/offset
+		
+		i: buflen
+		j: 0
+		while [i > n][
+			pc: px + (j / ciL)
+			p: buf + i - 1
+			pc/1: pc/1 or ((as integer! p/1) << ((j % ciL) << 3))
+			i: i - 1
+			j: j + 1
+		]
+	]
 
+	write-binary: func [
+		X			[red-bignum!]
+		buf			[byte-ptr!]
+		buflen		[integer!]
+		/local
+			i		[integer!]
+			j		[integer!]
+			n		[integer!]
+			s	 	[series!]
+			p		[byte-ptr!]
+			px		[int-ptr!]
+			pc		[int-ptr!]
+	][
+		n: size X
+		set-memory buf #"^@" buflen
+		
+		s: GET_BUFFER(X)
+		px: as int-ptr! s/offset
+		
+		i: buflen - 1
+		j: 0
+		while [n > 0][
+			pc: px + (j / ciL)
+			p: buf + i
+			p/1: as byte! (pc/1 >>> ((j % ciL) << 3))
+			i: i - 1
+			j: j + 1
+			n: n - 1
+		]
+	]
+	
 	;--- Actions ---
 	
 	make: func [

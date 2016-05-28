@@ -29,63 +29,6 @@ crypto: context [
 		_oaep:	symbol/make "oaep"
 		_ssl:	symbol/make "ssl"
 	]
-	
-	rsa-context!: alias struct! [
-		ver			[integer!]
-		len			[integer!]
-		N			[red-bignum!]
-		E			[red-bignum!]
-		D			[red-bignum!]
-		P			[red-bignum!]
-		Q			[red-bignum!]
-		DP			[red-bignum!]
-		DQ			[red-bignum!]
-		QP			[red-bignum!]
-		RN			[red-bignum!]
-		RP			[red-bignum!]
-		RQ			[red-bignum!]
-		Vi			[red-bignum!]
-		Vf			[red-bignum!]
-		padding		[integer!]
-		hash_id		[integer!]
-	]
-	
-	rsa-init:  func [
-		ctx			[rsa-context!]
-		padding		[integer!]
-		hash_id		[integer!]
-	][
-		rsa-set-padding ctx padding hash_id
-	]
-	
-	rsa-set-padding: func [
-		ctx			[rsa-context!]
-		padding		[integer!]
-		hash_id		[integer!]
-	][
-		ctx/padding: padding
-		ctx/hash_id: hash_id
-	]
-	
-	rsa-check-pubkey: func [
-		ctx			[rsa-context!]
-		return:		[logic!]
-		/local
-			
-	][
-		if any [
-			ctx/N/used = 0
-			ctx/E/used = 0
-		][
-			return false
-		]
-		if any [
-			ctx/N/used = 0
-			ctx/E/used = 0
-		][
-			return false
-		]
-	]
 
 	#enum crypto-algorithm! [
 		ALG_CRC32
