@@ -18,6 +18,10 @@ crypto: context [
 	_sha256:	0
 	_sha384:	0
 	_sha512:	0
+	_rsa:		0
+	_pkcs1:		0
+	_oaep:		0
+	_ssl:		0
 
 	init: does [
 		_md5:	symbol/make "md5"
@@ -26,6 +30,10 @@ crypto: context [
 		_sha256:	symbol/make "sha256"
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
+		_rsa:		symbol/make "rsa"
+		_pkcs1:		symbol/make "pkcs1"
+		_oaep:		symbol/make "oaep"
+		_ssl:		symbol/make "ssl"
 	]
 
 	#enum crypto-algorithm! [
@@ -35,6 +43,7 @@ crypto: context [
 		ALG_SHA256
 		ALG_SHA384
 		ALG_SHA512
+		ALG_RSA
 	]
 
 	crc32-table: declare int-ptr!
@@ -125,6 +134,30 @@ crypto: context [
 	][
 		get-digest data len ALG_SHA512
 	]
+	
+	RSA-ENCRYPT:  func [
+		key		[byte-ptr!]
+		keylen	[integer!]
+		data	[byte-ptr!]
+		datalen	[integer!]
+		pad		[integer!]
+		output	[byte-ptr!]
+		return: [integer!]
+	][
+		get-rsa-encrypt key keylen data datalen pad output
+	]
+	
+	RSA-DECRYPT:  func [
+		key		[byte-ptr!]
+		keylen	[integer!]
+		data	[byte-ptr!]
+		datalen	[integer!]
+		pad		[integer!]
+		output	[byte-ptr!]
+		return: [integer!]
+	][
+		get-rsa-decrypt key keylen data datalen pad output
+	]
 
 #switch OS [
 	Windows [
@@ -138,6 +171,43 @@ crypto: context [
 					flags		[integer!]
 					return:		[integer!]
 				]
+				CryptImportKey: "CryptImportKey" [
+					handle-ptr	[int-ptr!]
+					key			[byte-ptr!]
+					keyLen		[integer!]
+					hPubKey		[integer!]
+					flags		[integer!]
+					phKey		[int-ptr!]
+					return:		[integer!]
+				]
+				
+				CryptDestroyKey: "CryptDestroyKey" [
+					hPubKey		[integer!]
+					return:		[integer!]
+				]
+				
+				CryptEncrypt: "CryptEncrypt" [
+					hKey		[integer!]
+					hHash		[byte-ptr!]
+					final		[byte!]
+					flags		[integer!]
+					data		[byte-ptr!]
+					dataLen		[int-ptr!]
+					BufLen		[integer!]
+					return:		[integer!]
+				]
+				
+				CryptDecrypt: "CryptDecrypt" [
+					hKey		[integer!]
+					hHash		[byte-ptr!]
+					final		[byte!]
+					flags		[integer!]
+					data		[byte-ptr!]
+					dataLen		[int-ptr!]
+					BufLen		[integer!]
+					return:		[integer!]
+				]
+				
 				CryptCreateHash: "CryptCreateHash" [
 					provider 	[integer!]
 					algorithm	[integer!]
@@ -173,7 +243,7 @@ crypto: context [
 			]
 		]
 
-		;#define PROV_RSA_FULL 			1                       ;-- Doesn't provide beyond SHA1
+		#define PROV_RSA_FULL 			1
 		#define PROV_RSA_AES            24
 		#define CRYPT_VERIFYCONTEXT     F0000000h				;-- Says we're using ephemeral, not stored, keys
 		#define HP_HASHVAL              0002h  					;-- Get hash value
@@ -182,6 +252,9 @@ crypto: context [
 		#define CALG_SHA_256	        0000800Ch
 		#define CALG_SHA_384	        0000800Dh
 		#define CALG_SHA_512	        0000800Eh
+		#define AT_KEYEXCHANGE          1
+		
+		MS-Enhanced-Crypt-Str: "Microsoft Enhanced Cryptographic Provider v1.0"
 		
 		get-digest: func [
 			data	[byte-ptr!]
@@ -213,6 +286,56 @@ crypto: context [
 			CryptReleaseContext provider 0
 			hash
 		]
+		
+		get-rsa-encrypt: func [
+			key		[byte-ptr!]
+			keylen	[integer!]
+			data	[byte-ptr!]
+			datalen	[integer!]
+			pad		[integer!]
+			output	[byte-ptr!]
+			return: [integer!]
+			/local
+				provider 	[integer!]
+				hKey		[integer!]
+				outputlen	[integer!]
+		][
+			print-line "get-rsa-encrypt"
+			provider: 0
+			hKey: 0
+			outputlen: 0
+			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
+			CryptImportKey :provider key keylen 0 0 :hKey
+			copy-memory output data datalen
+			CryptEncrypt hKey null as byte! 1 0 output :outputlen datalen
+			CryptDestroyKey hKey
+			outputlen
+		]
+		
+		get-rsa-decrypt: func [
+			key		[byte-ptr!]
+			keylen	[integer!]
+			data	[byte-ptr!]
+			datalen	[integer!]
+			pad		[integer!]
+			output	[byte-ptr!]
+			return: [integer!]
+			/local
+				provider 	[integer!]
+				hKey		[integer!]
+				outputlen	[integer!]
+		][
+			provider: 0
+			hKey: 0
+			outputlen: 0
+			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
+			CryptImportKey :provider key keylen 0 0 :hKey
+			copy-memory output data datalen
+			CryptDecrypt hKey null as byte! 1 0 output :outputlen datalen
+			CryptDestroyKey hKey
+			outputlen
+		]
+		
 	]
 	Linux [
 		;-- Using User-space interface for Kernel Crypto API

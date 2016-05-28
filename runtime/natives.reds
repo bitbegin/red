@@ -2072,6 +2072,69 @@ natives: context [
 		]
 	]
 	
+	output: allocate 4096
+	
+	crypto*: func [ 
+		check?    [logic!]
+		_decrypt  [integer!]
+		_private  [integer!]
+		_padding  [integer!]
+		/local
+			arg    	[red-value!]
+			method  [red-word!]
+			key    	[red-binary!]
+			pkey	[byte-ptr!]
+			str    	[red-string!]
+			pad    	[red-word!]
+			bin    	[red-binary!]
+			data  	[byte-ptr!]
+			len    	[integer!]
+			datalen [integer!]
+			mtype  	[integer!]
+			ptype  	[integer!]
+	][
+		#typecheck [crypto _decrypt _private _padding]
+		print-line "crypto*"
+		arg: stack/arguments
+		method: as red-word! arg
+		key: as red-binary! arg + 1
+		str: as red-string! arg + 2
+		len: -1
+		switch TYPE_OF(arg) [
+			TYPE_STRING [
+				datalen: -1
+				data: as byte-ptr! unicode/to-utf8 str :datalen
+			]
+			default [
+				print-line "** Script Error: checksum expected data argument of type: string! binary! file!"
+			]
+		]
+		
+		pkey: binary/rs-head key
+
+		pad: as red-word! arg + _padding
+		mtype: symbol/resolve method/symbol
+		ptype: symbol/resolve pad/symbol
+
+		case [
+			mtype = crypto/_rsa [
+				
+				either _decrypt >= 0 [
+					;-- decrypt
+					len: crypto/RSA-DECRYPT pkey binary/rs-length? key data datalen 0 output
+				][
+					;-- encrypt
+					len: crypto/RSA-ENCRYPT pkey binary/rs-length? key data datalen 0 output
+				]
+				stack/set-last as red-value! binary/load output len
+			]
+			true [
+				print-line "** Script error: invalid argument"
+				exit
+			]
+		]
+	]
+	
 	unset*: func [
 		check?	[logic!]
 		/local
@@ -2559,6 +2622,7 @@ natives: context [
 			:wait*
 			:request-dir*
 			:checksum*
+			:crypto*
 			:unset*
 			:new-line*
 			:new-line?*

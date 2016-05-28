@@ -766,6 +766,20 @@ checksum: make native! [[
 	#get-definition NAT_CHECKSUM
 ]
 
+crypto: make native! [[
+		"Encrypts or decrypts some data"
+		Method   [word!]    "Methods: RSA"
+		key    [binary!]  "The key object"
+		data   [binary! string! file!] "Data to encrypt/decrypt"
+		/decrypt "Decrypts the data (default is to encrypt)"
+		/private "Uses an private key (default is a public key)"
+		/padding "Selects the type of padding to use"
+			padding-type [word! none!] "Type of padding: pkcs1 oaep ssl"
+		return: [binary!] 
+	]
+	#get-definition NAT_CRYPTO
+]
+
 unset: make native! [[
 		"Unsets the value of a word in its current context"
 		word [word! block!]  "Word or block of words"
