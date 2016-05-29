@@ -769,7 +769,7 @@ checksum: make native! [[
 crypto: make native! [[
 		"Encrypts or decrypts some data"
 		Method   [word!]    "Methods: RSA"
-		key    [binary!]  "The key object"
+		key    [string!]  "The key in format of pem"
 		data   [binary! string! file!] "Data to encrypt/decrypt"
 		/decrypt "Decrypts the data (default is to encrypt)"
 		/private "Uses an private key (default is a public key)"

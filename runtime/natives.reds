@@ -2072,7 +2072,6 @@ natives: context [
 		]
 	]
 	
-	output: allocate 4096
 	
 	crypto*: func [ 
 		check?    [logic!]
@@ -2082,7 +2081,7 @@ natives: context [
 		/local
 			arg    	[red-value!]
 			method  [red-word!]
-			key    	[red-binary!]
+			key    	[red-string!]
 			pkey	[byte-ptr!]
 			str    	[red-string!]
 			pad    	[red-word!]
@@ -2090,41 +2089,42 @@ natives: context [
 			data  	[byte-ptr!]
 			len    	[integer!]
 			datalen [integer!]
+			keylen 	[integer!]
 			mtype  	[integer!]
 			ptype  	[integer!]
+			output	[byte-ptr!]
 	][
 		#typecheck [crypto _decrypt _private _padding]
-		print-line "crypto*"
 		arg: stack/arguments
 		method: as red-word! arg
-		key: as red-binary! arg + 1
+		key: as red-string! arg + 1
 		str: as red-string! arg + 2
 		len: -1
-		switch TYPE_OF(arg) [
+		switch TYPE_OF(str) [
 			TYPE_STRING [
 				datalen: -1
+				keylen: -1
 				data: as byte-ptr! unicode/to-utf8 str :datalen
+				pkey: as byte-ptr! unicode/to-utf8 key :keylen
 			]
 			default [
-				print-line "** Script Error: checksum expected data argument of type: string! binary! file!"
+				print-line "** Script Error: crypto expected data argument of type: string! binary! file!"
 			]
 		]
 		
-		pkey: binary/rs-head key
-
 		pad: as red-word! arg + _padding
 		mtype: symbol/resolve method/symbol
 		ptype: symbol/resolve pad/symbol
 
 		case [
 			mtype = crypto/_rsa [
-				
+				output: null
 				either _decrypt >= 0 [
 					;-- decrypt
-					len: crypto/RSA-DECRYPT pkey binary/rs-length? key data datalen 0 output
+					output: crypto/RSA-DECRYPT pkey keylen data datalen 0 :len
 				][
 					;-- encrypt
-					len: crypto/RSA-ENCRYPT pkey binary/rs-length? key data datalen 0 output
+					output: crypto/RSA-ENCRYPT pkey keylen data datalen 0 :len
 				]
 				stack/set-last as red-value! binary/load output len
 			]

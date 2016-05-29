@@ -141,10 +141,10 @@ crypto: context [
 		data	[byte-ptr!]
 		datalen	[integer!]
 		pad		[integer!]
-		output	[byte-ptr!]
-		return: [integer!]
+		retlen	[int-ptr!]
+		return: [byte-ptr!]
 	][
-		get-rsa-encrypt key keylen data datalen pad output
+		get-rsa-encrypt key keylen data datalen pad retlen
 	]
 	
 	RSA-DECRYPT:  func [
@@ -153,17 +153,53 @@ crypto: context [
 		data	[byte-ptr!]
 		datalen	[integer!]
 		pad		[integer!]
-		output	[byte-ptr!]
-		return: [integer!]
+		retlen	[int-ptr!]
+		return: [byte-ptr!]
 	][
-		get-rsa-decrypt key keylen data datalen pad output
+		get-rsa-decrypt key keylen data datalen pad retlen
 	]
 
 #switch OS [
 	Windows [
 		#import [
+			"kernel32.dll" stdcall [
+				GetLastError: "GetLastError" [
+					return: [integer!]
+				]
+			]
+			"Crypt32.dll" stdcall [
+				CryptStringToBinary: "CryptStringToBinaryA" [
+					keystr		[byte-ptr!]
+					strlen		[integer!]
+					flags		[integer!]
+					keybin		[byte-ptr!]
+					binlen		[int-ptr!]
+					optskip		[int-ptr!]
+					optflags	[int-ptr!]
+					return:		[integer!]
+				]
+				CryptBinaryToString: "CryptBinaryToStringA" [
+					keybin		[byte-ptr!]
+					binlen		[integer!]
+					flags		[integer!]
+					keystr		[c-string!]
+					strlen		[int-ptr!]
+					return:		[integer!]
+				]
+				CryptDecodeObjectEx: "CryptDecodeObjectEx" [
+					certtype	[integer!]
+					structtype	[byte-ptr!]
+					keybuff		[byte-ptr!]
+					bufflen		[integer!]
+					flags		[integer!]
+					para		[byte-ptr!]
+					keybin		[byte-ptr!]
+					binlen		[int-ptr!]
+					return:		[integer!]
+				]
+			]
 			"advapi32.dll" stdcall [
-				CryptAcquireContext: "CryptAcquireContextW" [
+				CryptAcquireContext: "CryptAcquireContextA" [
 					handle-ptr	[int-ptr!]
 					container	[c-string!]
 					provider	[c-string!]
@@ -172,7 +208,7 @@ crypto: context [
 					return:		[integer!]
 				]
 				CryptImportKey: "CryptImportKey" [
-					handle-ptr	[int-ptr!]
+					provider	[integer!]
 					key			[byte-ptr!]
 					keyLen		[integer!]
 					hPubKey		[integer!]
@@ -180,12 +216,10 @@ crypto: context [
 					phKey		[int-ptr!]
 					return:		[integer!]
 				]
-				
 				CryptDestroyKey: "CryptDestroyKey" [
 					hPubKey		[integer!]
 					return:		[integer!]
 				]
-				
 				CryptEncrypt: "CryptEncrypt" [
 					hKey		[integer!]
 					hHash		[byte-ptr!]
@@ -196,7 +230,6 @@ crypto: context [
 					BufLen		[integer!]
 					return:		[integer!]
 				]
-				
 				CryptDecrypt: "CryptDecrypt" [
 					hKey		[integer!]
 					hHash		[byte-ptr!]
@@ -207,7 +240,6 @@ crypto: context [
 					BufLen		[integer!]
 					return:		[integer!]
 				]
-				
 				CryptCreateHash: "CryptCreateHash" [
 					provider 	[integer!]
 					algorithm	[integer!]
@@ -253,6 +285,12 @@ crypto: context [
 		#define CALG_SHA_384	        0000800Dh
 		#define CALG_SHA_512	        0000800Eh
 		#define AT_KEYEXCHANGE          1
+		#define CRYPT_STRING_BASE64HEADER	0
+		#define CRYPT_STRING_BASE64		1
+		#define X509_ASN_ENCODING		1
+		#define PKCS_7_ASN_ENCODING		00010000h
+		#define PKCS_RSA_PRIVATE_KEY	43
+		#define RSA_CSP_PUBLICKEYBLOB	19
 		
 		MS-Enhanced-Crypt-Str: "Microsoft Enhanced Cryptographic Provider v1.0"
 		
@@ -287,29 +325,45 @@ crypto: context [
 			hash
 		]
 		
+		outputbuff: allocate 4096
+		outputlen: 0
+		
 		get-rsa-encrypt: func [
 			key		[byte-ptr!]
 			keylen	[integer!]
 			data	[byte-ptr!]
 			datalen	[integer!]
 			pad		[integer!]
-			output	[byte-ptr!]
-			return: [integer!]
+			retlen	[int-ptr!]
+			return: [byte-ptr!]
 			/local
 				provider 	[integer!]
 				hKey		[integer!]
-				outputlen	[integer!]
+				keybin		[byte-ptr!]
+				binlen		[integer!]
+				keybuff		[byte-ptr!]
+				bufflen		[integer!]
 		][
-			print-line "get-rsa-encrypt"
 			provider: 0
 			hKey: 0
-			outputlen: 0
+			outputlen: datalen
+			binlen: 0
+			bufflen: 0
+			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER null :bufflen null null
+			keybuff: allocate bufflen
+			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER keybuff :bufflen null null
+			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! RSA_CSP_PUBLICKEYBLOB keybuff bufflen 0 null null :binlen
+			keybin: allocate binlen
+			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! RSA_CSP_PUBLICKEYBLOB keybuff bufflen 0 null keybin :binlen
 			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
-			CryptImportKey :provider key keylen 0 0 :hKey
-			copy-memory output data datalen
-			CryptEncrypt hKey null as byte! 1 0 output :outputlen datalen
+			CryptImportKey provider keybin binlen 0 0 :hKey
+			copy-memory outputbuff data datalen
+			CryptEncrypt hKey null as byte! 1 0 outputbuff :outputlen (binlen / 8) * 8
 			CryptDestroyKey hKey
-			outputlen
+			free keybin
+			free keybuff
+			retlen/1: outputlen
+			outputbuff
 		]
 		
 		get-rsa-decrypt: func [
@@ -318,22 +372,36 @@ crypto: context [
 			data	[byte-ptr!]
 			datalen	[integer!]
 			pad		[integer!]
-			output	[byte-ptr!]
-			return: [integer!]
+			retlen	[int-ptr!]
+			return: [byte-ptr!]
 			/local
 				provider 	[integer!]
 				hKey		[integer!]
-				outputlen	[integer!]
+				keybin		[byte-ptr!]
+				binlen		[integer!]
+				keybuff		[byte-ptr!]
+				bufflen		[integer!]
 		][
 			provider: 0
 			hKey: 0
-			outputlen: 0
+			outputlen: datalen
+			binlen: 0
+			bufflen: 0
+			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER null :bufflen null null
+			keybuff: allocate bufflen
+			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER keybuff :bufflen null null
+			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! PKCS_RSA_PRIVATE_KEY keybuff bufflen 0 null null :binlen
+			keybin: allocate binlen
+			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! PKCS_RSA_PRIVATE_KEY keybuff bufflen 0 null keybin :binlen
 			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
-			CryptImportKey :provider key keylen 0 0 :hKey
-			copy-memory output data datalen
-			CryptDecrypt hKey null as byte! 1 0 output :outputlen datalen
+			CryptImportKey provider keybin binlen 0 0 :hKey
+			copy-memory outputbuff data datalen
+			CryptDecrypt hKey null as byte! 1 0 outputbuff :outputlen (binlen / 8) * 8
 			CryptDestroyKey hKey
-			outputlen
+			free keybin
+			free keybuff
+			retlen/1: outputlen
+			outputbuff
 		]
 		
 	]
