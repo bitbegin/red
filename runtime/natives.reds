@@ -2081,9 +2081,9 @@ natives: context [
 		/local
 			arg    	[red-value!]
 			method  [red-word!]
-			key    	[red-string!]
+			key    	[red-binary!]
 			pkey	[byte-ptr!]
-			str    	[red-string!]
+			dat    	[red-binary!]
 			pad    	[red-word!]
 			bin    	[red-binary!]
 			data  	[byte-ptr!]
@@ -2097,15 +2097,17 @@ natives: context [
 		#typecheck [crypto _decrypt _private _padding]
 		arg: stack/arguments
 		method: as red-word! arg
-		key: as red-string! arg + 1
-		str: as red-string! arg + 2
+		key: as red-binary! arg + 1
+		dat: as red-binary! arg + 2
 		len: -1
-		switch TYPE_OF(str) [
-			TYPE_STRING [
+		switch TYPE_OF(dat) [
+			TYPE_BINARY [
 				datalen: -1
 				keylen: -1
-				data: as byte-ptr! unicode/to-utf8 str :datalen
-				pkey: as byte-ptr! unicode/to-utf8 key :keylen
+				data: binary/rs-head dat
+				datalen: binary/rs-length? dat
+				pkey: binary/rs-head key
+				keylen: binary/rs-length? key
 			]
 			default [
 				print-line "** Script Error: crypto expected data argument of type: string! binary! file!"

@@ -291,6 +291,8 @@ crypto: context [
 		#define PKCS_7_ASN_ENCODING		00010000h
 		#define PKCS_RSA_PRIVATE_KEY	43
 		#define RSA_CSP_PUBLICKEYBLOB	19
+		#define RSA_PUB_MAGIC			31415352h
+		#define RSA_PRI_MAGIC			32415352h
 		
 		MS-Enhanced-Crypt-Str: "Microsoft Enhanced Cryptographic Provider v1.0"
 		
@@ -341,27 +343,30 @@ crypto: context [
 				hKey		[integer!]
 				keybin		[byte-ptr!]
 				binlen		[integer!]
-				keybuff		[byte-ptr!]
-				bufflen		[integer!]
+				hdr			[int-ptr!]
+				keysize		[integer!]
 		][
 			provider: 0
 			hKey: 0
 			outputlen: datalen
-			binlen: 0
-			bufflen: 0
-			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER null :bufflen null null
-			keybuff: allocate bufflen
-			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER keybuff :bufflen null null
-			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! RSA_CSP_PUBLICKEYBLOB keybuff bufflen 0 null null :binlen
-			keybin: allocate binlen
-			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! RSA_CSP_PUBLICKEYBLOB keybuff bufflen 0 null keybin :binlen
+			keysize: ((keylen + 7) / 8) * 64
+			binlen: keysize / 8
+			keybin: allocate (binlen + 20)
+			hdr: as int-ptr! keybin
+			hdr/1: 0206h
+			hdr/2: A400h
+			hdr/3: RSA_PUB_MAGIC
+			hdr/4: keysize
+			hdr/5: 00010001h
+			copy-memory keybin + 20 key binlen
+			print-line ["binlen: " binlen]
+			dump-memory keybin 1 17
 			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
-			CryptImportKey provider keybin binlen 0 0 :hKey
+			CryptImportKey provider keybin binlen + 20 0 0 :hKey
 			copy-memory outputbuff data datalen
-			CryptEncrypt hKey null as byte! 1 0 outputbuff :outputlen (binlen / 8) * 8
+			CryptEncrypt hKey null as byte! 1 0 outputbuff :outputlen binlen
 			CryptDestroyKey hKey
 			free keybin
-			free keybuff
 			retlen/1: outputlen
 			outputbuff
 		]
@@ -379,27 +384,30 @@ crypto: context [
 				hKey		[integer!]
 				keybin		[byte-ptr!]
 				binlen		[integer!]
-				keybuff		[byte-ptr!]
-				bufflen		[integer!]
+				hdr			[int-ptr!]
+				keysize		[integer!]
 		][
 			provider: 0
 			hKey: 0
 			outputlen: datalen
-			binlen: 0
-			bufflen: 0
-			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER null :bufflen null null
-			keybuff: allocate bufflen
-			CryptStringToBinary key keylen + 1 CRYPT_STRING_BASE64HEADER keybuff :bufflen null null
-			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! PKCS_RSA_PRIVATE_KEY keybuff bufflen 0 null null :binlen
-			keybin: allocate binlen
-			CryptDecodeObjectEx (X509_ASN_ENCODING or PKCS_7_ASN_ENCODING) as byte-ptr! PKCS_RSA_PRIVATE_KEY keybuff bufflen 0 null keybin :binlen
+			keysize: 1024;((keylen + 7) / 8) * 64
+			binlen: keysize / 8
+			keybin: allocate (binlen + 20)
+			hdr: as int-ptr! keybin
+			hdr/1: 0207h
+			hdr/2: A400h
+			hdr/3: RSA_PRI_MAGIC
+			hdr/4: keysize
+			hdr/5: 00010001h
+			copy-memory keybin + 20 key binlen
+			print-line ["binlen: " binlen]
+			dump-memory keybin 1 17
 			CryptAcquireContext :provider null MS-Enhanced-Crypt-Str PROV_RSA_FULL CRYPT_VERIFYCONTEXT
-			CryptImportKey provider keybin binlen 0 0 :hKey
+			CryptImportKey provider keybin binlen + 20 0 0 :hKey
 			copy-memory outputbuff data datalen
-			CryptDecrypt hKey null as byte! 1 0 outputbuff :outputlen (binlen / 8) * 8
+			CryptDecrypt hKey null as byte! 1 0 outputbuff :outputlen binlen
 			CryptDestroyKey hKey
 			free keybin
-			free keybuff
 			retlen/1: outputlen
 			outputbuff
 		]
