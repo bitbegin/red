@@ -257,8 +257,7 @@ bignum: context [
 			size	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
-		
-		dump-bignum big
+
 		s: GET_BUFFER(big)
 		p: as byte-ptr! s/offset
 		either big/used = 0 [
@@ -345,7 +344,7 @@ bignum: context [
 			part: part - 1
 		]
 
-		loop size [
+		loop size - 1 [
 			string/append-char GET_BUFFER(buffer) as-integer p/1
 			bytes: bytes + 1
 			if bytes % 32 = 0 [
@@ -443,6 +442,7 @@ bignum: context [
 			s	 	[series!]
 			p		[byte-ptr!]
 	][
+	#if debug? = yes [
 		s: GET_BUFFER(big)
 		p: as byte-ptr! s/offset
 		print-line [lf "===============dump bignum!==============="]
@@ -454,7 +454,7 @@ bignum: context [
 		]
 		print-line lf
 		print-line ["=============dump bignum! end=============" lf]
-	]
+	]]
 
 	make-at: func [
 		slot		[red-value!]
