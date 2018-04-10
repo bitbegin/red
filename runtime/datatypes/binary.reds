@@ -228,6 +228,37 @@ binary: context [
 		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
 	]
 
+	from-bigint: func [
+		big		[red-bignum!]
+		bin		[red-binary!]
+		/local
+			s	[series!]
+			p	[byte-ptr!]
+			pb	[byte-ptr!]
+			sz	[integer!]
+	][
+		s: GET_BUFFER(big)
+		p: as byte-ptr! s/offset
+
+		either big/used = 0 [
+			sz: 1
+		][
+			sz: big/used * 4
+		]
+		p: p + sz
+
+		make-at as red-value! bin sz
+		s: GET_BUFFER(bin)
+		pb: as byte-ptr! s/offset
+		s/tail: as cell! (pb + sz)
+		
+		loop sz [
+			p: p - 1
+			pb/value: p/value
+			pb: pb + 1
+		]
+	]
+
 	equal?: func [
 		bin1	[red-binary!]
 		bin2	[red-binary!]
@@ -744,6 +775,45 @@ binary: context [
 		load-in src size null
 	]
 
+	trim-head-tail: func [
+		bin				[red-binary!]
+		head?			[logic!]
+		tail?			[logic!]
+		/local
+			s			[series!]
+			unit		[integer!]
+			cur			[byte-ptr!]
+			head		[byte-ptr!]
+			tail		[byte-ptr!]
+	][
+		s:    GET_BUFFER(bin)
+		head: (as byte-ptr! s/offset) + bin/head
+		tail: as byte-ptr! s/tail
+		cur: head
+
+		if any [head? not tail?] [
+			while [
+				all [head < tail head/value = null-byte]
+			][
+				head: head + 1
+			]
+		]
+
+		if any [tail? not head?] [
+			until [
+				tail: tail - 1
+				any [head = tail tail/value <> null-byte]
+			]
+			tail: tail + 1
+		]
+
+		if cur <> head [
+			move-memory cur head (as-integer tail - head)
+		]
+		cur: cur + (as-integer tail - head)
+		s/tail: as red-value! cur
+	]
+
 	;--- Actions ---
 
 	to: func [
@@ -796,6 +866,7 @@ binary: context [
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
 			]
+			TYPE_BIGNUM [from-bigint as red-bignum! spec proto]
 			TYPE_ISSUE [from-issue as red-word! spec proto]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
@@ -978,6 +1049,27 @@ binary: context [
 			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		as red-value! bin
+	]
+
+	trim: func [
+		bin			[red-binary!]
+		head?		[logic!]
+		tail?		[logic!]
+		auto?		[logic!]
+		lines?		[logic!]
+		all?		[logic!]
+		with-arg	[red-value!]
+		return:		[red-series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
+
+		case [
+			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			any  [auto? lines?][--NOT_IMPLEMENTED--]
+			true [trim-head-tail bin head? tail?]
+		]
+		ownership/check as red-value! bin words/_trim null bin/head 0
+		as red-series! bin
 	]
 
 	change-range: func [
@@ -1214,7 +1306,7 @@ binary: context [
 			INHERIT_ACTION	;tail
 			INHERIT_ACTION	;tail?
 			INHERIT_ACTION	;take
-			null			;trim
+			:trim
 			;-- I/O actions --
 			null			;create
 			null			;close

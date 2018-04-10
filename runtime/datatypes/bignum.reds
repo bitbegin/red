@@ -372,8 +372,8 @@ bignum: context [
 		/local
 			left	[red-bignum!]
 			right	[red-bignum!]
-			big		[red-bignum!]
-			rem		[red-bignum!]
+			big		[red-bignum! value]
+			rem		[red-bignum! value]
 			int		[red-integer!]
 			ret		[integer!]
 	][
@@ -388,7 +388,7 @@ bignum: context [
 			TYPE_OF(right) = TYPE_BIGNUM
 		]
 		
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		switch TYPE_OF(right) [
 			TYPE_INTEGER [
 				switch type [
@@ -424,7 +424,7 @@ bignum: context [
 						mul left right big
 					]
 					OP_DIV [
-						rem: make-at stack/push* 1
+						make-at as red-value! :rem 1
 						div big rem left right
 					]
 					OP_REM [
@@ -597,7 +597,7 @@ bignum: context [
 		big2		[red-bignum!]
 		ret			[red-bignum!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			s1	 	[series!]
 			s2	 	[series!]
@@ -611,7 +611,7 @@ bignum: context [
 		s2: GET_BUFFER(big2)
 		p2: as int-ptr! s2/offset
 
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		copy big1 big
 		big/sign: 1
 		grow big big2/used
@@ -689,7 +689,7 @@ bignum: context [
 			len		[integer!]
 			c		[integer!]
 			z		[integer!]
-			big		[red-bignum!]
+			big		[red-bignum! value]
 	][
 		s1: GET_BUFFER(big1)
 		s2: GET_BUFFER(big2)
@@ -698,7 +698,7 @@ bignum: context [
 
 		if big1/used < big2/used [--NOT_IMPLEMENTED--]
 
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		copy big1 big
 		big/sign: 1
 		s: GET_BUFFER(big)
@@ -789,11 +789,11 @@ bignum: context [
 		int			[integer!]
 		ret		 	[red-bignum!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -812,11 +812,11 @@ bignum: context [
 		int			[integer!]
 		ret		 	[red-bignum!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -922,7 +922,7 @@ bignum: context [
 		big2		[red-bignum!]
 		ret			[red-bignum!]
 		/local
-			big		[red-bignum!]
+			big		[red-bignum! value]
 			s	 	[series!]
 			s1	 	[series!]
 			s2	 	[series!]
@@ -942,7 +942,7 @@ bignum: context [
 		len2: big2/used
 
 		len: len1 + len2 + 1
-		big: make-at stack/push* len
+		make-at as red-value! :big len
 		big/used: len
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -965,11 +965,11 @@ bignum: context [
 		int			[integer!]
 		ret			[red-bignum!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -988,11 +988,11 @@ bignum: context [
 		uint		[integer!]
 		ret			[red-bignum!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		big/sign: 1
 		s: GET_BUFFER(big)
@@ -1115,11 +1115,11 @@ bignum: context [
 		B	 		[red-bignum!]
 		return:	 	[logic!]
 		/local
-			X		[red-bignum!]
-			Y		[red-bignum!]
-			Z		[red-bignum!]
-			T1		[red-bignum!]
-			T2		[red-bignum!]
+			X		[red-bignum! value]
+			Y		[red-bignum! value]
+			Z		[red-bignum! value]
+			T1		[red-bignum! value]
+			T2		[red-bignum! value]
 			i		[integer!]
 			n		[integer!]
 			t		[integer!]
@@ -1146,33 +1146,33 @@ bignum: context [
 			return true
 		]
 
-		X: make-at stack/push* 1
-		Y: make-at stack/push* 1
-		Z: make-at stack/push* (A/used + 2)
-		T1: make-at stack/push* 2
-		T2: make-at stack/push* 3
+		make-at as red-value! :X 1
+		make-at as red-value! :Y 1
+		make-at as red-value! :Z (A/used + 2)
+		make-at as red-value! :T1 2
+		make-at as red-value! :T2 3
 
-		copy A X
-		copy B Y
+		copy A :X
+		copy B :Y
 		X/sign: 1
 		Y/sign: 1
 		Z/used: A/used + 2
 		T1/used: 2
 		T2/used: 3
 		
-		k: (bitlen Y) % biL
+		k: (bitlen :Y) % biL
 		
 		either k < (biL - 1) [
 			k: biL - 1 - k
-			left-shift X k
-			left-shift Y k
+			left-shift :X k
+			left-shift :Y k
 		][
 			k: 0
 		]
 
 		n: X/used
 		t: Y/used
-		left-shift Y (biL * (n - t))
+		left-shift :Y (biL * (n - t))
 		
 		s: GET_BUFFER(X)
 		px: as int-ptr! s/offset
@@ -1185,12 +1185,12 @@ bignum: context [
 		s: GET_BUFFER(T2)
 		pt2: as int-ptr! s/offset
 
-		while [(compare X Y) >= 0][
+		while [(compare :X :Y) >= 0][
 			tmp: n - t + 1
 			pz/tmp: pz/tmp + 1
-			sub X Y X
+			sub :X :Y :X
 		]
-		right-shift Y (biL * (n - t))
+		right-shift :Y (biL * (n - t))
 
 		i: n
 		while [i > t][
@@ -1205,7 +1205,7 @@ bignum: context [
 			pz/tmp: pz/tmp + 1
 			until [
 				pz/tmp: pz/tmp - 1
-				lset T1 0
+				lset :T1 0
 				s: GET_BUFFER(T1)
 				pt1: as int-ptr! s/offset
 				pt1/1: either t < 2 [
@@ -1217,7 +1217,7 @@ bignum: context [
 				pt1/2: py/t
 				T1/used: 2
 
-				mul-uint T1 pz/tmp T1
+				mul-uint :T1 pz/tmp :T1
 
 				lset T2 0
 				s: GET_BUFFER(T2)
@@ -1237,21 +1237,21 @@ bignum: context [
 				pt2/3: px/i
 				T2/used: 3
 				
-				(compare T1 T2) <= 0
+				(compare :T1 :T2) <= 0
 			]
 
-			mul-uint Y pz/tmp T1
-			left-shift T1 (biL * (tmp - 1))
-			sub X T1 X
+			mul-uint :Y pz/tmp :T1
+			left-shift :T1 (biL * (tmp - 1))
+			sub :X :T1 :X
 			s: GET_BUFFER(X)
 			px: as int-ptr! s/offset
-			if (compare-int X 0) < 0 [
-				copy Y T1
+			if (compare-int :X 0) < 0 [
+				copy :Y :T1
 				;s: GET_BUFFER(T1)
 				;pt1: as int-ptr! s/offset
 				
-				left-shift T1 (biL * (tmp - 1))
-				add X T1 X
+				left-shift :T1 (biL * (tmp - 1))
+				add :X :T1 :X
 				s: GET_BUFFER(X)
 				px: as int-ptr! s/offset
 				pz/tmp: pz/tmp - 1
@@ -1281,11 +1281,11 @@ bignum: context [
 		int	 		[integer!]
 		return:	 	[logic!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -1305,7 +1305,7 @@ bignum: context [
 		B	 		[red-bignum!]
 		return:	 	[logic!]
 		/local
-			Q		[red-bignum!]
+			Q		[red-bignum! value]
 	][
 		;-- temp error
 		if (compare-int B 0) < 0 [
@@ -1314,7 +1314,7 @@ bignum: context [
 			return false
 		]
 		
-		Q: make-at stack/push* 1
+		make-at as red-value! :Q 1
 		div Q R A B
 		
 		if (compare-int R 0) < 0 [
@@ -1418,11 +1418,11 @@ bignum: context [
 		int			[integer!]
 		return:	 	[integer!]
 		/local
-			big	 	[red-bignum!]
+			big	 	[red-bignum! value]
 			s	 	[series!]
 			p		[int-ptr!]
 	][
-		big: make-at stack/push* 1
+		make-at as red-value! :big 1
 		big/used: 1
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
@@ -1433,7 +1433,7 @@ bignum: context [
 			big/sign: -1
 			0 - int
 		]
-		compare big1 big
+		compare big1 :big
 	]
 
 	;--- Special Functions
@@ -1777,16 +1777,27 @@ bignum: context [
 	]
 
 	;--- Actions ---
-	
+
 	make: func [
-		proto	 	[red-value!]
-		spec	 	[red-value!]
-		return:	 	[red-bignum!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-bignum!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/make"]]
+		as red-bignum! to proto spec type
+	]
+
+	to: func [
+		proto		[red-value!]
+		spec		[red-value!]
+		type		[integer!]								;-- target type
+		return:		[red-value!]
 		/local
-			int	 	[red-integer!]
-			bin	 	[red-binary!]
-			big	 	[red-bignum!]
-			s	 	[series!]
+			int		[red-integer!]
+			bin		[red-binary!]
+			big		[red-bignum!]
+			s		[series!]
 			sbin	[series!]
 			pbig	[byte-ptr!]
 			head	[byte-ptr!]
@@ -1794,7 +1805,7 @@ bignum: context [
 			len		[integer!]
 			size	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "bignum/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "bignum/to"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
@@ -1832,7 +1843,7 @@ bignum: context [
 			default [--NOT_IMPLEMENTED--]
 		]
 
-		big
+		as red-value! big
 	]
 
 	form: func [
@@ -1874,9 +1885,9 @@ bignum: context [
 		return:		[integer!]
 		/local
 			ret		[integer!]
-			R		[red-bignum!]
+			R		[red-bignum! value]
 			pi		[int-ptr!]
-			Q		[red-bignum!]
+			Q		[red-bignum! value]
 			pb		[byte-ptr!]
 	][
 		if any [
@@ -1888,11 +1899,11 @@ bignum: context [
 
 		ret: 0
 		module-int :ret big radix
-		R: make-at stack/push* 1
-		Q: make-at stack/push* 1
-		div-int Q R big radix
-		if 0 <> compare-int Q 0 [
-			write-hlp Q radix buf
+		make-at as red-value! :R 1
+		make-at as red-value! :Q 1
+		div-int :Q :R big radix
+		if 0 <> compare-int :Q 0 [
+			write-hlp :Q radix buf
 		]
 
 		pi: as int-ptr! buf
@@ -1914,7 +1925,7 @@ bignum: context [
 		olen		[red-integer!]
 		return: 	[integer!]
 		/local
-			T		[red-bignum!]
+			T		[red-bignum! value]
 			n		[integer!]
 			p		[integer!]
 			p2		[byte-ptr!]
@@ -1986,13 +1997,13 @@ bignum: context [
 				i: i - 1
 			]
 		][
-			T: make-at stack/push* 1
-			copy big T
+			make-at as red-value! :T 1
+			copy big :T
 			if T/sign = -1 [
 				T/sign: 1
 			]
 
-			write-hlp T radix as integer! :p
+			write-hlp :T radix as integer! :p
 		]
 
 		p2: as byte-ptr! p
@@ -2109,7 +2120,7 @@ bignum: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
