@@ -17,6 +17,7 @@ Red/System [
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
 #define TBOX_METRICS_CHAR_INDEX?	5
+#define TBOX_METRICS_OFFSET_LOWER	6
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -201,6 +202,7 @@ OS-text-box-metrics: func [
 		inside?			[integer!]
 		blk				[red-block!]
 		int				[red-integer!]
+		text			[red-string!]
 		pos				[red-pair!]
 		values			[red-value!]
 		hr				[integer!]
@@ -212,12 +214,19 @@ OS-text-box-metrics: func [
 	dl: as IDWriteTextLayout this/vtbl
 
 	as red-value! switch type [
-		TBOX_METRICS_OFFSET? [
+		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_OFFSET_LOWER [
+			text: as red-string! int + 3
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
+			hr: adjust-index text int/value - 1
 			hit: as DWRITE_HIT_TEST_METRICS :left
-			dl/HitTestTextPosition this int/value - 1 no :x :y hit
+			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
+			if type = TBOX_METRICS_OFFSET_LOWER [
+				x: x + hit/width
+				y: y + hit/height
+			]
 			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
 		]
 		TBOX_METRICS_INDEX?
@@ -284,34 +293,42 @@ OS-text-box-layout: func [
 		bool	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
+		pval	[red-value!]
 		vec		[red-vector!]
 		obj		[red-object!]
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
+		old-fmt	[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_EXT2
+	state: as red-block! values + FACE_OBJ_EXT3
+	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 
 	either TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state	;-- release previous text layout
+		pval: block/rs-head state
+		int: as red-integer! pval
 		layout: as this! int/value
-		COM_SAFE_RELEASE(IUnk layout)
+		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
 		int: int + 1
-		fmt: as this! int/value
+		old-fmt: as this! int/value
+		if old-fmt <> fmt [
+			COM_SAFE_RELEASE(IUnk old-fmt)
+			int/value: as-integer fmt
+		]
 		int: int + 1
 		if null? target [target: as int-ptr! int/value]
-		bool: as red-logic! int + 1
+		bool: as red-logic! int + 2
 		bool/value: false
 	][
-		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
-		;set-line-spacing fmt
-		block/make-at state 4
+		block/make-at state 5
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
 		handle/make-in state 0						;-- 3: target
-		logic/make-in state false					;-- 4: layout?
+		none/make-in state							;-- 4: text
+		logic/make-in state false					;-- 5: layout?
+		pval: block/rs-head state
 	]
 
 	if null? target [
@@ -323,7 +340,7 @@ OS-text-box-layout: func [
 			hWnd: hidden-hwnd
 		]
 		target: get-hwnd-render-target hWnd
-		handle/make-at (block/rs-head state) + 2 as-integer target
+		handle/make-at pval + 2 as-integer target
 	]
 
 	vec: as red-vector! target + 3
@@ -331,6 +348,7 @@ OS-text-box-layout: func [
 
 	set-text-format fmt as red-object! values + FACE_OBJ_PARA
 	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
+	set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE
@@ -340,8 +358,9 @@ OS-text-box-layout: func [
 		w: 0 h: 0
 	]
 
+	copy-cell as red-value! str pval + 3			;-- save text
 	layout: create-text-layout str fmt w h
-	handle/make-at block/rs-head state as-integer layout
+	handle/make-at pval as-integer layout
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
@@ -421,4 +440,31 @@ txt-box-draw-background: func [
 		p: p + 3
 	]
 	vector/rs-clear styles
+]
+
+adjust-index: func [
+	str		[red-string!]
+	idx		[integer!]
+	return: [integer!]
+	/local
+		s		[series!]
+		unit	[integer!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		i		[integer!]
+		c		[integer!]
+][
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	if unit = UCS-4 [
+		head: (as byte-ptr! s/offset) + (str/head << 2)
+		tail: head + (idx * 4)
+		i: 0
+		while [head < tail][
+			c: string/get-char head unit
+			if c >= 00010000h [idx: idx + 1]
+			head: head + unit
+		]
+	]
+	idx
 ]

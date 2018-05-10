@@ -1093,7 +1093,21 @@ WndProc: func [
 			]
 		]
 		WM_ACTIVATE [
-			if all [type = window WIN32_LOWORD(wParam) <> 0][set-selected-focus hWnd return 0]
+			if type = window [
+				either WIN32_LOWORD(wParam) <> 0 [
+					if current-msg <> null [
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_FOCUS
+					]
+					set-selected-focus hWnd
+					return 0
+				][
+					if current-msg <> null [
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_UNFOCUS
+					]
+				]
+			]
 		]
 		WM_GESTURE [
 			handle: hWnd

@@ -1178,7 +1178,7 @@ init-window: func [
 	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
-	if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
+	;if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
 ]
 
 transparent-base?: func [
@@ -1308,6 +1308,7 @@ make-text-list: func [
 	face		[red-object!]
 	container	[integer!]
 	rc			[NSRect!]
+	border?		[logic!]
 	/local
 		id		[integer!]
 		obj		[integer!]
@@ -1323,6 +1324,8 @@ make-text-list: func [
 	;CFRelease id
 	objc_msgSend [column sel_getUid "setWidth:" rc/w]
 
+	obj: either border? [NSBezelBorder][NSNoBorder]
+	objc_msgSend [container sel_getUid "setBorderType:" obj]
 	objc_msgSend [container sel_getUid "setAutohidesScrollers:" yes]
 	;objc_msgSend [container sel_getUid "setHasHorizontalScroller:" yes]
 	objc_msgSend [container sel_getUid "setHasVerticalScroller:" yes]
@@ -1668,6 +1671,7 @@ OS-make-view: func [
 		hWnd	[integer!]
 		rc		[NSRect!]
 		flt		[float!]
+		p		[ext-class!]
 ][
 	stack/mark-native words/_body
 
@@ -1687,6 +1691,7 @@ OS-make-view: func [
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
+	p:		  null
 
 	case [
 		any [
@@ -1729,12 +1734,13 @@ OS-make-view: func [
 			class: "RedBox"
 		]
 		sym = camera [class: "RedCamera"]
-		sym = usb-device [
-			class: "RedUSBDev"
-			show?/value: false
-		]
 		true [											;-- search in user-defined classes
-			fire [TO_ERROR(script face-type) type]
+			p: find-class type
+			either null? p [
+				fire [TO_ERROR(script face-type) type]
+			][
+				class: p/class
+			]
 		]
 	]
 
@@ -1789,7 +1795,7 @@ OS-make-view: func [
 			make-area face obj rc caption bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		sym = text-list [
-			make-text-list face obj rc
+			make-text-list face obj rc bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
@@ -1866,10 +1872,11 @@ OS-make-view: func [
 		sym = camera [
 			init-camera obj rc data
 		]
-		sym = usb-device [
-			monitor-usb-devs as int-ptr! obj
+		true [											;-- search in user-defined classes
+			if p <> null [
+				p/init-proc as int-ptr! obj values
+			]
 		]
-		true [0]
 	]
 
 	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
@@ -1921,7 +1928,7 @@ OS-update-view: func [
 
 	if all [
 		type = rich-text
-		update-rich-text state as red-block! values + FACE_OBJ_EXT2
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
 	][exit]
 
 	s: GET_BUFFER(state)

@@ -140,6 +140,14 @@ DrawLine*: alias function! [
 	style		[integer!]
 ]
 
+DrawRectangle*: alias function! [
+	this		[this!]
+	rect		[D2D_RECT_F]
+	brush		[integer!]
+	strokeWidth [float32!]
+	strokeStyle [integer!]
+]
+
 FillRectangle*: alias function! [
 	this		[this!]
 	rect		[D2D_RECT_F]
@@ -261,7 +269,7 @@ ID2D1HwndRenderTarget: alias struct! [
 	CreateLayer						[integer!]
 	CreateMesh						[integer!]
 	DrawLine						[DrawLine*]
-	DrawRectangle					[integer!]
+	DrawRectangle					[DrawRectangle*]
 	FillRectangle					[FillRectangle*]
 	DrawRoundedRectangle			[integer!]
 	FillRoundedRectangle			[integer!]
@@ -953,7 +961,7 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [integer/make-at as red-value! h-font format]
+	if save? [handle/make-at as red-value! h-font format]
 	format
 ]
 
@@ -1006,7 +1014,9 @@ set-tab-size: func [
 
 set-line-spacing: func [
 	fmt		[this!]
+	int		[red-integer!]
 	/local
+		IUnk			[IUnknown]
 		dw				[IDWriteFactory]
 		lay				[integer!]
 		layout			[this!]
@@ -1020,17 +1030,21 @@ set-line-spacing: func [
 		tf				[IDWriteTextFormat]
 		dl				[IDWriteTextLayout]
 		lm				[DWRITE_LINE_METRICS]
+		type			[integer!]
 ][
+	type: TYPE_OF(int)
+	if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][exit]
+
 	left: 73 lineCount: 0 lay: 0 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
-
 	layout: as this! lay
 	dl: as IDWriteTextLayout layout/vtbl
 	lm: as DWRITE_LINE_METRICS :left
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
-	tf/SetLineSpacing fmt 1 lm/height + as float32! 1.0 lm/baseline
+	tf/SetLineSpacing fmt 1 get-float32 int lm/baseline
+	COM_SAFE_RELEASE(IUnk layout)
 ]
 
 create-text-layout: func [

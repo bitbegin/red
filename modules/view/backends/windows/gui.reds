@@ -1439,11 +1439,6 @@ OS-make-view: func [
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
 		]
-		sym = usb-device [		;-- temporary
-			class: #u16 "RedUSBDev"
-			flags: WS_POPUP
-			ws-flags: WS_EX_TOOLWINDOW
-		]
 		true [											;-- search in user-defined classes
 			p: find-class type
 			either null? p [
@@ -1851,25 +1846,34 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either type = caret [
-		either bool/value [update-caret hWnd values][DestroyCaret]
-		change-visible hWnd bool/value caret
+	either all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		change-visible hWnd values bool/value base
 	][
 		EnableWindow hWnd bool/value
 	]
 ]
 
 change-visible: func [
-	hWnd  [handle!]
-	show? [logic!]
-	type  [integer!]
+	hWnd	[handle!]
+	values	[red-value!]
+	show?	[logic!]
+	type	[integer!]
 	/local
 		value [integer!]
 ][
+	if all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		either show? [update-caret hWnd values][DestroyCaret]
+	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
 	ShowWindow hWnd value
 	unless win8+? [update-layered-window hWnd null null null -1]
-	
+
 	if type = group-box [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		ShowWindow hWnd value
@@ -1914,8 +1918,9 @@ change-selection: func [
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera hWnd
 			][
-				select-camera hWnd int/value - 1
-				toggle-preview hWnd true
+				if select-camera hWnd int/value - 1 [
+					toggle-preview hWnd true
+				]
 			]
 		]
 		sym = text-list [
@@ -2027,6 +2032,9 @@ change-data: func [
 				as red-integer! values + FACE_OBJ_SELECTED
 				type = drop-list
 		]
+		type = rich-text [
+			InvalidateRect hWnd null 0
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -2042,16 +2050,14 @@ change-rate: func [
 		TYPE_INTEGER [
 			int: as red-integer! rate
 			if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null 1000 / int/value :TimerProc
+			SetTimer hWnd 1 1000 / int/value :TimerProc
 		]
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null as-integer tm/time * 1000.0 :TimerProc
+			SetTimer hWnd 1 as-integer tm/time * 1000.0 :TimerProc
 		]
-		TYPE_NONE [KillTimer hWnd null]
+		TYPE_NONE [KillTimer hWnd 1]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 	]
 ]
@@ -2109,7 +2115,7 @@ change-parent: func [
 	unless tab-panel? [bool/value: parent <> null]
 
 	either null? parent [
-		change-visible hWnd no sym
+		change-visible hWnd values no sym
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -2241,7 +2247,7 @@ OS-update-view: func [
 
 	if all [
 		type = rich-text
-		update-rich-text state as red-block! values + FACE_OBJ_EXT2
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
 	][exit]
 
 	s: GET_BUFFER(state)
@@ -2267,7 +2273,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd bool/value type
+		change-visible hWnd values bool/value type
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
@@ -2280,7 +2286,7 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if any [type = base type = panel type = window][
+		if any [type = base type = panel type = window type = rich-text][
 			update-base hWnd null null values
 		]
 	]

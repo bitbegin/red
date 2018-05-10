@@ -91,6 +91,7 @@ gui-console-ctx: context [
 					paste		[terminal/paste]
 					select-all	[terminal/select-all]
 				]
+				'done
 			]
 		]
 
@@ -112,6 +113,7 @@ gui-console-ctx: context [
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
+				'done
 			]
 		]
 	]
@@ -124,7 +126,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
 
 	setup-faces: does [
-		append win/pane reduce [console tips caret]
+		console/pane: reduce [caret]
+		append win/pane reduce [console tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -169,6 +172,16 @@ gui-console-ctx: context [
 				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
 			]
+			on-focus: func [face [object!] event [event!]][
+				caret/color: caret-clr
+				unless caret/visible? [caret/visible?: yes]
+				caret/rate: 2
+				terminal/refresh
+			]
+			on-unfocus: func [face [object!] event [event!]][
+				if caret/visible? [caret/visible?: no]
+				caret/rate: none
+			]
 		]
 		tips/parent: win
 	]
@@ -179,7 +192,9 @@ gui-console-ctx: context [
 	]
 
 	add-gui-print: routine [][
-		dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
+		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
+			as int-ptr! :rs-print-gui
+		]
 	]
 
 	launch: func [/local svs][

@@ -439,7 +439,7 @@ help-ctx: context [
 		word [word! path! map!]
 		/local value
 	][
-		if not map? word [
+		if map? get word [
 			_print [uppercase form word "is a map! with the following words and values:"]
 		]
 		map: either map? word [word][get word]
@@ -469,7 +469,7 @@ help-ctx: context [
 		word [word! path! object!]
 		/local value
 	][
-		if not object? word [
+		if object? get word [
 			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
@@ -529,8 +529,8 @@ help-ctx: context [
 					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
-					object? :value [show-object-help :value]
-					map? :value [show-map-help :value]
+					object? :value [show-object-help word]
+					map? :value [show-map-help word]
 					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
@@ -595,14 +595,14 @@ help-ctx: context [
 		/local git plt
 	][
 		git: system/build/git
-		plt: system/platform
+		plt: os-info
 		either debug [
 			print either git [
 				compose [
 					"-----------RED & PLATFORM VERSION-----------" lf
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
-					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! plt/OS
+					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! system/platform
 					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
 					"build:" mold plt/build "]^/"
 					"--------------------------------------------"
@@ -613,7 +613,7 @@ help-ctx: context [
 		][
 			prin [
 				'Red system/version
-				'for plt/OS
+				'for system/platform
 				'built any [all [git git/date] system/build/date]
 			]
 			if git [

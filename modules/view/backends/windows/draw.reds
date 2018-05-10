@@ -669,11 +669,11 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
+		control/x: pt/x
+		control/y: pt/y
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
-		control/x: pt/x
-		control/y: pt/y
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
@@ -1138,6 +1138,8 @@ OS-draw-line: func [
 		nb		[integer!]
 		pair	[red-pair!]
 ][
+	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
+
 	pt: ctx/other/edges
 	pair:  point
 	nb:	   0
@@ -1189,6 +1191,8 @@ OS-draw-fill-pen: func [
 ][
 	if all [off? ctx/brush? <> off?][exit]
 
+	if ctx/other/D2D? [OS-draw-fill-pen-d2d ctx color off? exit]
+
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
@@ -1205,6 +1209,8 @@ OS-draw-line-width: func [
 	/local
 		width-v [float32!]
 ][
+	if ctx/other/D2D? [OS-draw-line-width-d2d ctx width exit]
+
 	width-v: get-float32 as red-integer! width
 	if ctx/pen-width <> width-v [
 		ctx/pen-width: width-v
@@ -1267,6 +1273,10 @@ OS-draw-box: func [
 		radius	[red-integer!]
 		rad		[integer!]
 ][
+	if ctx/other/D2D? [
+		OS-draw-box-d2d ctx upper lower
+		exit
+	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
