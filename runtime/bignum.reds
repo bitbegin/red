@@ -215,7 +215,7 @@ bignum: context [
 		/local
 			p		[int-ptr!]
 	][
-		;set-memory as byte-ptr! big/data null-byte big/size * 4
+		set-memory as byte-ptr! big/data null-byte big/size * 4
 
 		p: big/data
 		either int >= 0 [
@@ -402,6 +402,58 @@ bignum: context [
 		if big/used < i [
 			big/used: i
 		]
+		big
+	]
+
+	sub-hlp: func [
+		n			[integer!]
+		s			[int-ptr!]
+		d			[int-ptr!]
+		/local
+			c		[integer!]
+			z		[integer!]
+	][
+		c: 0
+		loop n [
+			z: as integer! (uint-less d/1 c)
+			d/1: d/1 - c
+			c: z + as integer! (uint-less d/1 s/1)
+			d/1: d/1 - s/1
+			s: s + 1
+			d: d + 1
+		]
+		
+		while [c <> 0][
+			z: as integer! (uint-less d/1 c)
+			d/1: d/1 - c
+			c: z
+			d: d + 1
+		]
+	]
+
+	;-- big1 must large than big2
+	absolute-sub: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			c		[integer!]
+			z		[integer!]
+			big		[bignum!]
+	][
+		if big1/used < big2/used [
+			fire [
+				TO_ERROR(script out-of-range)
+				integer/push big2/used
+			]
+		]
+
+		big: bn-copy big1 big1/used
+		big/sign: 1
+
+		sub-hlp big2/used big2/data big/data
+
+		shrink big
 		big
 	]
 
