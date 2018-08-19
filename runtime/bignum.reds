@@ -506,4 +506,26 @@ bignum: context [
 		big
 	]
 
+	sub: func [
+		big1		[red-bignum!]
+		big2		[red-bignum!]
+		return:		[red-bignum!]
+		/local
+			big		[bignum!]
+	][
+		either big1/sign = big2/sign [
+			either (absolute-compare big1 big2) >= 0 [
+				big: absolute-sub big1 big2
+				big/sign: big1/sign
+			][
+				big: absolute-sub big2 big1
+				big/sign: 0 - big1/sign
+			]
+		][
+			big: absolute-add big1 big2
+			big/sign: big1/sign
+		]
+		big
+	]
+
 ]
