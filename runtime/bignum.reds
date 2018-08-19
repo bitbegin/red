@@ -576,4 +576,104 @@ bignum: context [
 		ret
 	]
 
+	mul-hlp: func [
+		i			[integer!]
+		s	 		[int-ptr!]
+		d	 		[int-ptr!]
+		b			[integer!]
+		/local
+			c		[integer!]
+			t		[integer!]
+			s0		[integer!]
+			s1		[integer!]
+			b0		[integer!]
+			b1		[integer!]
+			r0		[integer!]
+			r1		[integer!]
+			rx		[integer!]
+			ry		[integer!]
+	][
+		c: 0
+		t: 0
+
+		while [i >= 16][
+			MULADDC_INIT
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_CORE   MULADDC_CORE
+	        MULADDC_STOP
+			i: i - 16
+		]
+
+		while [i >= 8][
+			MULADDC_INIT
+			MULADDC_CORE   MULADDC_CORE
+			MULADDC_CORE   MULADDC_CORE
+
+			MULADDC_CORE   MULADDC_CORE
+			MULADDC_CORE   MULADDC_CORE
+			MULADDC_STOP
+			i: i - 8
+		]
+
+		while [i > 0][
+			MULADDC_INIT
+			MULADDC_CORE
+			MULADDC_STOP
+			i: i - 1
+		]
+
+		t: t + 1
+
+		until [
+			d/1: d/1 + c
+			c: as integer! (uint-less d/1  c)
+			d: d + 1
+			c = 0
+		]
+	]
+
+	mul: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			p		[int-ptr!]
+			p1		[int-ptr!]
+			p2		[int-ptr!]
+			len1	[integer!]
+			len2	[integer!]
+			pt		[int-ptr!]
+			len		[integer!]
+	][
+		p1: big1/data
+		p2: big2/data
+		len1: big1/used
+		len2: big2/used
+
+		len: len1 + len2 + 1
+		big: bn-alloc len
+		big/used: len
+		p: big/data
+
+		len1: len1 + 1
+		while [len2 > 0]
+		[
+			pt: p2 + len2 - 1
+			mul-hlp (len1 - 1) p1 (p + len2 - 1) pt/1
+			len2: len2 - 1
+		]
+
+		big/sign: big1/sign * big2/sign
+		shrink big
+		big
+	]
+
 ]
