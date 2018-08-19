@@ -528,4 +528,28 @@ bignum: context [
 		big
 	]
 
+	add-int: func [
+		big1		[bignum!]
+		int			[integer!]
+		return: 	[bignum!]
+		/local
+			big		[bignum!]
+			p		[int-ptr!]
+			ret		[bignum!]
+	][
+		big: bn-alloc 4
+		big/used: 1
+		p: big/data
+		p/1: either int >= 0 [
+			big/sign: 1
+			int
+		][
+			big/sign: -1
+			0 - int
+		]
+		ret: add big1 big
+		free big
+		ret
+	]
+
 ]
