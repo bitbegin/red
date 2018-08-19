@@ -88,15 +88,17 @@ bignum: context [
 		return:				[bignum!]
 		/local
 			size			[integer!]
+			cp-size			[integer!]
 			ret				[bignum!]
 	][
 		if big = null [return null]
 		size: either expand > big/size [expand][big/size]
 		ret: bn-alloc size
 		ret/size: size
-		ret/used: size
+		ret/used: expand
 		ret/sign: big/sign
-		copy-memory as byte-ptr! ret/data as byte-ptr! big/data ret/size * 4
+		cp-size: either expand > big/used [big/used][expand]
+		copy-memory as byte-ptr! ret/data as byte-ptr! big/data cp-size * 4
 		ret
 	]
 
@@ -207,6 +209,156 @@ bignum: context [
 		return false
 	]
 
+	lset: func [
+		big			[bignum!]
+		int			[integer!]
+		/local
+			p		[int-ptr!]
+	][
+		;set-memory as byte-ptr! big/data null-byte big/size * 4
 
+		p: big/data
+		either int >= 0 [
+			p/value: int
+			big/sign: 1
+		][
+			p/value: 0 - int
+			big/sign: -1
+		]
+		big/used: 1
+	]
+
+	left-shift: func [
+		big			[bignum!]
+		count		[integer!]
+		return:		[bignum!]
+		/local
+			i		[integer!]
+			v0		[integer!]
+			t1		[integer!]
+			r0		[integer!]
+			r1		[integer!]
+			size	[integer!]
+			p		[int-ptr!]
+			p1		[int-ptr!]
+			p2		[int-ptr!]
+	][
+		r0: 0
+		v0: count / biL
+		t1: count and (biL - 1)
+		i: bitlen? big
+		i: i + count
+		p: big/data
+
+		if (big/used * biL) < i [
+			size: i / biL
+			if i % biL <> 0 [
+				size: size + 1
+			]
+			big: grow big size
+		]
+
+		if v0 > 0 [
+			i: big/used
+			while [i > v0][
+				p1: p + i - 1
+				p2: p + i - v0 - 1
+				p1/1: p2/1
+				i: i - 1
+			]
+
+			while [i > 0][
+				p1: p + i - 1
+				p1/1: 0
+				i: i - 1
+			]
+		]
+
+		if t1 > 0 [
+			i: v0
+			while [i < big/used][
+				p1: p + i
+				r1: p1/1 >>> (biL - t1)
+				p1/1: p1/1 << t1
+				p1/1: p1/1 or r0
+				r0: r1
+				i: i + 1
+			]
+		]
+
+		if any [
+			v0 > 0
+			t1 > 0
+		][
+			shrink big
+		]
+		big
+	]
+
+	right-shift: func [
+		big			[bignum!]
+		count		[integer!]
+		/local
+			i		[integer!]
+			v0		[integer!]
+			v1		[integer!]
+			r0		[integer!]
+			r1		[integer!]
+			p		[int-ptr!]
+			p1		[int-ptr!]
+			p2		[int-ptr!]
+	][
+		r0: 0
+		v0: count / biL
+		v1: count and (biL - 1)
+
+		p: big/data
+
+		if any [
+			v0 > big/used
+			all [
+				v0 = big/used
+				v1 > 0
+			]
+		][
+			lset big 0
+			exit
+		]
+
+		if v0 > 0 [
+			i: 0
+			while [i < (big/used - v0)][
+				p1: p + i
+				p2: p + i + v0
+				p1/1: p2/1
+				i: i + 1
+			]
+
+			while [i < big/used][
+				p1: p + i
+				p1/1: 0
+				i: i + 1
+			]
+		]
+
+		if v1 > 0 [
+			i: big/used
+			while [i > 0][
+				p1: p + i - 1
+				r1: p1/1 << (biL - v1)
+				p1/1: p1/1 >>> v1
+				p1/1: p1/1 or r0
+				r0: r1
+				i: i - 1
+			]
+		]
+
+		if any [
+			v0 > 0
+			v1 > 0
+		][
+			shrink big
+		]
+	]
 
 ]
