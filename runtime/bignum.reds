@@ -484,4 +484,26 @@ bignum: context [
 		return 0
 	]
 
+	add: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+	][
+		either big1/sign <> big2/sign [
+			either (absolute-compare big1 big2) >= 0 [
+				big: absolute-sub big1 big2
+				big/sign: big1/sign
+			][
+				big: absolute-sub big2 big1
+				big/sign: big2/sign
+			]
+		][
+			big: absolute-add big1 big2
+			big/sign: big1/sign
+		]
+		big
+	]
+
 ]
