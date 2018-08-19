@@ -72,7 +72,7 @@ bignum: context [
 		set-memory p null-byte len
 		big: as bignum! p
 		big/size: size
-		big/used: 1
+		big/used: 0
 		big/sign: 1
 		big/data: as int-ptr! (p + size? bignum!)
 		big
@@ -437,8 +437,6 @@ bignum: context [
 		big2		[bignum!]
 		return:		[bignum!]
 		/local
-			c		[integer!]
-			z		[integer!]
 			big		[bignum!]
 	][
 		if big1/used < big2/used [
@@ -455,6 +453,35 @@ bignum: context [
 
 		shrink big
 		big
+	]
+
+	absolute-compare: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[integer!]
+		/local
+			p1		[int-ptr!]
+			p2		[int-ptr!]
+	][
+		if all [
+			big1/used = 0
+			big2/used = 0
+		][
+			return 0
+		]
+
+		if big1/used > big2/used [return 1]
+		if big2/used > big1/used [return -1]
+
+		p1: big1/data + big1/used
+		p2: big2/data + big2/used
+		loop big1/used [
+			if uint-less p2/1 p1/1 [return 1]
+			if uint-less p1/1 p2/1 [return -1]
+			p1: p1 - 1
+			p2: p2 - 1
+		]
+		return 0
 	]
 
 ]
