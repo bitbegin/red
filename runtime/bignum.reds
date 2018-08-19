@@ -537,7 +537,7 @@ bignum: context [
 			p		[int-ptr!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 4
+		big: bn-alloc 2
 		big/used: 1
 		p: big/data
 		p/1: either int >= 0 [
@@ -548,6 +548,30 @@ bignum: context [
 			0 - int
 		]
 		ret: add big1 big
+		free big
+		ret
+	]
+
+	sub-int: func [
+		big1		[bignum!]
+		int			[integer!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			p		[int-ptr!]
+			ret		[bignum!]
+	][
+		big: bn-alloc 2
+		big/used: 1
+		p: big/data
+		p/1: either int >= 0 [
+			big/sign: 1
+			int
+		][
+			big/sign: -1
+			0 - int
+		]
+		ret: sub big1 big
 		free big
 		ret
 	]
