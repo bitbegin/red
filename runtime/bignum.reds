@@ -361,4 +361,48 @@ bignum: context [
 		]
 	]
 
+	absolute-add: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			p		[int-ptr!]
+			p2		[int-ptr!]
+			i		[integer!]
+			c		[integer!]
+			tmp		[integer!]
+	][
+		p2: big2/data
+
+		big: bn-copy big1 either big1/size > big2/size [big1/size][big2/size]
+		big/sign: 1
+		big/used: big1/used
+		p: big/data
+
+		c: 0
+		i: 0
+		loop big2/used [
+			tmp: p2/1
+			p/1: p/1 + c
+			c: as integer! (uint-less p/1 c)
+			p/1: p/1 + tmp
+			c: c + as integer! (uint-less p/1 tmp)
+			p: p + 1
+			p2: p2 + 1
+			i: i + 1
+		]
+
+		while [c > 0][
+			p/1: p/1 + c
+			c: as integer! (uint-less p/1 c)
+			i: i + 1
+			p: p + 1
+		]
+		if big/used < i [
+			big/used: i
+		]
+		big
+	]
+
 ]
