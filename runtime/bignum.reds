@@ -161,7 +161,7 @@ bignum: context [
 	][
 		if big/used = 0 [return 0]
 
-		p: big/data + big/used
+		p: big/data + big/used - 1
 		ret: biL - clz p/1
 		ret: ret + ((big/used - 1) * biL)
 		ret
@@ -201,7 +201,7 @@ bignum: context [
 			p		[int-ptr!]
 			len		[integer!]
 	][
-		p: big/data + big/used
+		p: big/data + big/used - 1
 		loop big/used [
 			either p/value = 0 [
 				big/used: big/used - 1
@@ -568,8 +568,8 @@ bignum: context [
 		if big1/used > big2/used [return 1]
 		if big2/used > big1/used [return -1]
 
-		p1: big1/data + big1/used
-		p2: big2/data + big2/used
+		p1: big1/data + big1/used - 1
+		p2: big2/data + big2/used - 1
 		loop big1/used [
 			if uint-less p2/1 p1/1 [return 1]
 			if uint-less p1/1 p2/1 [return -1]
@@ -1119,7 +1119,7 @@ bignum: context [
 		]
 		
 		y: 0
-		p: p + A/used
+		p: p + A/used - 1
 		loop A/used [
 			x: p/1
 			y: (y << biLH) or (x >>> biLH)
@@ -1159,7 +1159,7 @@ bignum: context [
 		big: bn-alloc size
 		big/used: size
 		p: as byte-ptr! big/data
-		p2: bin + len
+		p2: bin + len - 1
 		loop len [
 			p/1: p2/1
 			p: p + 1
@@ -1180,6 +1180,7 @@ bignum: context [
 		i: 1
 		loop radix [
 			if chr = radix-table/i [return i - 1]
+			i: i + 1
 		]
 		-1
 	]
@@ -1199,7 +1200,7 @@ bignum: context [
 		size: length? str
 		big: bn-alloc 2
 		from-int big 0
-		p: (as byte-ptr! str) + size
+		p: (as byte-ptr! str) + size - 1
 		loop size [
 			index: chr-index p/1 radix
 			if index = -1 [break]
@@ -1216,7 +1217,7 @@ bignum: context [
 ]
 
 bignum-text: context [
-	bin: [#"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)"]
-	big: bignum/load-bin bin 16
+	bin: [#"^(F0)" #"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)" #"^(0F)"]
+	big: bignum/load-bin bin 18
 	dump1 big
 ]
