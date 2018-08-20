@@ -156,12 +156,13 @@ bignum: context [
 		big			[bignum!]
 		return:		[integer!]
 		/local
-			i-p		[int-ptr!]
+			p		[int-ptr!]
 			ret		[integer!]
 	][
 		if big/used = 0 [return 0]
 
-		ret: biL - clz GET-INT-AT(big/data big/used)
+		p: big/data + big/used
+		ret: biL - clz p/1
 		ret: ret + ((big/used - 1) * biL)
 		ret
 	]
@@ -1172,7 +1173,7 @@ bignum: context [
 	radix-table: "0123456789ABCDEF"
 
 	chr-index: func [
-		chr					[char!]
+		chr					[byte!]
 		radix				[integer!]
 		return:				[integer!]
 		/local
@@ -1218,6 +1219,6 @@ bignum: context [
 
 bignum-text: context [
 	bin: [#"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)"]
-	big: load-bin bin 16
+	big: bignum/load-bin bin 16
 	dump1 big
 ]

@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#include %c-tools.reds
-
 ;-------------------------------------------
 ;-- Return an integer rounded to the nearest multiple of scale parameter
 ;-------------------------------------------
