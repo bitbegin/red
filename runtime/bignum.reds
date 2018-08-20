@@ -1230,4 +1230,3 @@ bignum: context [
 	]
 ]
 
-#include %bignum-test.reds
