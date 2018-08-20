@@ -131,6 +131,28 @@ bignum: context [
 		big/used: 1
 	]
 
+	load-int: func [
+		int					[integer!]
+		return:				[bignum!]
+		/local
+			big				[bignum!]
+	][
+		big: bn-alloc 2
+		from-int big int
+		big
+	]
+
+	load-uint: func [
+		uint				[integer!]
+		return:				[bignum!]
+		/local
+			big				[bignum!]
+	][
+		big: bn-alloc 2
+		from-uint big uint
+		big
+	]
+
 	;-- Count leading zero bits in a given integer
 	clz: func [
 		int			[integer!]
@@ -528,8 +550,7 @@ bignum: context [
 			big		[bignum!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 2
-		from-int big int
+		big: load-int int
 		ret: add big1 big
 		bn-free big
 		ret
@@ -543,8 +564,7 @@ bignum: context [
 			big		[bignum!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 2
-		from-int big int
+		big: load-int int
 		ret: sub big1 big
 		bn-free big
 		ret
@@ -612,8 +632,7 @@ bignum: context [
 			big	 	[bignum!]
 			ret		[integer!]
 	][
-		big: bn-alloc 2
-		from-int big int
+		big: load-int int
 		ret: compare big1 big
 		bn-free big
 		ret
@@ -727,8 +746,7 @@ bignum: context [
 			big	 	[bignum!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 2
-		from-int big int
+		big: load-int int
 		ret: mul big1 big
 		bn-free big
 		ret
@@ -742,8 +760,7 @@ bignum: context [
 			big	 	[bignum!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 2
-		from-uint big uint
+		big: load-uint uint
 		ret: mul big1 big
 		bn-free big
 		ret
@@ -897,8 +914,7 @@ bignum: context [
 				return R
 			]
 
-			Q: bn-alloc 2
-			from-int Q 0
+			Q: load-int 0
 			return Q
 		]
 
@@ -1054,8 +1070,7 @@ bignum: context [
 			big	 	[bignum!]
 			ret		[bignum!]
 	][
-		big: bn-alloc 2
-		from-int big int
+		big: load-int int
 		ret: div A big rem?
 		bn-free big
 		ret
@@ -1198,8 +1213,7 @@ bignum: context [
 	][
 		if radix > 16 [return null]
 		size: length? str
-		big: bn-alloc 2
-		from-int big 0
+		big: load-int 0
 		p: (as byte-ptr! str) + size - 1
 		loop size [
 			index: chr-index p/1 radix
@@ -1216,8 +1230,4 @@ bignum: context [
 	]
 ]
 
-bignum-text: context [
-	bin: [#"^(F0)" #"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)" #"^(0F)"]
-	big: bignum/load-bin bin 18
-	dump1 big
-]
+#include %bignum-test.reds
