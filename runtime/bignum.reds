@@ -641,26 +641,26 @@ bignum: context [
 
 		while [i >= 16][
 			MULADDC_INIT
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
 
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_CORE   MULADDC_CORE
-	        MULADDC_STOP
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_STOP
 			i: i - 16
 		]
 
 		while [i >= 8][
 			MULADDC_INIT
-			MULADDC_CORE   MULADDC_CORE
-			MULADDC_CORE   MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
 
-			MULADDC_CORE   MULADDC_CORE
-			MULADDC_CORE   MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
+			MULADDC_CORE	MULADDC_CORE
 			MULADDC_STOP
 			i: i - 8
 		]
@@ -1143,6 +1143,29 @@ bignum: context [
 		]
 
 		return y
+	]
+
+	load-bin: func [
+		bin					[byte-ptr!]
+		len					[integer!]
+		return:				[bignum!]
+		/local
+			big				[bignum!]
+			p				[byte-ptr!]
+			p2				[byte-ptr!]
+	][
+		size: len / 4
+		if len % 4 <> 0 [size: size + 1]
+		big: bn-alloc size
+		big/used: size
+		p: as byte-ptr! big/data
+		p2: bin + len
+		loop len [
+			p/1: p2/1
+			p: p + 1
+			p2: p2 - 1
+		]
+		big
 	]
 
 ]
