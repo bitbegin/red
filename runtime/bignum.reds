@@ -709,4 +709,30 @@ bignum: context [
 		ret
 	]
 
+	uint-div: func [
+		u1				[integer!]
+		u0				[integer!]
+		return:			[integer!]
+		/local
+			i			[integer!]
+	][
+		if u0 = 0 [
+			return u1 / u0
+		]
+		
+		if uint-less u1 u0 [
+			return 0
+		]
+		
+		i: 0
+		while [true] [
+			u1: u1 - u0
+			i: i + 1
+			if uint-less u1 u0 [
+				return i
+			]
+		]
+		return i
+	]
+
 ]
