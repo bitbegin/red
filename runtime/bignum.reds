@@ -735,4 +735,84 @@ bignum: context [
 		return i
 	]
 
+	long-divide: func [
+		u1				[integer!]
+		u0				[integer!]
+		d				[integer!]
+		return:			[integer!]
+		/local
+			radix		[integer!]
+			hmask		[integer!]
+			d0			[integer!]
+			d1			[integer!]
+			q0			[integer!]
+			q1			[integer!]
+			rAX			[integer!]
+			r0			[integer!]
+			quotient	[integer!]
+			u0_msw		[integer!]
+			u0_lsw		[integer!]
+			s			[integer!]
+			tmp			[integer!]
+	][
+		radix: 1 << biLH
+		hmask: radix - 1
+
+		if any [
+			d = 0
+			not uint-less u1 d
+		][
+			return -1
+		]
+
+		s: clz d
+		d: d << s
+
+		u1: u1 << s
+		tmp: u0 >>> (biL - s)
+		tmp: tmp and ((0 - s) >> (biL - 1))
+		u1: u1 or tmp
+	    u0: u0 << s
+
+		d1: d >>> biLH
+		d0: d and hmask
+
+		u0_msw: u0 >>> biLH
+		u0_lsw: u0 and hmask
+		
+		q1: uint-div u1 d1
+		r0: u1 - (d1 * q1)
+
+		while [
+			any [
+				not uint-less q1 radix
+				uint-less (radix * r0 + u0_msw) (q1 * d0)
+			]
+		][
+			q1: q1 - 1;
+			r0: r0 + d1
+
+			unless uint-less r0 radix [break]
+		]
+
+		rAX: (u1 * radix) + (u0_msw - (q1 * d))
+		q0: uint-div rAX d1
+		r0: rAX - (q0 * d1)
+
+		while [
+			any [
+				not uint-less q0 radix
+				uint-less (radix * r0 + u0_lsw) (q0 * d0)
+			]
+		][
+			q0: q0 - 1
+			r0: r0 + d1
+
+			unless uint-less r0 radix [break]
+		]
+
+		quotient: q1 * radix + q0
+		quotient
+	]
+
 ]
