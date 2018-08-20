@@ -531,7 +531,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: add big1 big
-		free big
+		bn-free big
 		ret
 	]
 
@@ -546,7 +546,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: sub big1 big
-		free big
+		bn-free big
 		ret
 	]
 
@@ -615,7 +615,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: compare big1 big
-		free big
+		bn-free big
 		ret
 	]
 
@@ -730,7 +730,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: mul big1 big
-		free big
+		bn-free big
 		ret
 	]
 
@@ -745,7 +745,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-uint big uint
 		ret: mul big1 big
-		free big
+		bn-free big
 		ret
 	]
 
@@ -936,7 +936,7 @@ bignum: context [
 			tmp: n - t + 1
 			pz/tmp: pz/tmp + 1
 			BT: sub X Y
-			free X
+			bn-free X
 			X: BT
 		]
 		right-shift Y biL * (n - t)
@@ -966,7 +966,7 @@ bignum: context [
 				T1/used: 2
 
 				BT: mul-uint T1 pz/tmp
-				free T1
+				bn-free T1
 				T1: BT
 
 				lset T2 0
@@ -990,24 +990,24 @@ bignum: context [
 			]
 
 			BT: mul-uint Y pz/tmp
-			free T1
+			bn-free T1
 			T1: BT
 			BT: left-shift T1 biL * (tmp - 1)
-			free T1
+			bn-free T1
 			T1: BT
 			BT: sub X T1
-			free X
+			bn-free X
 			X: BT
 			px: X/data
 			if 0 > compare-int X 0 [
-				free T1
-				T1: copy Y
+				bn-free T1
+				T1: bn-copy Y
 				
 				BT: left-shift T1 biL * (tmp - 1)
-				free T1
+				bn-free T1
 				T1: BT
 				BT: add X T1
-				free X
+				bn-free X
 				X: BT
 				px: X/data
 				pz/tmp: pz/tmp - 1
@@ -1058,7 +1058,7 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: div A big rem?
-		free big
+		bn-free big
 		ret
 	]
 
@@ -1080,13 +1080,13 @@ bignum: context [
 
 		if 0 > compare-int R 0 [
 			BT: add B R
-			free R
+			bn-free R
 			R: BT
 		]
 
 		if 0 <= compare R B [
 			BT: sub B R
-			free R
+			bn-free R
 			R: BT
 		]
 
@@ -1205,10 +1205,10 @@ bignum: context [
 			index: chr-index p/1 radix
 			if index = -1 [break]
 			BT: mul-int big radix
-			free big
+			bn-free big
 			big: BT
 			BT: add-int big index
-			free big
+			bn-free big
 			big: BT
 			p: p - 1
 		]
