@@ -1150,6 +1150,7 @@ bignum: context [
 		len					[integer!]
 		return:				[bignum!]
 		/local
+			size			[integer!]
 			big				[bignum!]
 			p				[byte-ptr!]
 			p2				[byte-ptr!]
@@ -1168,4 +1169,49 @@ bignum: context [
 		big
 	]
 
+	radix-table: "0123456789ABCDEF"
+
+	chr-index: func [
+		chr					[char!]
+		radix				[integer!]
+		return:				[integer!]
+		/local
+			i				[integer!]
+	][
+		i: 1
+		loop radix [
+			if chr = radix-table/i [return i - 1]
+		]
+		-1
+	]
+
+	load-str: func [
+		str					[c-string!]
+		radix				[integer!]
+		return:				[bignum!]
+		/local
+			size			[integer!]
+			big				[bignum!]
+			BT				[bignum!]
+			p				[byte-ptr!]
+			index			[integer!]
+	][
+		if radix > 16 [return null]
+		size: length? str
+		big: bn-alloc 2
+		from-int big 0
+		p: str + size
+		loop size [
+			index: chr-index p/1 radix
+			if index = -1 [break]
+			BT: mul-int big radix
+			free big
+			big: BT
+			BT: add-int big index
+			free big
+			big: BT
+			p: p - 1
+		]
+		big
+	]
 ]
