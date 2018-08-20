@@ -499,9 +499,9 @@ bignum: context [
 	]
 
 	sub: func [
-		big1		[red-bignum!]
-		big2		[red-bignum!]
-		return:		[red-bignum!]
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
 		/local
 			big		[bignum!]
 	][
@@ -1094,7 +1094,7 @@ bignum: context [
 	]
 
 	module-int: func [
-		A	 		[red-bignum!]
+		A	 		[bignum!]
 		b	 		[integer!]
 		return:	 	[integer!]
 		/local
@@ -1214,4 +1214,10 @@ bignum: context [
 		]
 		big
 	]
+]
+
+bignum-text: context [
+	bin: [#"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)"]
+	big: load-bin bin 16
+	dump1 big
 ]
