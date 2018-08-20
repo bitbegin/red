@@ -476,35 +476,6 @@ bignum: context [
 		big
 	]
 
-	absolute-compare: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[integer!]
-		/local
-			p1		[int-ptr!]
-			p2		[int-ptr!]
-	][
-		if all [
-			big1/used = 0
-			big2/used = 0
-		][
-			return 0
-		]
-
-		if big1/used > big2/used [return 1]
-		if big2/used > big1/used [return -1]
-
-		p1: big1/data + big1/used
-		p2: big2/data + big2/used
-		loop big1/used [
-			if uint-less p2/1 p1/1 [return 1]
-			if uint-less p1/1 p2/1 [return -1]
-			p1: p1 - 1
-			p2: p2 - 1
-		]
-		return 0
-	]
-
 	add: func [
 		big1		[bignum!]
 		big2		[bignum!]
@@ -575,6 +546,75 @@ bignum: context [
 		big: bn-alloc 2
 		from-int big int
 		ret: sub big1 big
+		free big
+		ret
+	]
+
+	absolute-compare: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[integer!]
+		/local
+			p1		[int-ptr!]
+			p2		[int-ptr!]
+	][
+		if all [
+			big1/used = 0
+			big2/used = 0
+		][
+			return 0
+		]
+
+		if big1/used > big2/used [return 1]
+		if big2/used > big1/used [return -1]
+
+		p1: big1/data + big1/used
+		p2: big2/data + big2/used
+		loop big1/used [
+			if uint-less p2/1 p1/1 [return 1]
+			if uint-less p1/1 p2/1 [return -1]
+			p1: p1 - 1
+			p2: p2 - 1
+		]
+		return 0
+	]
+
+	compare: func [
+		big1	 	[bignum!]
+		big2	 	[bignum!]
+		return:	 	[integer!]
+	][
+		if all [
+			big1/sign = 1
+			big2/sign = -1
+		][
+			return 1
+		]
+
+		if all [
+			big2/sign = 1
+			big1/sign = -1
+		][
+			return -1
+		]
+
+		if big1/sign = 1 [
+			return absolute-compare big1 big2
+		]
+		absolute-compare big2 big1
+	]
+
+	compare-int: func [
+		big1	 	[bignum!]
+		int			[integer!]
+		return:	 	[integer!]
+		/local
+			big	 	[bignum!]
+			ret		[integer!]
+	][
+		big: bn-alloc 2
+		from-int big int
+		ret: compare big1 big
 		free big
 		ret
 	]
