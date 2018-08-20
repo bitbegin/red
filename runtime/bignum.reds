@@ -812,7 +812,7 @@ bignum: context [
 		tmp: u0 >>> (biL - s)
 		tmp: tmp and ((0 - s) >> (biL - 1))
 		u1: u1 or tmp
-	    u0: u0 << s
+		u0: u0 << s
 
 		d1: d >>> biLH
 		d0: d and hmask
@@ -853,6 +853,194 @@ bignum: context [
 
 		quotient: q1 * radix + q0
 		quotient
+	]
+
+	;-- A = Q * B + R
+	div: func [
+		A	 		[bignum!]
+		B	 		[bignum!]
+		rem?		[logic!]
+		return:	 	[bignum!]
+		/local
+			Q		[bignum!]
+			R		[bignum!]
+			X		[bignum!]
+			Y		[bignum!]
+			Z		[bignum!]
+			T1		[bignum!]
+			T2		[bignum!]
+			BT		[bignum!]
+			i		[integer!]
+			n		[integer!]
+			t		[integer!]
+			k		[integer!]
+			px		[int-ptr!]
+			py		[int-ptr!]
+			pz		[int-ptr!]
+			pt1		[int-ptr!]
+			pt2		[int-ptr!]
+			tmp		[integer!]
+			tmp2	[integer!]
+			ret		[integer!]
+	][
+		if 0 = compare-int B 0 [
+			fire [TO_ERROR(math zero-divide)]
+			return A					;-- pass the compiler's type-checking
+		]
+
+		if 0 > absolute-compare A B [
+			if rem? [
+				R: bn-copy A A/used
+				return R
+			]
+
+			Q: bn-alloc 2
+			from-int Q 0
+			return Q
+		]
+
+		X: bn-copy A A/used
+		X/sign: 1
+		Y: bn-copy B B/used
+		Y/sign: 1
+		Z: bn-alloc A/used + 2
+		T1: bn-alloc 2
+		T1/used: 2
+		T2: bn-alloc 3
+		T2/used: 3
+		
+		k: (bitlen? Y) % biL
+		
+		either k < (biL - 1) [
+			k: biL - 1 - k
+			X: left-shift X k
+			Y: left-shift Y k
+		][
+			k: 0
+		]
+
+		n: X/used
+		t: Y/used
+		Y: left-shift Y biL * (n - t)
+		
+		px: X/data
+		py: Y/data
+		pz: Z/data
+		pt1: T1/data
+		pt2: T2/data
+
+		while [0 <= compare X Y][
+			tmp: n - t + 1
+			pz/tmp: pz/tmp + 1
+			BT: sub X Y
+			free X
+			X: BT
+		]
+		right-shift Y biL * (n - t)
+
+		i: n
+		while [i > t][
+			tmp: i - t
+			either not uint-less px/i py/t [
+				pz/tmp: -1
+			][
+				tmp2: i - 1
+				pz/tmp: long-divide px/i px/tmp2 py/t
+			]
+
+			pz/tmp: pz/tmp + 1
+			until [
+				pz/tmp: pz/tmp - 1
+				lset T1 0
+				pt1: T1/data
+				pt1/1: either t < 2 [
+					0
+				][
+					tmp2: t - 1
+					py/tmp2
+				]
+				pt1/2: py/t
+				T1/used: 2
+
+				BT: mul-uint T1 pz/tmp
+				free T1
+				T1: BT
+
+				lset T2 0
+				pt2: T2/data
+				pt2/1: either i < 3 [
+					0
+				][
+					tmp2: i - 2
+					px/tmp2
+				]
+				pt2/2: either i < 2 [
+					0
+				][
+					tmp2: i - 1
+					px/tmp2
+				]
+				pt2/3: px/i
+				T2/used: 3
+				
+				0 >= compare T1 T2
+			]
+
+			BT: mul-uint Y pz/tmp
+			free T1
+			T1: BT
+			BT: left-shift T1 biL * (tmp - 1)
+			free T1
+			T1: BT
+			BT: sub X T1
+			free X
+			X: BT
+			px: X/data
+			if 0 > compare-int X 0 [
+				free T1
+				T1: copy Y
+				
+				BT: left-shift T1 biL * (tmp - 1)
+				free T1
+				T1: BT
+				BT: add X T1
+				free X
+				X: BT
+				px: X/data
+				pz/tmp: pz/tmp - 1
+			]
+			i: i - 1
+		]
+
+		shrink Z
+		if not rem? [
+			Q: bn-copy Z Z/used
+			Q/sign: A/sign * B/sign
+			bn-free X
+			bn-free Y
+			bn-free Z
+			bn-free T1
+			bn-free T2
+			bn-free BT
+			return Q
+		]
+
+		right-shift X k
+		X/sign: A/sign
+		shrink X
+		R: bn-copy X Z/used
+		
+		if 0 = compare-int R 0 [
+			R/sign: 1
+		]
+
+		bn-free X
+		bn-free Y
+		bn-free Z
+		bn-free T1
+		bn-free T2
+		bn-free BT
+		R
 	]
 
 ]
