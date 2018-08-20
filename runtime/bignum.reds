@@ -1043,4 +1043,20 @@ bignum: context [
 		R
 	]
 
+	div-int: func [
+		A	 		[bignum!]
+		int	 		[integer!]
+		rem?		[logic!]
+		return:	 	[bignum!]
+		/local
+			big	 	[bignum!]
+			ret		[bignum!]
+	][
+		big: bn-alloc 2
+		from-int big int
+		ret: div A big rem?
+		free big
+		ret
+	]
+
 ]
