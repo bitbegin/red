@@ -102,6 +102,23 @@ bignum: context [
 		ret
 	]
 
+	from-int: func [
+		big					[bignum!]
+		int					[integer!]
+		/local
+			p				[int-ptr!]
+	][
+		p: big/data
+		p/1: either int >= 0 [
+			big/sign: 1
+			int
+		][
+			big/sign: -1
+			0 - int
+		]
+		big/used: 1
+	]
+
 	;-- Count leading zero bits in a given integer
 	clz: func [
 		int			[integer!]
@@ -217,15 +234,7 @@ bignum: context [
 	][
 		set-memory as byte-ptr! big/data null-byte big/size * 4
 
-		p: big/data
-		either int >= 0 [
-			p/value: int
-			big/sign: 1
-		][
-			p/value: 0 - int
-			big/sign: -1
-		]
-		big/used: 1
+		from-int big int
 	]
 
 	left-shift: func [
@@ -538,15 +547,7 @@ bignum: context [
 			ret		[bignum!]
 	][
 		big: bn-alloc 2
-		big/used: 1
-		p: big/data
-		p/1: either int >= 0 [
-			big/sign: 1
-			int
-		][
-			big/sign: -1
-			0 - int
-		]
+		from-int big int
 		ret: add big1 big
 		free big
 		ret
@@ -562,15 +563,7 @@ bignum: context [
 			ret		[bignum!]
 	][
 		big: bn-alloc 2
-		big/used: 1
-		p: big/data
-		p/1: either int >= 0 [
-			big/sign: 1
-			int
-		][
-			big/sign: -1
-			0 - int
-		]
+		from-int big int
 		ret: sub big1 big
 		free big
 		ret
@@ -674,6 +667,22 @@ bignum: context [
 		big/sign: big1/sign * big2/sign
 		shrink big
 		big
+	]
+
+	mul-int: func [
+		big1		[bignum!]
+		int			[integer!]
+		return:		[bignum!]
+		/local
+			big	 	[bignum!]
+			p		[int-ptr!]
+			ret		[bignum!]
+	][
+		big: bn-alloc 2
+		from-int big int
+		ret: mul big1 big
+		free big
+		ret
 	]
 
 ]
