@@ -1199,7 +1199,7 @@ bignum: context [
 		size: length? str
 		big: bn-alloc 2
 		from-int big 0
-		p: str + size
+		p: (as byte-ptr! str) + size
 		loop size [
 			index: chr-index p/1 radix
 			if index = -1 [break]
