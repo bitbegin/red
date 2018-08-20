@@ -1214,7 +1214,7 @@ bignum: context [
 		if radix > 16 [return null]
 		size: length? str
 		big: load-int 0
-		p: (as byte-ptr! str) + size - 1
+		p: as byte-ptr! str
 		loop size [
 			index: chr-index p/1 radix
 			if index = -1 [break]
@@ -1224,7 +1224,7 @@ bignum: context [
 			BT: add-int big index
 			bn-free big
 			big: BT
-			p: p - 1
+			p: p + 1
 		]
 		big
 	]
