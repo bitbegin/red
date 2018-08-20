@@ -187,7 +187,6 @@ bignum: context [
 	][
 		if size = 0 [return big]
 
-		ex_size: size - big/size
 		if (size - big/size) > 0 [ 
 			ret: bn-copy big size
 			bn-free big
