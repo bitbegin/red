@@ -1059,4 +1059,86 @@ bignum: context [
 		ret
 	]
 
+	module: func [
+		A	 		[bignum!]
+		B	 		[bignum!]
+		return:	 	[bignum!]
+		/local
+			R		[bignum!]
+			BT		[bignum!]
+	][
+		if 0 > compare-int B 0 [
+			fire [TO_ERROR(math zero-divide)]
+			return A						;-- pass the compiler's type-checking
+		]
+
+		R: div A B true
+
+		if 0 > compare-int R 0 [
+			BT: add B R
+			free R
+			R: BT
+		]
+
+		if 0 <= compare R B [
+			BT: sub B R
+			free R
+			R: BT
+		]
+
+		R
+	]
+
+	module-int: func [
+		A	 		[red-bignum!]
+		b	 		[integer!]
+		return:	 	[integer!]
+		/local
+			p		[int-ptr!]
+			x		[integer!]
+			y		[integer!]
+			z		[integer!]
+	][
+		;-- temp error
+		if b <= 0 [
+			fire [TO_ERROR(math zero-divide)]
+			return 0						;-- pass the compiler's type-checking
+		]
+
+		p: A/data
+
+		if b = 1 [
+			return 0
+		]
+		
+		if b = 2 [
+			return p/1 and 1
+		]
+		
+		y: 0
+		p: p + A/used
+		loop A/used [
+			x: p/1
+			y: (y << biLH) or (x >>> biLH)
+			z: uint-div y b
+			y: y - (z * b)
+			
+			x: x << biLH
+			y: (y << biLH) or (x >>> biLH)
+			z: uint-div y b
+			y: y - (z * b)
+			
+			p: p - 1
+		]
+		
+		if all [
+			A/sign < 0
+			y <> 0
+		][
+			y: b - y
+		]
+
+		return y
+	]
+
 ]
