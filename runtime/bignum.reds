@@ -545,7 +545,7 @@ bignum: context [
 	add-int: func [
 		big1		[bignum!]
 		int			[integer!]
-		return: 	[bignum!]
+		return:		[bignum!]
 		/local
 			big		[bignum!]
 			ret		[bignum!]
@@ -600,9 +600,9 @@ bignum: context [
 	]
 
 	compare: func [
-		big1	 	[bignum!]
-		big2	 	[bignum!]
-		return:	 	[integer!]
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[integer!]
 	][
 		if all [
 			big1/sign = 1
@@ -640,8 +640,8 @@ bignum: context [
 
 	mul-hlp: func [
 		i			[integer!]
-		s	 		[int-ptr!]
-		d	 		[int-ptr!]
+		s			[int-ptr!]
+		d			[int-ptr!]
 		b			[integer!]
 		/local
 			c		[integer!]
@@ -877,10 +877,10 @@ bignum: context [
 
 	;-- A = Q * B + R
 	div: func [
-		A	 		[bignum!]
-		B	 		[bignum!]
+		A			[bignum!]
+		B			[bignum!]
 		rem?		[logic!]
-		return:	 	[bignum!]
+		return:		[bignum!]
 		/local
 			Q		[bignum!]
 			R		[bignum!]
@@ -1062,12 +1062,12 @@ bignum: context [
 	]
 
 	div-int: func [
-		A	 		[bignum!]
-		int	 		[integer!]
+		A			[bignum!]
+		int			[integer!]
 		rem?		[logic!]
-		return:	 	[bignum!]
+		return:		[bignum!]
 		/local
-			big	 	[bignum!]
+			big		[bignum!]
 			ret		[bignum!]
 	][
 		big: load-int int
@@ -1077,9 +1077,9 @@ bignum: context [
 	]
 
 	module: func [
-		A	 		[bignum!]
-		B	 		[bignum!]
-		return:	 	[bignum!]
+		A			[bignum!]
+		B			[bignum!]
+		return:		[bignum!]
 		/local
 			R		[bignum!]
 			BT		[bignum!]
@@ -1108,9 +1108,9 @@ bignum: context [
 	]
 
 	module-int: func [
-		A	 		[bignum!]
-		b	 		[integer!]
-		return:	 	[integer!]
+		A			[bignum!]
+		b			[integer!]
+		return:		[integer!]
 		/local
 			p		[int-ptr!]
 			x		[integer!]
