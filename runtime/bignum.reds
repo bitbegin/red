@@ -1001,8 +1001,7 @@ bignum: context [
 			px: X/data
 			if 0 > compare-int X 0 [
 				bn-free T1
-				T1: bn-copy Y
-				
+				T1: bn-copy Y Y/used
 				BT: left-shift T1 biL * (tmp - 1)
 				bn-free T1
 				T1: BT
