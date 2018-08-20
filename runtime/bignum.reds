@@ -757,7 +757,8 @@ bignum: context [
 			i			[integer!]
 	][
 		if u0 = 0 [
-			return u1 / u0
+			fire [TO_ERROR(math zero-divide)]
+			return 0					;-- pass the compiler's type-checking
 		]
 		
 		if uint-less u1 u0 [
@@ -798,10 +799,12 @@ bignum: context [
 		radix: 1 << biLH
 		hmask: radix - 1
 
-		if any [
-			d = 0
-			not uint-less u1 d
-		][
+		if d = 0 [
+			fire [TO_ERROR(math zero-divide)]
+			return 0					;-- pass the compiler's type-checking
+		]
+
+		if not uint-less u1 d [
 			return -1
 		]
 
@@ -1067,6 +1070,7 @@ bignum: context [
 			R		[bignum!]
 			BT		[bignum!]
 	][
+		;-- need to be fixed
 		if 0 > compare-int B 0 [
 			fire [TO_ERROR(math zero-divide)]
 			return A						;-- pass the compiler's type-checking
@@ -1099,7 +1103,7 @@ bignum: context [
 			y		[integer!]
 			z		[integer!]
 	][
-		;-- temp error
+		;-- need to be fixed
 		if b <= 0 [
 			fire [TO_ERROR(math zero-divide)]
 			return 0						;-- pass the compiler's type-checking
