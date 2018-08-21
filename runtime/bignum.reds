@@ -1211,7 +1211,7 @@ bignum: context [
 			p				[byte-ptr!]
 			index			[integer!]
 	][
-		if radix > 16 [return null]
+		if any [radix < 2 radix > 16] [return null]
 		size: length? str
 		big: load-int 0
 		p: as byte-ptr! str
