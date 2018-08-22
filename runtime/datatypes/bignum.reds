@@ -202,6 +202,7 @@ red-bignum: context [
 			size	[integer!]
 			rsize	[integer!]
 			tmp		[byte-ptr!]
+			tsize	[integer!]
 			bytes	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
@@ -215,8 +216,9 @@ red-bignum: context [
 		]
 
 		rsize: 0
-		tmp: allocate size * 32 / 2 + 3
-		if 0 <> write-string int-big 10 tmp size * 10 :rsize [
+		tsize: size * 32 / 2 + 3
+		tmp: allocate tsize
+		if not bignum/write-string int-big 10 tmp tsize :rsize [
 			print "something wrong!"
 		]
 
