@@ -672,7 +672,7 @@ _bignum: context [
 			big		[bignum!]
 			ret		[integer!]
 	][
-		big: load-uint int
+		big: load-uint uint
 		ret: compare big1 big
 		bn-free big
 		ret
@@ -889,7 +889,7 @@ _bignum: context [
 				uint-less (radix * r0 + u0_msw) (q1 * d0)
 			]
 		][
-			q1: q1 - 1;
+			q1: q1 - 1
 			r0: r0 + d1
 
 			unless uint-less r0 radix [break]
@@ -1116,6 +1116,21 @@ _bignum: context [
 		ret
 	]
 
+	div-uint: func [
+		A			[bignum!]
+		uint		[integer!]
+		rem?		[logic!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			ret		[bignum!]
+	][
+		big: load-uint uint
+		ret: div A big rem?
+		bn-free big
+		ret
+	]
+
 	module: func [
 		A			[bignum!]
 		B			[bignum!]
@@ -1211,19 +1226,46 @@ _bignum: context [
 		/local
 			size			[integer!]
 			big				[bignum!]
-			p				[byte-ptr!]
+			p				[int-ptr!]
 			p2				[byte-ptr!]
+			i				[integer!]
+			value			[integer!]
 	][
 		size: len / 4
 		if len % 4 <> 0 [size: size + 1]
 		big: bn-alloc size
 		big/used: size
-		p: as byte-ptr! big/data
+		p: big/data
 		p2: bin + len - 1
-		loop len [
-			p/1: p2/1
-			p: p + 1
-			p2: p2 - 1
+		i: 0
+		until [
+			either len >= 4 [
+				value: as integer! p2/1
+				p2: p2 - 1
+				value: value + as integer! (p2/1 << 8)
+				p2: p2 - 1
+				value: value + as integer! (p2/1 << 16)
+				p2: p2 - 1
+				value: value + as integer! (p2/1 << 24)
+				p2: p2 - 1
+				p/1: value
+				p: p + 1
+				len: len - 4
+			][
+				value: as integer! p2/1
+				p2: p2 - 1
+				if len >= 2 [
+					value: value + as integer! (p2/1 << 8)
+					p2: p2 - 1
+				]
+				if len >= 3 [
+					value: value + as integer! (p2/1 << 16)
+					p2: p2 - 1
+				]
+				p/1: value
+				len: 0
+			]
+			len <= 0
 		]
 		big
 	]
