@@ -330,3 +330,10 @@ red-handle!: alias struct! [
 	value	[integer!]								;-- 32-bit signed integer value
 	_pad	[integer!]	
 ]
+
+red-bignum!: alias struct! [
+	header 	[integer!]								;-- cell header
+	int		[bignum!]								;-- bignum's interger part
+	frac	[integer!]								;-- bignum's fractional part
+	_pad	[integer!]	
+]

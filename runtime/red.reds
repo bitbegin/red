@@ -105,6 +105,7 @@ red: context [
 	#include %datatypes/date.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
+	#include %datatypes/bignum.reds
 
 	;-- Debugging helpers --
 	
