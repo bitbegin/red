@@ -29,7 +29,7 @@ red-bignum: context [
 		size		[integer!]
 		return:		[red-bignum!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "bin/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "bignum/make-in"]]
 		
 		make-at ALLOC_TAIL(parent) size
 	]
@@ -124,7 +124,7 @@ red-bignum: context [
 					big: load head size false
 				]
 			]
-			default [--NOT_IMPLEMENTED--]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BIGNUM spec]]
 		]
 
 		as red-value! big
@@ -280,10 +280,6 @@ red-bignum: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
-		/local
-			formed [c-string!]
-			s	   [series!]
-			unit   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/mold"]]
 
