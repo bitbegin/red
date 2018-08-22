@@ -664,6 +664,20 @@ _bignum: context [
 		ret
 	]
 
+	compare-uint: func [
+		big1		[bignum!]
+		uint		[integer!]
+		return:		[integer!]
+		/local
+			big		[bignum!]
+			ret		[integer!]
+	][
+		big: load-uint int
+		ret: compare big1 big
+		bn-free big
+		ret
+	]
+
 	mul-hlp: func [
 		i			[integer!]
 		s			[int-ptr!]
