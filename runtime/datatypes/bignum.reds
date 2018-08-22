@@ -20,7 +20,7 @@ red-bignum: context [
 		big: as red-bignum! slot
 		big/header: TYPE_BIGNUM
 		big/int: null
-		big/fact: null
+		big/frac: null
 		big
 	]
 
@@ -286,25 +286,6 @@ red-bignum: context [
 		serialize-10 big buffer only? all? flat? arg part yes
 	]
 
-	swap: func [
-		big1		[red-bignum!]
-		big2		[red-bignum!]
-		return:		[red-bignum!]
-		/local
-			int		[bignum!]
-			fact	[bignum!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "bignum/swap"]]
-
-		int: big1/int
-		fact: big1/fact
-		big1/int: big2/int
-		big1/fact: big2/fact
-		big2/int: int
-		big2/fact: fact
-		big1
-	]
-
 	do-math: func [
 		type		[math-op!]
 		return:		[red-value!]
@@ -451,6 +432,25 @@ red-bignum: context [
 		#if debug? = yes [if verbose > 0 [print-line "bignum/subtract"]]
 
 		as red-value! do-math OP_SUB
+	]
+
+	swap: func [
+		big1		[red-bignum!]
+		big2		[red-bignum!]
+		return:		[red-bignum!]
+		/local
+			int		[bignum!]
+			frac	[bignum!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/swap"]]
+
+		int: big1/int
+		frac: big1/frac
+		big1/int: big2/int
+		big1/frac: big2/frac
+		big2/int: int
+		big2/frac: frac
+		big1
 	]
 
 	init: does [
