@@ -370,12 +370,12 @@ red-bignum: context [
 	]
 
 	compare*: func [
-		value1    [red-bignum!]						;-- first operand
-		value2    [red-bignum!]						;-- second operand
-		op	      [integer!]						;-- type of comparison
-		return:   [integer!]
+		value1		[red-bignum!]						;-- first operand
+		value2		[red-bignum!]						;-- second operand
+		op			[integer!]						;-- type of comparison
+		return:		[integer!]
 		/local
-			res	  [integer!]
+			res		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/compare"]]
 
@@ -406,6 +406,51 @@ red-bignum: context [
 		bn: big/int
 		bn/sign: 1
 		big 											;-- re-use argument slot for return value
+	]
+
+	add*: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/add"]]
+
+		as red-value! do-math OP_ADD
+	]
+	
+	divide: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/divide"]]
+
+		as red-value! do-math OP_DIV
+	]
+
+	multiply: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/multiply"]]
+		as red-value! do-math OP_MUL
+	]
+
+	negate: func [
+		big			[red-bignum!]
+		return:		[red-value!]
+		/local
+			bn		[bignum!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/complement"]]
+
+		bn: big/int
+		either bn/sign = 1 [
+			bn/sign: -1
+		][
+			bn/sign: 1
+		]
+		as red-value! big
+	]
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/remainder"]]
+		as red-value! do-math OP_REM
+	]
+
+	subtract: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/subtract"]]
+
+		as red-value! do-math OP_SUB
 	]
 
 	init: does [
