@@ -42,6 +42,7 @@ red-bignum: context [
 	][
 		big: make-at stack/push* 2
 		big/int: bignum/load-int int
+		big
 	]
 
 	load-bn: func [
@@ -52,6 +53,7 @@ red-bignum: context [
 	][
 		big: make-at stack/push* 2
 		big/int: bn
+		big
 	]
 
 	load-in: func [
