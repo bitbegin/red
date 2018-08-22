@@ -14,13 +14,14 @@ REBOL [
 ===end-group===
 
 ===start-group=== "Red runtime tests"
-  	--run-test-file-quiet %source/runtime/tools-test.reds
+	--run-test-file-quiet %source/runtime/tools-test.reds
+	--run-test-file-quiet %source/runtime/bignum-test.reds
 ===end-group===
 
 ===start-group=== "Red Compiler tests"
-  	--run-script-quiet %source/compiler/print-test.r
-  	--run-script-quiet %source/compiler/run-time-error-test.r
-  	--run-script-quiet %source/compiler/compile-error-test.r
+	--run-script-quiet %source/compiler/print-test.r
+	--run-script-quiet %source/compiler/run-time-error-test.r
+	--run-script-quiet %source/compiler/compile-error-test.r
 ===end-group===
 
 ===start-group=== "Red Library tests"
