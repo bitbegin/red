@@ -33,3 +33,17 @@ round-to-next: func [
 	assert scale <> 0
 	(size + scale) and (0 - scale)
 ]
+
+cpu-little-endian?: func [
+	return:		[logic!]
+	/local
+		int		[integer!]
+		p		[byte-ptr!]
+][
+	int: 44332211h
+	p: as byte-ptr! :int
+	if p/1 = #"^(11)" [return yes]
+	no
+]
+
+little-endian?: cpu-little-endian?
