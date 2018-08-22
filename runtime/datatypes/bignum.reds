@@ -308,8 +308,7 @@ red-bignum: context [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_BIGNUM
 		]
-		
-		make-at as red-value! :big 1
+
 		switch TYPE_OF(right) [
 			TYPE_INTEGER [
 				int: as red-integer! right
