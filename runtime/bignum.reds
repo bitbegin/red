@@ -1228,5 +1228,123 @@ bignum: context [
 		]
 		big
 	]
+
+	write-hlp: func [
+		big			[bignum!]
+		radix		[integer!]
+		buf			[integer!]
+		return:		[logic!]
+		/local
+			ret		[integer!]
+			pi		[int-ptr!]
+			Q		[bignum!]
+			pb		[byte-ptr!]
+	][
+		if any [radix < 2 radix > 16] [return false]
+
+		ret: module-int big radix
+		Q: div-int big radix
+		if 0 <> compare-int Q 0 [
+			write-hlp Q radix buf
+		]
+		bn-free Q
+
+		pi: as int-ptr! buf
+		pb: as byte-ptr! pi/1
+		either ret < 10 [
+			pb/1: as byte! ret + 30h
+		][
+			pb/1: as byte! ret + 37h
+		]
+		pi/1: pi/1 + 1
+		true
+	]
+
+	write-string: func [
+		big			[bignum!]
+		radix		[integer!]
+		buf			[byte-ptr!]
+		buflen		[integer!]
+		olen		[red-integer!]
+		return: 	[logic!]
+		/local
+			T		[bignum!]
+			n		[integer!]
+			p		[integer!]
+			p2		[byte-ptr!]
+			px		[int-ptr!]
+			i		[integer!]
+			j		[integer!]
+			k		[integer!]
+			c		[integer!]
+			id		[byte!]
+	][
+		if any [radix < 2 radix > 16] [return false]
+
+		n: bitlen? big
+		if radix >= 4 [n: n >>> 1]
+		if radix >= 16 [n: n >>> 1]
+		n: n + 3
+
+		if buflen < n [
+			olen/value: n
+			return false
+		]
+
+		p: as integer! buf
+
+		if big/sign = -1 [
+			p2: as byte-ptr! p
+			p2/1: #"-"
+			p: p + 1
+		]
+
+		px: big/data
+
+		either radix = 16 [
+			i: big/used
+			k: 0
+			while [i > 0][
+				j: ciL
+				while [j > 0][
+					c: (px/i >>> ((j - 1) >>> 3)) and FFh
+					if all [
+						c = 0
+						k = 0
+						i + j <> 2
+					][
+						continue
+					]
+
+					id: as byte! c >> 4 and 15 + 1
+					p2: as byte-ptr! p
+					p2/1: id
+					p: p + 1
+					id: as byte! c and 15 + 1
+					p2: as byte-ptr! p
+					p2/1: id
+					p: p + 1
+
+					k: 1
+					j: j -1
+				]
+				i: i - 1
+			]
+		][
+			T: bn-copy big big/used
+			if T/sign = -1 [
+				T/sign: 1
+			]
+
+			write-hlp T radix as integer! :p
+		]
+
+		p2: as byte-ptr! p
+		p2/1: as byte! 0
+		p: p + 1
+		olen/value: p - as integer! buf
+		true
+	]
+
 ]
 
