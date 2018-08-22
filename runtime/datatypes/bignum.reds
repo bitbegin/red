@@ -276,6 +276,25 @@ red-bignum: context [
 		serialize-10 big buffer only? all? flat? arg part yes
 	]
 
+	swap: func [
+		big1		[red-bignum!]
+		big2		[red-bignum!]
+		return:		[red-bignum!]
+		/local
+			int		[bignum!]
+			fact	[bignum!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/swap"]]
+
+		int: big1/int
+		fact: big1/fact
+		big1/int: big2/int
+		big1/fact: big2/fact
+		big2/int: int
+		big2/fact: fact
+		big1
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BIGNUM
