@@ -237,15 +237,25 @@ _bignum: context [
 	][
 		p1: as byte-ptr! :u1
 		p2: as byte-ptr! :u2
-
-		if p1/4 < p2/4 [return true]
-		if p1/4 > p2/4 [return false]
-		if p1/3 < p2/3 [return true]
-		if p1/3 > p2/3 [return false]
-		if p1/2 < p2/2 [return true]
-		if p1/2 > p2/2 [return false]
+		if little-endian? [
+			if p1/4 < p2/4 [return true]
+			if p1/4 > p2/4 [return false]
+			if p1/3 < p2/3 [return true]
+			if p1/3 > p2/3 [return false]
+			if p1/2 < p2/2 [return true]
+			if p1/2 > p2/2 [return false]
+			if p1/1 < p2/1 [return true]
+			if p1/1 > p2/1 [return false]
+			return false
+		]
 		if p1/1 < p2/1 [return true]
 		if p1/1 > p2/1 [return false]
+		if p1/2 < p2/2 [return true]
+		if p1/2 > p2/2 [return false]
+		if p1/3 < p2/3 [return true]
+		if p1/3 > p2/3 [return false]
+		if p1/4 < p2/4 [return true]
+		if p1/4 > p2/4 [return false]
 		return false
 	]
 
