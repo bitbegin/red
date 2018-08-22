@@ -142,9 +142,20 @@ big2: as bignum! 0
 ===start-group=== "load bin"
 	--test-- "load-bin-1"
 		_bignum/bn-free big
-		bin: [#"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)"]
+		bin1: [#"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)"]
+		big: _bignum/load-bin bin1 size? bin1
+		--assert _bignum/equal-bin? big bin1 size? bin1
+	--test-- "load-bin-2"
+		_bignum/bn-free big
+		bin2: [#"^(00)" #"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)" #"^(88)" #"^(99)" #"^(AA)" #"^(BB)" #"^(CC)" #"^(DD)" #"^(EE)" #"^(FF)"]
+		big: _bignum/load-bin bin2 size? bin2
+		--assert _bignum/equal-bin? big bin2 size? bin2
+	--test-- "load-bin-3"
+		_bignum/bn-free big
+		bin: [#"^(3B)" #"^(9A)" #"^(CA)" #"^(00)"]
 		big: _bignum/load-bin bin size? bin
-		--assert _bignum/equal-bin? big bin size? bin
+		--assert 0 = _bignum/compare-int big 1000000000
+
 ===end-group===
 
 ~~~end-file~~~
