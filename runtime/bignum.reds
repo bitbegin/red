@@ -1265,7 +1265,7 @@ bignum: context [
 		radix		[integer!]
 		buf			[byte-ptr!]
 		buflen		[integer!]
-		olen		[red-integer!]
+		olen		[int-ptr!]
 		return: 	[logic!]
 		/local
 			T		[bignum!]
