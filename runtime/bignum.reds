@@ -1346,5 +1346,23 @@ bignum: context [
 		true
 	]
 
+	dump-bignum: func [
+		big			[bignum!]
+		/local
+			p		[byte-ptr!]
+	][
+		#if debug? = yes [
+			p: as byte-ptr! big/data
+			print-line [lf "===============dump bignum!==============="]
+			print-line ["used: " big/used " sign: " big/sign " addr: " p]
+			p: p + (big/used * 4)
+			loop big/used * 4 [
+				p: p - 1
+				prin-hex-chars as-integer p/1 2
+			]
+			print-line [lf "=============dump bignum! end============="]
+		]
+	]
+
 ]
 
