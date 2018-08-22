@@ -7,7 +7,7 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-red-bignum: context [
+bignum: context [
 	verbose: 0
 
 	make-at: func [
@@ -41,7 +41,7 @@ red-bignum: context [
 			big		[red-bignum!]
 	][
 		big: make-at stack/push* 2
-		big/int: bignum/load-int int
+		big/int: _bignum/load-int int
 		big
 	]
 
@@ -68,7 +68,7 @@ red-bignum: context [
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		big: make-at slot size
-		big/int: bignum/load-bin src size
+		big/int: _bignum/load-bin src size
 		big
 	]
 
@@ -218,7 +218,7 @@ red-bignum: context [
 		rsize: 0
 		tsize: size * 32 / 2 + 3
 		tmp: allocate tsize
-		if not bignum/write-string int-big 10 tmp tsize :rsize [
+		if not _bignum/write-string int-big 10 tmp tsize :rsize [
 			print "something wrong!"
 		]
 
@@ -310,38 +310,38 @@ red-bignum: context [
 				int: as red-integer! right
 				switch type [
 					OP_ADD [
-						big: load-bn bignum/add-int left/int int/value
+						big: load-bn _bignum/add-int left/int int/value
 					]
 					OP_SUB [
-						big: load-bn bignum/sub-int left/int int/value
+						big: load-bn _bignum/sub-int left/int int/value
 					]
 					OP_MUL [
-						big: load-bn bignum/mul-int left/int int/value
+						big: load-bn _bignum/mul-int left/int int/value
 					]
 					OP_DIV [
-						big: load-bn bignum/div-int left/int int/value false
+						big: load-bn _bignum/div-int left/int int/value false
 					]
 					OP_REM [
-						big: load-int bignum/module-int left/int int/value
+						big: load-int _bignum/module-int left/int int/value
 					]
 				]
 			]
 			TYPE_BIGNUM [
 				switch type [
 					OP_ADD [
-						big: load-bn bignum/add left/int right/int
+						big: load-bn _bignum/add left/int right/int
 					]
 					OP_SUB [
-						big: load-bn bignum/sub left/int right/int
+						big: load-bn _bignum/sub left/int right/int
 					]
 					OP_MUL [
-						big: load-bn bignum/mul left/int right/int
+						big: load-bn _bignum/mul left/int right/int
 					]
 					OP_DIV [
-						big: load-bn bignum/div left/int right/int false
+						big: load-bn _bignum/div left/int right/int false
 					]
 					OP_REM [
-						big: load-bn bignum/module left/int right/int
+						big: load-bn _bignum/module left/int right/int
 					]
 				]
 			]
@@ -365,8 +365,8 @@ red-bignum: context [
 		][return 1]
 
 		switch op [
-			COMP_EQUAL		[res: bignum/compare value1/int value2/int]
-			COMP_NOT_EQUAL 	[res: not bignum/compare value1/int value2/int]
+			COMP_EQUAL		[res: _bignum/compare value1/int value2/int]
+			COMP_NOT_EQUAL 	[res: not _bignum/compare value1/int value2/int]
 			default [
 				res: SIGN_COMPARE_RESULT(value1 value2)
 			]
