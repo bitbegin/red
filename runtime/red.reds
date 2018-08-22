@@ -31,6 +31,7 @@ red: context [
 	
 	;-- Datatypes --
 	
+	#include %bignum.reds
 	#include %datatypes/structures.reds
 	#include %print.reds
 	#include %datatypes/common.reds
@@ -39,7 +40,6 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
-	#include %bignum.reds
 	
 	;--------------------------------------------
 	;-- Import OS dependent image functions

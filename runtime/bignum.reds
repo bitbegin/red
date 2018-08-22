@@ -7,19 +7,19 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+bignum!: alias struct! [
+	size		[integer!]				;-- size in integer!
+	used		[integer!]				;-- used length in integer!
+	sign		[integer!]
+	data		[int-ptr!]
+]
+
 bignum: context [
 	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
 	BN_MAX_LIMB:		1024			;-- support 1024 * 32 bits
 	BN_WINDOW_SIZE:		6				;-- Maximum window size used for modular exponentiation
-
-	bignum!: alias struct! [
-		size		[integer!]			;-- size in integer!
-		used		[integer!]			;-- used length in integer!
-		sign		[integer!]
-		data		[int-ptr!]
-	]
 
 	#define MULADDC_INIT [
 		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
