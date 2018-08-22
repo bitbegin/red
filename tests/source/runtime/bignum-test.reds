@@ -139,4 +139,12 @@ big2: as bignum! 0
 		--assert 1 = _bignum/compare-int big 1000000000
 ===end-group===
 
+===start-group=== "load bin"
+	--test-- "load-bin-1"
+		_bignum/bn-free big
+		bin: [#"^(11)" #"^(22)" #"^(33)" #"^(44)" #"^(55)" #"^(66)" #"^(77)"]
+		big: _bignum/load-bin bin size? bin
+		--assert _bignum/equal-bin? big bin size? bin
+===end-group===
+
 ~~~end-file~~~

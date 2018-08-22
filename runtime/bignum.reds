@@ -1204,6 +1204,32 @@ _bignum: context [
 		big
 	]
 
+	equal-bin?: func [
+		big					[bignum!]
+		bin					[byte-ptr!]
+		len					[integer!]
+		return:				[logic!]
+		/local
+			len2			[integer!]
+			p				[byte-ptr!]
+			pbin			[byte-ptr!]
+	][
+		len2: big/used * 4
+		if any [len2 < len len2 > (len + 4)] [return false]
+		p: as byte-ptr! big/data
+		pbin: bin + len - 1
+		loop len [
+			if pbin/1 <> p/1 [return false]
+			pbin: pbin - 1
+			p: p + 1
+		]
+		loop len2 - len [
+			if p/1 <> null-byte [return false]
+			p: p + 1
+		]
+		true
+	]
+
 	radix-table: "0123456789ABCDEF"
 
 	chr-index: func [
