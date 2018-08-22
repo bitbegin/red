@@ -45,13 +45,13 @@ red-bignum: context [
 	]
 
 	load-bn: func [
-		big			[bignum!]
+		bn			[bignum!]
 		return:		[red-bignum!]
 		/local
 			big		[red-bignum!]
 	][
 		big: make-at stack/push* 2
-		big/int: big
+		big/int: bn
 	]
 
 	load-in: func [
