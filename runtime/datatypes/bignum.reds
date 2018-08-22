@@ -44,6 +44,16 @@ red-bignum: context [
 		big/int: bignum/load-int int
 	]
 
+	load-bn: func [
+		big			[bignum!]
+		return:		[red-bignum!]
+		/local
+			big		[red-bignum!]
+	][
+		big: make-at stack/push* 2
+		big/int: big
+	]
+
 	load-in: func [
 		src			[byte-ptr!]
 		size		[integer!]
@@ -293,6 +303,70 @@ red-bignum: context [
 		big2/int: int
 		big2/fact: fact
 		big1
+	]
+
+	do-math: func [
+		type		[math-op!]
+		return:		[red-value!]
+		/local
+			left	[red-bignum!]
+			right	[red-bignum!]
+			int		[red-integer!]
+			big		[red-bignum!]
+	][
+		left: as red-bignum! stack/arguments
+		right: left + 1
+
+		assert TYPE_OF(left) = TYPE_BIGNUM
+
+		assert any [
+			TYPE_OF(right) = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_BIGNUM
+		]
+		
+		make-at as red-value! :big 1
+		switch TYPE_OF(right) [
+			TYPE_INTEGER [
+				int: as red-integer! right
+				switch type [
+					OP_ADD [
+						big: load-bn bignum/add-int left/int int/value
+					]
+					OP_SUB [
+						big: load-bn bignum/sub-int left/int int/value
+					]
+					OP_MUL [
+						big: load-bn bignum/mul-int left/int int/value
+					]
+					OP_DIV [
+						big: load-bn bignum/div-int left/int int/value false
+					]
+					OP_REM [
+						big: load-int bignum/module-int left/int int/value
+					]
+				]
+			]
+			TYPE_BIGNUM [
+				switch type [
+					OP_ADD [
+						big: load-bn bignum/add left/int right/int
+					]
+					OP_SUB [
+						big: load-bn bignum/sub left/int right/int
+					]
+					OP_MUL [
+						big: load-bn bignum/mul left/int right/int
+					]
+					OP_DIV [
+						big: load-bn bignum/div left/int right/int false
+					]
+					OP_REM [
+						big: load-bn bignum/module left/int right/int
+					]
+				]
+			]
+		]
+		SET_RETURN(big)
 	]
 
 	init: does [
