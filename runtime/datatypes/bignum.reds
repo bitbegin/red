@@ -369,6 +369,31 @@ red-bignum: context [
 		SET_RETURN(big)
 	]
 
+	compare*: func [
+		value1    [red-bignum!]						;-- first operand
+		value2    [red-bignum!]						;-- second operand
+		op	      [integer!]						;-- type of comparison
+		return:   [integer!]
+		/local
+			res	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/compare"]]
+
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value1) <> TYPE_OF(value2)
+		][return 1]
+
+		switch op [
+			COMP_EQUAL		[res: bignum/compare value1/int value2/int]
+			COMP_NOT_EQUAL 	[res: not bignum/compare value1/int value2/int]
+			default [
+				res: SIGN_COMPARE_RESULT(value1 value2)
+			]
+		]
+		res
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BIGNUM
