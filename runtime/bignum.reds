@@ -1243,7 +1243,7 @@ bignum: context [
 		if any [radix < 2 radix > 16] [return false]
 
 		ret: module-int big radix
-		Q: div-int big radix
+		Q: div-int big radix false
 		if 0 <> compare-int Q 0 [
 			write-hlp Q radix buf
 		]
