@@ -14,7 +14,7 @@ bignum!: alias struct! [
 	data		[int-ptr!]
 ]
 
-bignum: context [
+_bignum: context [
 	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
@@ -43,13 +43,7 @@ bignum: context [
 	#define MULADDC_STOP []
 
 	set-max-size: func [size [integer!]][
-		if size < 0 [
-			fire [
-				TO_ERROR(script out-of-range)
-				integer/push size
-			]
-		]
-		BN_MAX_LIMB: size
+		if size > 0 [BN_MAX_LIMB: size]
 	]
 
 	bn-alloc: func [
@@ -60,12 +54,7 @@ bignum: context [
 			p			[byte-ptr!]
 			big			[bignum!]
 	][
-		if size > BN_MAX_LIMB [
-			fire [
-				TO_ERROR(script out-of-range)
-				integer/push size
-			]
-		]
+		if size > BN_MAX_LIMB [return null]
 
 		len: size * 4 + size? bignum!
 		p: allocate len
@@ -482,12 +471,7 @@ bignum: context [
 		/local
 			big		[bignum!]
 	][
-		if big1/used < big2/used [
-			fire [
-				TO_ERROR(script out-of-range)
-				integer/push big2/used
-			]
-		]
+		if big1/used < big2/used [return big1]
 
 		big: bn-copy big1 big1/used
 		big/sign: 1
@@ -624,12 +608,44 @@ bignum: context [
 		absolute-compare big2 big1
 	]
 
-	compare-int: func [
-		big1	 	[bignum!]
-		int			[integer!]
-		return:	 	[integer!]
+	bn-zero?: func [
+		big			[bignum!]
+		return:		[logic!]
 		/local
-			big	 	[bignum!]
+			p		[int-ptr!]
+	][
+		if big/used = 0 [return true]
+		p: big/data
+		if all [big/used = 1 p/value = 0][return true]
+		false
+	]
+
+	bn-negative: func [
+		big			[bignum!]
+		return:		[bignum!]
+		/local
+			ret		[bignum!]
+	][
+		ret: bn-copy big big/used
+		if bn-zero? big [return ret]
+		ret/sign: either big/sign = 1 [-1][1]
+		ret
+	]
+
+	bn-negative?: func [
+		big			[bignum!]
+		return:		[logic!]
+	][
+		if big/sign = 1 [return true]
+		false
+	]
+
+	compare-int: func [
+		big1		[bignum!]
+		int			[integer!]
+		return:		[integer!]
+		/local
+			big		[bignum!]
 			ret		[integer!]
 	][
 		big: load-int int
@@ -774,7 +790,7 @@ bignum: context [
 			i			[integer!]
 	][
 		if u0 = 0 [
-			fire [TO_ERROR(math zero-divide)]
+			1 / 0
 			return 0					;-- pass the compiler's type-checking
 		]
 		
@@ -817,7 +833,7 @@ bignum: context [
 		hmask: radix - 1
 
 		if d = 0 [
-			fire [TO_ERROR(math zero-divide)]
+			1 / 0
 			return 0					;-- pass the compiler's type-checking
 		]
 
@@ -904,7 +920,7 @@ bignum: context [
 			ret		[integer!]
 	][
 		if 0 = compare-int B 0 [
-			fire [TO_ERROR(math zero-divide)]
+			1 / 0
 			return A					;-- pass the compiler's type-checking
 		]
 
@@ -1085,9 +1101,14 @@ bignum: context [
 			BT		[bignum!]
 	][
 		;-- need to be fixed
-		if 0 > compare-int B 0 [
-			fire [TO_ERROR(math zero-divide)]
-			return A						;-- pass the compiler's type-checking
+		;if 0 > compare-int B 0 [
+		;	fire [TO_ERROR(math zero-divide)]
+		;	return A						;-- pass the compiler's type-checking
+		;]
+
+		if bn-zero? B [
+			1 / 0
+			return A
 		]
 
 		R: div A B true
@@ -1118,8 +1139,8 @@ bignum: context [
 			z		[integer!]
 	][
 		;-- need to be fixed
-		if b <= 0 [
-			fire [TO_ERROR(math zero-divide)]
+		if b = 0 [
+			1 / 0
 			return 0						;-- pass the compiler's type-checking
 		]
 
