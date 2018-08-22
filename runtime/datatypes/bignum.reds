@@ -394,6 +394,20 @@ red-bignum: context [
 		res
 	]
 
+	absolute: func [
+		return:		[red-bignum!]
+		/local
+			big		[red-bignum!]
+			bn		[bignum!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/absolute"]]
+
+		big: as red-bignum! stack/arguments
+		bn: big/int
+		bn/sign: 1
+		big 											;-- re-use argument slot for return value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BIGNUM
