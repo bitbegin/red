@@ -1336,7 +1336,7 @@ bignum: context [
 				T/sign: 1
 			]
 
-			write-hlp T radix as integer! :p
+			if false = write-hlp T radix as integer! :p [return false]
 		]
 
 		p2: as byte-ptr! p
@@ -1346,12 +1346,12 @@ bignum: context [
 		true
 	]
 
-	dump-bignum: func [
-		big			[bignum!]
-		/local
-			p		[byte-ptr!]
-	][
-		#if debug? = yes [
+	#if debug? = yes [
+		dump-bignum: func [
+			big			[bignum!]
+			/local
+				p		[byte-ptr!]
+		][
 			p: as byte-ptr! big/data
 			print-line [lf "===============dump bignum!==============="]
 			print-line ["used: " big/used " sign: " big/sign " addr: " p]
