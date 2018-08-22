@@ -92,4 +92,51 @@ big2: as bignum! 0
 
 ===end-group===
 
+===start-group=== "load uint"
+	--test-- "load-uint-1"
+		_bignum/bn-free big
+		big: _bignum/load-uint 0
+		--assert _bignum/bn-zero? big
+	--test-- "load-uint-2"
+		_bignum/bn-free big
+		big: _bignum/load-uint 100
+		--assert 0 = _bignum/compare-int big 100
+	--test-- "load-uint-3"
+		_bignum/bn-free big
+		big: _bignum/load-uint 10000
+		--assert 0 = _bignum/compare-int big 10000
+	--test-- "load-uint-4"
+		_bignum/bn-free big
+		big: _bignum/load-uint 1000000
+		--assert 0 = _bignum/compare-int big 1000000
+	--test-- "load-uint-5"
+		_bignum/bn-free big
+		big: _bignum/load-uint 100000000
+		--assert 0 = _bignum/compare-int big 100000000
+	--test-- "load-uint-6"
+		_bignum/bn-free big
+		big: _bignum/load-uint 1000000000
+		--assert 0 = _bignum/compare-int big 1000000000
+	--test-- "load-uint-7"
+		_bignum/bn-free big
+		big: _bignum/load-uint -100
+		--assert 1 = _bignum/compare-int big 100
+	--test-- "load-uint-8"
+		_bignum/bn-free big
+		big: _bignum/load-uint -10000
+		--assert 1 = _bignum/compare-int big 10000
+	--test-- "load-uint-9"
+		_bignum/bn-free big
+		big: _bignum/load-uint -1000000
+		--assert 1 = _bignum/compare-int big 1000000
+	--test-- "load-uint-10"
+		_bignum/bn-free big
+		big: _bignum/load-uint -100000000
+		--assert 1 = _bignum/compare-int big 100000000
+	--test-- "load-uint-11"
+		_bignum/bn-free big
+		big: _bignum/load-uint -1000000000
+		--assert 1 = _bignum/compare-int big 1000000000
+===end-group===
+
 ~~~end-file~~~
