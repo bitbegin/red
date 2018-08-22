@@ -1266,7 +1266,7 @@ bignum: context [
 		buf			[byte-ptr!]
 		buflen		[integer!]
 		olen		[int-ptr!]
-		return: 	[logic!]
+		return:		[logic!]
 		/local
 			T		[bignum!]
 			n		[integer!]

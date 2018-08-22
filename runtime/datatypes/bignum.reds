@@ -118,7 +118,163 @@ red-bignum: context [
 		as red-value! big
 	]
 
-	form: 
+	serialize: func [
+		big			[red-bignum!]
+		buffer		[red-string!]
+		only?		[logic!]
+		all?		[logic!]
+		flat?		[logic!]
+		arg			[red-value!]
+		part		[integer!]
+		mold?		[logic!]
+		return: 	[integer!]
+		/local
+			int-big	[bignum!]
+			p		[byte-ptr!]
+			size	[integer!]
+			bytes	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
+
+		int-big: big/int
+		p: as byte-ptr! int-big/data
+		either int-big/used = 0 [
+			size: 1
+		][
+			size: int-big/used * 4
+		]
+		p: p + size
+
+		bytes: 0
+		if size > 30 [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
+
+		if int-big/sign = -1 [
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+			part: part - 1
+		]
+
+		loop size [
+			p: p - 1
+			string/concatenate-literal buffer string/byte-to-hex as-integer p/value
+			bytes: bytes + 1
+			if bytes % 32 = 0 [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: part - 1
+			]
+			part: part - 2
+			if all [OPTION?(arg) part <= 0][return part]
+		]
+		if all [size > 30 bytes % 32 <> 0] [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
+		part - 1
+	]
+
+	serialize-10: func [
+		big			[red-bignum!]
+		buffer		[red-string!]
+		only?		[logic!]
+		all?		[logic!]
+		flat?		[logic!]
+		arg			[red-value!]
+		part		[integer!]
+		mold?		[logic!]
+		return: 	[integer!]
+		/local
+			int-big	[bignum!]
+			p		[byte-ptr!]
+			size	[integer!]
+			rsize	[integer!]
+			tmp		[byte-ptr!]
+			bytes	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
+
+		int-big: big/int
+		p: as byte-ptr! int-big/data
+		either int-big/used = 0 [
+			size: 1
+		][
+			size: int-big/used * 4
+		]
+
+		rsize: 0
+		tmp: allocate size * 32 / 2 + 3
+		if 0 <> write-string int-big 10 tmp size * 10 :rsize [
+			print "something wrong!"
+		]
+
+		size: rsize
+		p: tmp
+
+		bytes: 0
+		if size > 30 [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
+
+		if int-big/sign = -1 [
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+			part: part - 1
+		]
+
+		loop size - 1 [
+			string/append-char GET_BUFFER(buffer) as-integer p/1
+			bytes: bytes + 1
+			if bytes % 32 = 0 [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: part - 1
+			]
+			part: part - 2
+			if all [OPTION?(arg) part <= 0][
+				free tmp
+				return part
+			]
+			p: p + 1
+		]
+		if all [size > 30 bytes % 32 <> 0] [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
+		free tmp
+		part - 1
+	]
+
+	form: func [
+		big		[red-bignum!]
+		buffer	[red-string!]
+		arg		[red-value!]
+		part 	[integer!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/form"]]
+
+		serialize-10 big buffer no no no arg part no
+	]
+
+	mold: func [
+		big		[red-bignum!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		indent	[integer!]
+		return:	[integer!]
+		/local
+			formed [c-string!]
+			s	   [series!]
+			unit   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bignum/mold"]]
+
+		serialize-10 big buffer only? all? flat? arg part yes
+	]
 
 	init: does [
 		datatype/register [
