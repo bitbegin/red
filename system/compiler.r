@@ -497,7 +497,7 @@ system-dialect: make-profilable context [
 		
 		select-globals: func [name [word!] /local pos][
 			all [
-				pos: find globals name
+				pos: find/last globals name
 				pos/2
 			]
 		]
@@ -3149,9 +3149,12 @@ system-dialect: make-profilable context [
 				append last functions reduce [name 'local]
 			]
 			
-			either type: any [
-				get-variable-spec name					;-- test if known variable (local or global)	
-				enum-id? name
+			either all [
+				type: any [
+					get-variable-spec name					;-- test if known variable (local or global)	
+					enum-id? name
+				]
+				'array! <> first head type
 			][
 				type: resolve-aliased type
 				value: get-type expr
