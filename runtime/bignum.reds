@@ -15,6 +15,21 @@ bignum!: alias struct! [
 ]
 
 _bignum: context [
+
+	cpu-little-endian?: func [
+		return:		[logic!]
+		/local
+			int		[integer!]
+			p		[byte-ptr!]
+	][
+		int: 44332211h
+		p: as byte-ptr! :int
+		if p/1 = #"^(11)" [return yes]
+		no
+	]
+
+	little-endian?: cpu-little-endian?
+
 	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
@@ -1242,11 +1257,11 @@ _bignum: context [
 			either len >= 4 [
 				value: as integer! p2/1
 				p2: p2 - 1
-				value: value + as integer! (p2/1 << 8)
+				value: value + ((as integer! p2/1) << 8)
 				p2: p2 - 1
-				value: value + as integer! (p2/1 << 16)
+				value: value + ((as integer! p2/1) << 16)
 				p2: p2 - 1
-				value: value + as integer! (p2/1 << 24)
+				value: value + ((as integer! p2/1) << 24)
 				p2: p2 - 1
 				p/1: value
 				p: p + 1
@@ -1255,11 +1270,11 @@ _bignum: context [
 				value: as integer! p2/1
 				p2: p2 - 1
 				if len >= 2 [
-					value: value + as integer! (p2/1 << 8)
+					value: value + ((as integer! p2/1) << 8)
 					p2: p2 - 1
 				]
 				if len >= 3 [
-					value: value + as integer! (p2/1 << 16)
+					value: value + ((as integer! p2/1) << 16)
 					p2: p2 - 1
 				]
 				p/1: value
@@ -1277,21 +1292,44 @@ _bignum: context [
 		return:				[logic!]
 		/local
 			len2			[integer!]
-			p				[byte-ptr!]
+			p				[int-ptr!]
 			pbin			[byte-ptr!]
+			i				[integer!]
+			value			[integer!]
 	][
 		len2: big/used * 4
 		if any [len2 < len len2 > (len + 4)] [return false]
-		p: as byte-ptr! big/data
+		p: big/data
 		pbin: bin + len - 1
-		loop len [
-			if pbin/1 <> p/1 [return false]
-			pbin: pbin - 1
-			p: p + 1
-		]
-		loop len2 - len [
-			if p/1 <> null-byte [return false]
-			p: p + 1
+		i: 0
+		until [
+			either len >= 4 [
+				value: as integer! pbin/1
+				pbin: pbin - 1
+				value: value + ((as integer! pbin/1) << 8)
+				pbin: pbin - 1
+				value: value + ((as integer! pbin/1) << 16)
+				pbin: pbin - 1
+				value: value + ((as integer! pbin/1) << 24)
+				pbin: pbin - 1
+				if p/1 <> value [return false]
+				p: p + 1
+				len: len - 4
+			][
+				value: as integer! pbin/1
+				pbin: pbin - 1
+				if len >= 2 [
+					value: value + ((as integer! pbin/1) << 8)
+					pbin: pbin - 1
+				]
+				if len >= 3 [
+					value: value + ((as integer! pbin/1) << 16)
+					pbin: pbin - 1
+				]
+				if p/1 <> value [return false]
+				len: 0
+			]
+			len <= 0
 		]
 		true
 	]
