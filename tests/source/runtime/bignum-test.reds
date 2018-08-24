@@ -152,9 +152,15 @@ big2: as bignum! 0
 		--assert _bignum/equal-bin? big bin2 size? bin2
 	--test-- "load-bin-3"
 		_bignum/bn-free big
-		bin: [#"^(3B)" #"^(9A)" #"^(CA)" #"^(00)"]
-		big: _bignum/load-bin bin size? bin
+		bin3: [#"^(3B)" #"^(9A)" #"^(CA)" #"^(00)"]
+		big: _bignum/load-bin bin3 size? bin3
 		--assert 0 = _bignum/compare-int big 1000000000
+	--test-- "load-bin-4"
+		_bignum/bn-free big
+		bin4: [#"^(0D)" #"^(E0)" #"^(B6)" #"^(B3)" #"^(A7)" #"^(64)" #"^(00)" #"^(00)"]
+		big: _bignum/load-bin bin4 size? bin4
+		big2: _bignum/mul-int _bignum/load-int 1000000000 1000000000
+		--assert 0 = _bignum/compare big big2
 
 ===end-group===
 
