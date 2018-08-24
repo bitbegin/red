@@ -665,6 +665,14 @@ _bignum: context [
 		false
 	]
 
+	;-- don't allocate memory, just change sign field
+	set-negative: func [
+		big			[bignum!]
+	][
+		if bn-zero? big [exit]
+		big/sign: either big/sign = 1 [-1][1]
+	]
+
 	compare-int: func [
 		big1		[bignum!]
 		int			[integer!]
