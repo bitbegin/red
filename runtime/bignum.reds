@@ -1364,6 +1364,7 @@ _bignum: context [
 		radix				[integer!]
 		return:				[bignum!]
 		/local
+			sign			[integer!]
 			size			[integer!]
 			big				[bignum!]
 			BT				[bignum!]
@@ -1374,6 +1375,8 @@ _bignum: context [
 		size: length? str
 		big: load-int 0
 		p: as byte-ptr! str
+		if str/1 = #"-" [sign: -1 p: p + 1 size: size - 1]
+		if str/1 = #"+" [sign: 1 p: p + 1 size: size - 1]
 		loop size [
 			index: chr-index p/1 radix
 			if index = -1 [break]
@@ -1385,6 +1388,7 @@ _bignum: context [
 			big: BT
 			p: p + 1
 		]
+		big/sign: sign
 		big
 	]
 

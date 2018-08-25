@@ -179,6 +179,22 @@ big2: as bignum! 0
 		--assert 0 = _bignum/compare big big2
 		_bignum/bn-free big
 		_bignum/bn-free big2
+	--test-- "load-base10-3"
+		str: "+1000000000000000000"
+		big: _bignum/load-str str 10
+		big2: _bignum/load-bin bin4 size? bin4
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+	--test-- "load-base10-4"
+		str: "-1000000000000000000"
+		big: _bignum/load-str str 10
+		big2: _bignum/load-bin bin4 size? bin4
+		big3: _bignum/bn-negative big2
+		--assert 0 = _bignum/compare big big3
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
 
 ===end-group===
 
@@ -197,7 +213,24 @@ big2: as bignum! 0
 		--assert 0 = _bignum/compare big big2
 		_bignum/bn-free big
 		_bignum/bn-free big2
+	--test-- "load-base16-3"
+		str: "+112233445566778899AABBCCDDEEFF"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-bin bin2 size? bin2
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+	--test-- "load-base16-4"
+		str: "-112233445566778899AABBCCDDEEFF"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-bin bin2 size? bin2
+		_bignum/set-negative big2
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
 
 ===end-group===
+
+
 
 ~~~end-file~~~
