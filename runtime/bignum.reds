@@ -1375,6 +1375,7 @@ _bignum: context [
 		size: length? str
 		big: load-int 0
 		p: as byte-ptr! str
+		sign: 1
 		if str/1 = #"-" [sign: -1 p: p + 1 size: size - 1]
 		if str/1 = #"+" [sign: 1 p: p + 1 size: size - 1]
 		loop size [
@@ -1517,7 +1518,7 @@ _bignum: context [
 		][
 			p: as byte-ptr! big/data
 			print-line [lf "===============dump bignum!==============="]
-			print-line ["used: " big/used " sign: " big/sign " addr: " p]
+			print-line ["size: " big/size " used: " big/used " sign: " big/sign " addr: " p]
 			p: p + (big/used * 4)
 			loop big/used * 4 [
 				p: p - 1
