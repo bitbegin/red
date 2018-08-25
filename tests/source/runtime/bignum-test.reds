@@ -349,7 +349,58 @@ big2: as bignum! 0
 ===end-group===
 
 ===start-group=== "sub tests"
+	--test-- "sub-test-1"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929B"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/sub-int big 1
+		--assert 0 = _bignum/compare big2 big3
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
 
+	--test-- "sub-test-2"
+		str:  "B8672F8CEEBC1448"
+		str2: "89EFE4B2D8A7D514"
+		str3: "2E774ADA16143F34"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/sub big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+
+	--test-- "sub-test-3"
+		str:   "6AC1F425FF4780EB"
+		str2:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FD4B8E42103A0D1387"
+		str3: "-6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/sub big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+
+	--test-- "sub-test-4"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "04AE8A6D08BF7373C00975299FC06DD2FD26000FA91F6C40BF87C8C44C6A3019"
+		str3: "66A1CA9147733DF1EF611668E6885C013730FB7BC866B4BC21448525EE5B6283"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/sub big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
 
 ===end-group===
 
