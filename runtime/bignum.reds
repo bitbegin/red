@@ -360,6 +360,7 @@ _bignum: context [
 	right-shift: func [
 		big			[bignum!]
 		count		[integer!]
+		return:		[bignum!]
 		/local
 			i		[integer!]
 			v0		[integer!]
@@ -369,34 +370,36 @@ _bignum: context [
 			p		[int-ptr!]
 			p1		[int-ptr!]
 			p2		[int-ptr!]
+			ret		[bignum!]
 	][
 		r0: 0
 		v0: count / biL
 		v1: count and (biL - 1)
 
-		p: big/data
+		ret: bn-copy big big/used
+		p: ret/data
 
 		if any [
-			v0 > big/used
+			v0 > ret/used
 			all [
-				v0 = big/used
+				v0 = ret/used
 				v1 > 0
 			]
 		][
-			lset big 0
-			exit
+			lset ret 0
+			ret
 		]
 
 		if v0 > 0 [
 			i: 0
-			while [i < (big/used - v0)][
+			while [i < (ret/used - v0)][
 				p1: p + i
 				p2: p + i + v0
 				p1/1: p2/1
 				i: i + 1
 			]
 
-			while [i < big/used][
+			while [i < ret/used][
 				p1: p + i
 				p1/1: 0
 				i: i + 1
@@ -404,7 +407,7 @@ _bignum: context [
 		]
 
 		if v1 > 0 [
-			i: big/used
+			i: ret/used
 			while [i > 0][
 				p1: p + i - 1
 				r1: p1/1 << (biL - v1)
@@ -419,8 +422,9 @@ _bignum: context [
 			v0 > 0
 			v1 > 0
 		][
-			shrink big
+			shrink ret
 		]
+		ret
 	]
 
 	absolute-add: func [
