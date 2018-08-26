@@ -357,6 +357,18 @@ _bignum: context [
 		ret
 	]
 
+	left-shift-free: func [
+		big			[bignum!]
+		count		[integer!]
+		return:		[bignum!]
+		/local
+			BT		[bignum!]
+	][
+		BT: left-shift big count
+		bn-free big
+		BT
+	]
+
 	right-shift: func [
 		big			[bignum!]
 		count		[integer!]
@@ -425,6 +437,18 @@ _bignum: context [
 			shrink ret
 		]
 		ret
+	]
+
+	right-shift-free: func [
+		big			[bignum!]
+		count		[integer!]
+		return:		[bignum!]
+		/local
+			BT		[bignum!]
+	][
+		BT: right-shift big count
+		bn-free big
+		BT
 	]
 
 	absolute-add: func [
@@ -538,6 +562,18 @@ _bignum: context [
 		big
 	]
 
+	add-free: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+	][
+		big: add big1 big2
+		bn-free big1
+		big
+	]
+
 	sub: func [
 		big1		[bignum!]
 		big2		[bignum!]
@@ -557,6 +593,18 @@ _bignum: context [
 			big: absolute-add big1 big2
 			big/sign: big1/sign
 		]
+		big
+	]
+
+	sub-free: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+	][
+		big: sub big1 big2
+		bn-free big1
 		big
 	]
 
@@ -663,6 +711,17 @@ _bignum: context [
 		ret: bn-copy big big/used
 		if bn-zero? big [return ret]
 		ret/sign: either big/sign = 1 [-1][1]
+		ret
+	]
+
+	bn-negative-free: func [
+		big			[bignum!]
+		return:		[bignum!]
+		/local
+			ret		[bignum!]
+	][
+		ret: bn-negative big
+		bn-free big
 		ret
 	]
 
@@ -807,6 +866,18 @@ _bignum: context [
 
 		big/sign: big1/sign * big2/sign
 		shrink big
+		big
+	]
+
+	mul-free: func [
+		big1		[bignum!]
+		big2		[bignum!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+	][
+		big: mul big1 big2
+		free big1
 		big
 	]
 
