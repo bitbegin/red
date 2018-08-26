@@ -418,6 +418,7 @@ big2: as bignum! 0
 		_bignum/bn-free big2
 		_bignum/bn-free big3
 		_bignum/bn-free big4
+
 	--test-- "mul-test-2"
 		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
 		str2: "02"
@@ -431,6 +432,7 @@ big2: as bignum! 0
 		_bignum/bn-free big2
 		_bignum/bn-free big3
 		_bignum/bn-free big4
+
 	--test-- "mul-test-3"
 		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
 		str2: "02"
@@ -444,6 +446,7 @@ big2: as bignum! 0
 		_bignum/bn-free big2
 		_bignum/bn-free big3
 		_bignum/bn-free big4
+
 	--test-- "mul-test-4"
 		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
 		str2: "-02"
@@ -457,6 +460,7 @@ big2: as bignum! 0
 		_bignum/bn-free big2
 		_bignum/bn-free big3
 		_bignum/bn-free big4
+
 	--test-- "mul-test-5"
 		str:  "B8672F8CEEBC1448"
 		str2: "6AC1F425FF4780EB"
@@ -486,5 +490,66 @@ big2: as bignum! 0
 		_bignum/bn-free big4
 
 ===end-group===
+
+===start-group=== "left-shift tests"
+	--test-- "left-shift-test-1"
+		str:  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str3: "91A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C480000000000000000000000000000000"
+		big: _bignum/load-str str 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/left-shift big 123
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+
+===end-group===
+
+===start-group=== "right-shift tests"
+	--test-- "right-shift-test-1"
+		str:  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str3: "2468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF12"
+		big: _bignum/load-str str 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/right-shift big 123
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+
+===end-group===
+
+;===start-group=== "div tests"
+	;--test-- "div-test-1"
+	;	str:  "4CE66F58EC3858F34F2E3A8288C29E18"
+	;	str2: "B8672F8CEEBC1448"
+	;	str3: "6AC1F425FF4780EB"
+	;	big: _bignum/load-str str 16
+	;	big2: _bignum/load-str str2 16
+	;	big3: _bignum/load-str str3 16
+	;	big4: _bignum/div big big2 false
+	;	_bignum/dump-bignum big4
+	;	--assert 0 = _bignum/compare big3 big4
+	;	_bignum/bn-free big
+	;	_bignum/bn-free big2
+	;	_bignum/bn-free big3
+	;	_bignum/bn-free big4
+
+	;--test-- "div-test-1"
+	;	str:  "14B66DC327250550964E355433697545A3163C9C55F1F90FC36640DBE2EA768FBEB61186DEA18938972D845C5FA77C672F86B7CB4A02ADC81A2CD5D4D8690FA8FBE8B7F27C22F906D54F4A0955B82270F037BF6F49DFE8DC9C22CF99F9C8FBBF4B16F5D4AEFC3422AD9EAD514F868E5E6E7C5F7E0F8BA9386DC0A8D6115D71C602EA4D22E32FC33CD4005C9C2C851D89751C363AB64E0BE757E326FB9875100"
+	;	str2: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+	;	str3: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+	;	big: _bignum/load-str str 16
+	;	big2: _bignum/load-str str2 16
+	;	big3: _bignum/load-str str3 16
+	;	big4: _bignum/div big big2 false
+	;	--assert 0 = _bignum/compare big3 big4
+	;	_bignum/bn-free big
+	;	_bignum/bn-free big2
+	;	_bignum/bn-free big3
+	;	_bignum/bn-free big4
+
+;===end-group===
+
 
 ~~~end-file~~~
