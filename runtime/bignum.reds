@@ -299,24 +299,29 @@ _bignum: context [
 			p		[int-ptr!]
 			p1		[int-ptr!]
 			p2		[int-ptr!]
+			ret		[bignum!]
 	][
 		r0: 0
 		v0: count / biL
 		t1: count and (biL - 1)
 		i: bitlen? big
 		i: i + count
-		p: big/data
 
-		if (big/used * biL) < i [
+		either (big/used * biL) < i [
 			size: i / biL
 			if i % biL <> 0 [
 				size: size + 1
 			]
-			big: grow big size
+		][
+			size: big/used
 		]
 
+		ret: bn-copy big size
+
+		p: ret/data
+
 		if v0 > 0 [
-			i: big/used
+			i: ret/used
 			while [i > v0][
 				p1: p + i - 1
 				p2: p + i - v0 - 1
@@ -333,7 +338,7 @@ _bignum: context [
 
 		if t1 > 0 [
 			i: v0
-			while [i < big/used][
+			while [i < ret/used][
 				p1: p + i
 				r1: p1/1 >>> (biL - t1)
 				p1/1: p1/1 << t1
@@ -347,9 +352,9 @@ _bignum: context [
 			v0 > 0
 			t1 > 0
 		][
-			shrink big
+			shrink ret
 		]
-		big
+		ret
 	]
 
 	right-shift: func [
