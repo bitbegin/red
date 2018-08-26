@@ -76,34 +76,46 @@ big2: as bignum! 0
 
 ===start-group=== "load int and negative"
 	--test-- "load-int-neg-1"
-		big: _bignum/bn-negative _bignum/load-int 0
-		--assert 0 = _bignum/compare-int big -0 
+		big: _bignum/load-int 0
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -0 
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 	--test-- "load-int-neg-2"
-		big: _bignum/bn-negative _bignum/load-int 100
-		--assert 0 = _bignum/compare-int big -100
+		big: _bignum/load-int 100
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -100
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 	--test-- "load-int-neg-3"
-		big: _bignum/bn-negative _bignum/load-int 10000
-		--assert 0 = _bignum/compare-int big -10000
+		big: _bignum/load-int 10000
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -10000
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 	--test-- "load-int-neg-4"
-		big: _bignum/bn-negative _bignum/load-int 1000000
-		--assert 0 = _bignum/compare-int big -1000000
+		big: _bignum/load-int 1000000
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -1000000
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 	--test-- "load-int-neg-5"
-		big: _bignum/bn-negative _bignum/load-int 100000000
-		--assert 0 = _bignum/compare-int big -100000000
+		big: _bignum/load-int 100000000
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -100000000
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 	--test-- "load-int-neg-6"
-		big: _bignum/bn-negative _bignum/load-int 1000000000
-		--assert 0 = _bignum/compare-int big -1000000000
+		big: _bignum/load-int 1000000000
+		big2: _bignum/bn-negative big false
+		--assert 0 = _bignum/compare-int big2 -1000000000
 		_bignum/bn-free big
+		_bignum/bn-free big2
 
 ===end-group===
 
@@ -188,7 +200,7 @@ big2: as bignum! 0
 		bin4: [#"^(0D)" #"^(E0)" #"^(B6)" #"^(B3)" #"^(A7)" #"^(64)" #"^(00)" #"^(00)"]
 		big: _bignum/load-bin bin4 size? bin4
 		big2: _bignum/load-int 1000000000
-		big3: _bignum/mul-int big2 1000000000
+		big3: _bignum/mul-int big2 1000000000 false
 		--assert 0 = _bignum/compare big big3
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -223,7 +235,7 @@ big2: as bignum! 0
 		str: "-1000000000000000000"
 		big: _bignum/load-str str 10
 		big2: _bignum/load-bin bin4 size? bin4
-		big3: _bignum/bn-negative big2
+		big3: _bignum/bn-negative big2 false
 		--assert 0 = _bignum/compare big big3
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -273,7 +285,7 @@ big2: as bignum! 0
 		str2: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929D"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
-		big3: _bignum/add-int big 1
+		big3: _bignum/add-int big 1 false
 		--assert 0 = _bignum/compare big2 big3
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -286,7 +298,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/add big big2
+		big4: _bignum/add big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -300,7 +312,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/add big big2
+		big4: _bignum/add big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -314,7 +326,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/add big big2
+		big4: _bignum/add big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -328,7 +340,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/add big big2
+		big4: _bignum/add big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -340,7 +352,7 @@ big2: as bignum! 0
 		str2: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929B"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
-		big3: _bignum/add-int big -1
+		big3: _bignum/add-int big -1 false
 		--assert 0 = _bignum/compare big2 big3
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -354,7 +366,7 @@ big2: as bignum! 0
 		str2: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929B"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
-		big3: _bignum/sub-int big 1
+		big3: _bignum/sub-int big 1 false
 		--assert 0 = _bignum/compare big2 big3
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -367,7 +379,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/sub big big2
+		big4: _bignum/sub big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -381,7 +393,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/sub big big2
+		big4: _bignum/sub big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -395,7 +407,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/sub big big2
+		big4: _bignum/sub big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -412,7 +424,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul big big2
+		big4: _bignum/mul big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -426,7 +438,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul big big2
+		big4: _bignum/mul big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -440,7 +452,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul-int big 2
+		big4: _bignum/mul-int big 2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -454,7 +466,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul big big2
+		big4: _bignum/mul big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -468,7 +480,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul big big2
+		big4: _bignum/mul big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -482,7 +494,7 @@ big2: as bignum! 0
 		big: _bignum/load-str str 16
 		big2: _bignum/load-str str2 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/mul big big2
+		big4: _bignum/mul big big2 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big2
@@ -497,7 +509,7 @@ big2: as bignum! 0
 		str3: "91A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C48091A2B3C480000000000000000000000000000000"
 		big: _bignum/load-str str 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/left-shift big 123
+		big4: _bignum/left-shift big 123 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big3
@@ -511,7 +523,7 @@ big2: as bignum! 0
 		str3: "2468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF1202468ACF12"
 		big: _bignum/load-str str 16
 		big3: _bignum/load-str str3 16
-		big4: _bignum/right-shift big 123
+		big4: _bignum/right-shift big 123 false
 		--assert 0 = _bignum/compare big3 big4
 		_bignum/bn-free big
 		_bignum/bn-free big3
