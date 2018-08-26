@@ -288,6 +288,7 @@ _bignum: context [
 	left-shift: func [
 		big			[bignum!]
 		count		[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			i		[integer!]
@@ -354,24 +355,14 @@ _bignum: context [
 		][
 			shrink ret
 		]
+		if free? [bn-free big]
 		ret
-	]
-
-	left-shift-free: func [
-		big			[bignum!]
-		count		[integer!]
-		return:		[bignum!]
-		/local
-			BT		[bignum!]
-	][
-		BT: left-shift big count
-		bn-free big
-		BT
 	]
 
 	right-shift: func [
 		big			[bignum!]
 		count		[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			i		[integer!]
@@ -436,19 +427,8 @@ _bignum: context [
 		][
 			shrink ret
 		]
+		if free? [bn-free big]
 		ret
-	]
-
-	right-shift-free: func [
-		big			[bignum!]
-		count		[integer!]
-		return:		[bignum!]
-		/local
-			BT		[bignum!]
-	][
-		BT: right-shift big count
-		bn-free big
-		BT
 	]
 
 	absolute-add: func [
@@ -543,6 +523,7 @@ _bignum: context [
 	add: func [
 		big1		[bignum!]
 		big2		[bignum!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big		[bignum!]
@@ -559,24 +540,14 @@ _bignum: context [
 			big: absolute-add big1 big2
 			big/sign: big1/sign
 		]
-		big
-	]
-
-	add-free: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[bignum!]
-		/local
-			big		[bignum!]
-	][
-		big: add big1 big2
-		bn-free big1
+		if free? [bn-free big1]
 		big
 	]
 
 	sub: func [
 		big1		[bignum!]
 		big2		[bignum!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big		[bignum!]
@@ -593,31 +564,36 @@ _bignum: context [
 			big: absolute-add big1 big2
 			big/sign: big1/sign
 		]
-		big
-	]
-
-	sub-free: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[bignum!]
-		/local
-			big		[bignum!]
-	][
-		big: sub big1 big2
-		bn-free big1
+		if free? [bn-free big1]
 		big
 	]
 
 	add-int: func [
 		big1		[bignum!]
 		int			[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big		[bignum!]
 			ret		[bignum!]
 	][
 		big: load-int int
-		ret: add big1 big
+		ret: add big1 big free?
+		bn-free big
+		ret
+	]
+
+	add-uint: func [
+		big1		[bignum!]
+		uint		[integer!]
+		free?		[logic!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			ret		[bignum!]
+	][
+		big: load-uint uint
+		ret: add big1 big free?
 		bn-free big
 		ret
 	]
@@ -625,13 +601,29 @@ _bignum: context [
 	sub-int: func [
 		big1		[bignum!]
 		int			[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big		[bignum!]
 			ret		[bignum!]
 	][
 		big: load-int int
-		ret: sub big1 big
+		ret: sub big1 big free?
+		bn-free big
+		ret
+	]
+
+	sub-uint: func [
+		big1		[bignum!]
+		uint		[integer!]
+		free?		[logic!]
+		return:		[bignum!]
+		/local
+			big		[bignum!]
+			ret		[bignum!]
+	][
+		big: load-uint uint
+		ret: sub big1 big free?
 		bn-free big
 		ret
 	]
@@ -704,24 +696,18 @@ _bignum: context [
 
 	bn-negative: func [
 		big			[bignum!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			ret		[bignum!]
 	][
 		ret: bn-copy big big/used
-		if bn-zero? big [return ret]
+		if bn-zero? big [
+			if free? [bn-free big]
+			return ret
+		]
 		ret/sign: either big/sign = 1 [-1][1]
-		ret
-	]
-
-	bn-negative-free: func [
-		big			[bignum!]
-		return:		[bignum!]
-		/local
-			ret		[bignum!]
-	][
-		ret: bn-negative big
-		bn-free big
+		if free? [bn-free big]
 		ret
 	]
 
@@ -835,6 +821,7 @@ _bignum: context [
 	mul: func [
 		big1		[bignum!]
 		big2		[bignum!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big		[bignum!]
@@ -866,31 +853,21 @@ _bignum: context [
 
 		big/sign: big1/sign * big2/sign
 		shrink big
-		big
-	]
-
-	mul-free: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[bignum!]
-		/local
-			big		[bignum!]
-	][
-		big: mul big1 big2
-		free big1
+		if free? [bn-free big1]
 		big
 	]
 
 	mul-int: func [
 		big1		[bignum!]
 		int			[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big	 	[bignum!]
 			ret		[bignum!]
 	][
 		big: load-int int
-		ret: mul big1 big
+		ret: mul big1 big free?
 		bn-free big
 		ret
 	]
@@ -898,13 +875,14 @@ _bignum: context [
 	mul-uint: func [
 		big1		[bignum!]
 		uint		[integer!]
+		free?		[logic!]
 		return:		[bignum!]
 		/local
 			big	 	[bignum!]
 			ret		[bignum!]
 	][
 		big: load-uint uint
-		ret: mul big1 big
+		ret: mul big1 big free?
 		bn-free big
 		ret
 	]
@@ -912,17 +890,18 @@ _bignum: context [
 	uint-div: func [
 		u1				[integer!]
 		u0				[integer!]
-		return:			[integer!]
+		ret				[int-ptr!]
+		return:			[logic!]
 		/local
 			i			[integer!]
 	][
 		if u0 = 0 [
-			1 / 0
-			return 0					;-- pass the compiler's type-checking
+			return false
 		]
 		
 		if uint-less u1 u0 [
-			return 0
+			ret/value: 0
+			return true
 		]
 		
 		i: 0
@@ -930,17 +909,20 @@ _bignum: context [
 			u1: u1 - u0
 			i: i + 1
 			if uint-less u1 u0 [
-				return i
+				ret/value: i
+				return true
 			]
 		]
-		return i
+		ret/value: i
+		return true
 	]
 
 	long-divide: func [
 		u1				[integer!]
 		u0				[integer!]
 		d				[integer!]
-		return:			[integer!]
+		ret				[int-ptr!]
+		return:			[logic!]
 		/local
 			radix		[integer!]
 			hmask		[integer!]
@@ -950,7 +932,6 @@ _bignum: context [
 			q1			[integer!]
 			rAX			[integer!]
 			r0			[integer!]
-			quotient	[integer!]
 			u0_msw		[integer!]
 			u0_lsw		[integer!]
 			s			[integer!]
@@ -960,12 +941,12 @@ _bignum: context [
 		hmask: radix - 1
 
 		if d = 0 [
-			1 / 0
-			return 0					;-- pass the compiler's type-checking
+			return false
 		]
 
 		if not uint-less u1 d [
-			return -1
+			ret/value: -1
+			return true
 		]
 
 		s: clz d
@@ -983,7 +964,10 @@ _bignum: context [
 		u0_msw: u0 >>> biLH
 		u0_lsw: u0 and hmask
 		
-		q1: uint-div u1 d1
+		q1: 0
+		if false = uint-div u1 d1 :q1 [
+			return false
+		]
 		r0: u1 - (d1 * q1)
 
 		while [
@@ -999,7 +983,10 @@ _bignum: context [
 		]
 
 		rAX: (u1 * radix) + (u0_msw - (q1 * d))
-		q0: uint-div rAX d1
+		q0: 0
+		if false = uint-div rAX d1 :q0 [
+			return false
+		]
 		r0: rAX - (q0 * d1)
 
 		while [
@@ -1014,16 +1001,18 @@ _bignum: context [
 			unless uint-less r0 radix [break]
 		]
 
-		quotient: q1 * radix + q0
-		quotient
+		ret/value: q1 * radix + q0
+		return true
 	]
 
 	;-- A = Q * B + R
 	div: func [
 		A			[bignum!]
 		B			[bignum!]
-		rem?		[logic!]
-		return:		[bignum!]
+		iQ			[int-ptr!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
 		/local
 			Q		[bignum!]
 			R		[bignum!]
@@ -1032,7 +1021,6 @@ _bignum: context [
 			Z		[bignum!]
 			T1		[bignum!]
 			T2		[bignum!]
-			BT		[bignum!]
 			i		[integer!]
 			n		[integer!]
 			t		[integer!]
@@ -1044,21 +1032,17 @@ _bignum: context [
 			pt2		[int-ptr!]
 			tmp		[integer!]
 			tmp2	[integer!]
-			ret		[integer!]
 	][
 		if 0 = compare-int B 0 [
-			1 / 0
-			return A					;-- pass the compiler's type-checking
+			return false
 		]
 
 		if 0 > absolute-compare A B [
-			if rem? [
-				R: bn-copy A A/used
-				return R
-			]
-
 			Q: load-int 0
-			return Q
+			R: bn-copy A A/used
+			iQ/value: as integer! Q
+			iR/value: as integer! R
+			return true
 		]
 
 		X: bn-copy A A/used
@@ -1075,30 +1059,29 @@ _bignum: context [
 		
 		either k < (biL - 1) [
 			k: biL - 1 - k
-			X: left-shift X k
-			Y: left-shift Y k
+			X: left-shift X k true
+			Y: left-shift Y k true
 		][
 			k: 0
 		]
 
 		n: X/used
 		t: Y/used
-		Y: left-shift Y biL * (n - t)
-		
-		px: X/data
-		py: Y/data
+		Y: left-shift Y biL * (n - t) true
+
 		pz: Z/data
-		pt1: T1/data
-		pt2: T2/data
 
 		while [0 <= compare X Y][
 			tmp: n - t + 1
 			pz/tmp: pz/tmp + 1
-			BT: sub X Y
-			bn-free X
-			X: BT
+			X: sub X Y true
 		]
-		right-shift Y biL * (n - t)
+		Y: right-shift Y biL * (n - t) true
+
+		px: X/data
+		py: Y/data
+		pt1: T1/data
+		pt2: T2/data
 
 		i: n
 		while [i > t][
@@ -1107,7 +1090,9 @@ _bignum: context [
 				pz/tmp: -1
 			][
 				tmp2: i - 1
-				pz/tmp: long-divide px/i px/tmp2 py/t
+				if false = long-divide px/i px/tmp2 py/t pz + tmp - 1 [
+					return false
+				]
 			]
 
 			pz/tmp: pz/tmp + 1
@@ -1124,9 +1109,7 @@ _bignum: context [
 				pt1/2: py/t
 				T1/used: 2
 
-				BT: mul-uint T1 pz/tmp
-				bn-free T1
-				T1: BT
+				T1: mul-uint T1 pz/tmp true
 
 				lset T2 0
 				pt2: T2/data
@@ -1148,25 +1131,15 @@ _bignum: context [
 				0 >= compare T1 T2
 			]
 
-			BT: mul-uint Y pz/tmp
-			bn-free T1
-			T1: BT
-			BT: left-shift T1 biL * (tmp - 1)
-			bn-free T1
-			T1: BT
-			BT: sub X T1
-			bn-free X
-			X: BT
+			T1: mul-uint Y pz/tmp false
+			T1: left-shift T1 biL * (tmp - 1) true
+			X: sub X T1 true
 			px: X/data
 			if 0 > compare-int X 0 [
 				bn-free T1
 				T1: bn-copy Y Y/used
-				BT: left-shift T1 biL * (tmp - 1)
-				bn-free T1
-				T1: BT
-				BT: add X T1
-				bn-free X
-				X: BT
+				T1: left-shift T1 biL * (tmp - 1) true
+				X: add X T1 true
 				px: X/data
 				pz/tmp: pz/tmp - 1
 			]
@@ -1174,47 +1147,42 @@ _bignum: context [
 		]
 
 		shrink Z
-		if not rem? [
-			Q: bn-copy Z Z/used
-			Q/sign: A/sign * B/sign
-			bn-free X
-			bn-free Y
-			bn-free Z
-			bn-free T1
-			bn-free T2
-			bn-free BT
-			return Q
-		]
 
-		right-shift X k
+		Q: bn-copy Z Z/used
+		Q/sign: A/sign * B/sign
+		iQ/value: as integer! Q
+
+		X: right-shift X k true
 		X/sign: A/sign
 		shrink X
-		R: bn-copy X Z/used
+		R: X
 		
 		if 0 = compare-int R 0 [
 			R/sign: 1
 		]
 
-		bn-free X
+		iR/value: as integer! R
 		bn-free Y
 		bn-free Z
 		bn-free T1
 		bn-free T2
-		bn-free BT
-		R
+		if free? [bn-free A]
+		true
 	]
 
 	div-int: func [
 		A			[bignum!]
 		int			[integer!]
-		rem?		[logic!]
-		return:		[bignum!]
+		iQ			[int-ptr!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
 		/local
 			big		[bignum!]
-			ret		[bignum!]
+			ret		[logic!]
 	][
 		big: load-int int
-		ret: div A big rem?
+		ret: div A big iQ iR free?
 		bn-free big
 		ret
 	]
@@ -1222,18 +1190,20 @@ _bignum: context [
 	div-uint: func [
 		A			[bignum!]
 		uint		[integer!]
-		rem?		[logic!]
-		return:		[bignum!]
+		iQ			[int-ptr!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
 		/local
 			big		[bignum!]
-			ret		[bignum!]
+			ret		[logic!]
 	][
 		big: load-uint uint
-		ret: div A big rem?
+		ret: div A big iQ iR free?
 		bn-free big
 		ret
 	]
-
+comment {
 	module: func [
 		A			[bignum!]
 		B			[bignum!]
@@ -1301,12 +1271,16 @@ _bignum: context [
 		loop A/used [
 			x: p/1
 			y: (y << biLH) or (x >>> biLH)
-			z: uint-div y b
+			if false = uint-div y b :z [
+				return -1
+			]
 			y: y - (z * b)
 			
 			x: x << biLH
 			y: (y << biLH) or (x >>> biLH)
-			z: uint-div y b
+			if false = uint-div y b :z [
+				return -1
+			]
 			y: y - (z * b)
 			
 			p: p - 1
@@ -1321,7 +1295,7 @@ _bignum: context [
 
 		return y
 	]
-
+}
 	load-bin: func [
 		bin					[byte-ptr!]
 		len					[integer!]
@@ -1447,7 +1421,6 @@ _bignum: context [
 			sign			[integer!]
 			size			[integer!]
 			big				[bignum!]
-			BT				[bignum!]
 			p				[byte-ptr!]
 			index			[integer!]
 	][
@@ -1461,18 +1434,14 @@ _bignum: context [
 		loop size [
 			index: chr-index p/1 radix
 			if index = -1 [break]
-			BT: mul-int big radix
-			bn-free big
-			big: BT
-			BT: add-int big index
-			bn-free big
-			big: BT
+			big: mul-int big radix true
+			big: add-int big index true
 			p: p + 1
 		]
 		big/sign: sign
 		big
 	]
-
+comment {
 	write-hlp: func [
 		big			[bignum!]
 		radix		[integer!]
@@ -1589,7 +1558,7 @@ _bignum: context [
 		olen/value: p - as integer! buf
 		true
 	]
-
+}
 	#if debug? = yes [
 		dump-bignum: func [
 			big			[bignum!]
