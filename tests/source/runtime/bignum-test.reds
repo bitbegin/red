@@ -404,4 +404,73 @@ big2: as bignum! 0
 
 ===end-group===
 
+===start-group=== "mul tests"
+	--test-- "mul-test-1"
+		str:  "02"
+		str2: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str3: "D6A0A9FCA06562CB5ED517250C9193A868ADF716E30C41F9C1989BD4758B2538"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/mul big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+	--test-- "mul-test-2"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "02"
+		str3: "D6A0A9FCA06562CB5ED517250C9193A868ADF716E30C41F9C1989BD4758B2538"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/mul big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+	--test-- "mul-test-3"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "02"
+		str3: "D6A0A9FCA06562CB5ED517250C9193A868ADF716E30C41F9C1989BD4758B2538"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/mul-int big 2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+	--test-- "mul-test-4"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "-02"
+		str3: "-D6A0A9FCA06562CB5ED517250C9193A868ADF716E30C41F9C1989BD4758B2538"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/mul big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+	--test-- "mul-test-5"
+		str:  "B8672F8CEEBC1448"
+		str2: "6AC1F425FF4780EB"
+		str3: "4CE66F58EC3858F34F2E3A8288C29E18"
+		big: _bignum/load-str str 16
+		big2: _bignum/load-str str2 16
+		big3: _bignum/load-str str3 16
+		big4: _bignum/mul big big2
+		--assert 0 = _bignum/compare big3 big4
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		_bignum/bn-free big3
+		_bignum/bn-free big4
+
+===end-group===
+
 ~~~end-file~~~
