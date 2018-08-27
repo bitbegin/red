@@ -1042,6 +1042,7 @@ _bignum: context [
 			R: bn-copy A A/used
 			iQ/value: as integer! Q
 			iR/value: as integer! R
+			if free? [bn-free A]
 			return true
 		]
 
@@ -1050,6 +1051,7 @@ _bignum: context [
 		Y: bn-copy B B/used
 		Y/sign: 1
 		Z: bn-alloc A/used + 2
+		Z/used: A/used + 2
 		T1: bn-alloc 2
 		T1/used: 2
 		T2: bn-alloc 3
@@ -1091,6 +1093,11 @@ _bignum: context [
 			][
 				tmp2: i - 1
 				if false = long-divide px/i px/tmp2 py/t pz + tmp - 1 [
+					bn-free X
+					bn-free Y
+					bn-free Z
+					bn-free T1
+					bn-free T2
 					return false
 				]
 			]
@@ -1148,7 +1155,7 @@ _bignum: context [
 
 		shrink Z
 
-		Q: bn-copy Z Z/used
+		Q: Z
 		Q/sign: A/sign * B/sign
 		iQ/value: as integer! Q
 
@@ -1163,7 +1170,6 @@ _bignum: context [
 
 		iR/value: as integer! R
 		bn-free Y
-		bn-free Z
 		bn-free T1
 		bn-free T2
 		if free? [bn-free A]
