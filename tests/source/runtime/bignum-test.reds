@@ -600,7 +600,7 @@ big2: as bignum! 0
 
 ===end-group===
 
-===start-group=== "mod tests"
+===start-group=== "mod(behave like rebol) tests"
 	--test-- "mod-test-1"
 		big: _bignum/load-int 5
 		big2: _bignum/load-int 3
@@ -647,43 +647,6 @@ big2: as bignum! 0
 
 ===end-group===
 
-===start-group=== "mod int tests"
-	--test-- "mod-int-test-1"
-		big: _bignum/load-int 5
-		pR: 0
-		--assert true = _bignum/mod-int big 3 :pR false
-		big3: as bignum! pR
-		--assert 0 = _bignum/compare-int big3 2
-		_bignum/bn-free big
-		_bignum/bn-free big3
 
-	--test-- "mod-int-test-2"
-		big: _bignum/load-int 5
-		pR: 0
-		--assert true = _bignum/mod-int big -3 :pR false
-		big3: as bignum! pR
-		--assert 0 = _bignum/compare-int big3 2
-		_bignum/bn-free big
-		_bignum/bn-free big3
-
-	--test-- "mod-int-test-3"
-		big: _bignum/load-int -5
-		pR: 0
-		--assert true = _bignum/mod-int big -3 :pR false
-		big3: as bignum! pR
-		--assert 0 = _bignum/compare-int big3 -5
-		_bignum/bn-free big
-		_bignum/bn-free big3
-
-	--test-- "mod-int-test-4"
-		big: _bignum/load-int -5
-		pR: 0
-		--assert true = _bignum/mod-int big 3 :pR false
-		big3: as bignum! pR
-		--assert 0 = _bignum/compare-int big3 1
-		_bignum/bn-free big
-		_bignum/bn-free big3
-
-===end-group===
 
 ~~~end-file~~~

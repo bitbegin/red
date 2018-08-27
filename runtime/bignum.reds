@@ -1230,6 +1230,110 @@ _bignum: context [
 		ret
 	]
 
+	modulo: func [
+		A			[bignum!]
+		B			[bignum!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
+		/local
+			iR2		[integer!]
+			R		[bignum!]
+			BT		[bignum!]
+	][
+		if bn-zero? B [
+			return false
+		]
+
+		iR2: 0
+		if false = div A B null :iR2 false [
+			return false
+		]
+		R: as bignum! iR2
+
+		if 0 > compare-int R 0 [
+			BT: add B R false
+			bn-free R
+			R: BT
+		]
+
+		if 0 <= compare R B [
+			BT: sub B R false
+			bn-free R
+			R: BT
+		]
+
+		iR/value: as integer! R
+		if free? [bn-free A]
+		true
+	]
+
+	modulo-int: func [
+		A			[bignum!]
+		b			[integer!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
+		/local
+			p		[int-ptr!]
+			x		[integer!]
+			y		[integer!]
+			z		[integer!]
+	][
+		if b = 0 [
+			return false
+		]
+
+		if b = 1 [
+			iR/value: 0
+			if free? [bn-free A]
+			return true
+		]
+
+		p: A/data
+		if b = 2 [
+			iR/value: p/1 and 1
+			if free? [bn-free A]
+			return true
+		]
+
+		y: 0
+		p: p + A/used - 1
+		loop A/used [
+			x: p/1
+			y: (y << biLH) or (x >>> biLH)
+			z: 0
+			if false = uint-div y b :z [
+				iR/value: -1
+				if free? [bn-free A]
+				return true
+			]
+			y: y - (z * b)
+			
+			x: x << biLH
+			y: (y << biLH) or (x >>> biLH)
+			z: 0
+			if false = uint-div y b :z [
+				iR/value: -1
+				if free? [bn-free A]
+				return true
+			]
+			y: y - (z * b)
+			
+			p: p - 1
+		]
+		
+		if all [
+			A/sign < 0
+			y <> 0
+		][
+			y: b - y
+		]
+		iR/value: y
+		if free? [bn-free A]
+		return true
+	]
+
 	;-- behave like rebol
 	mod: func [
 		A			[bignum!]
@@ -1269,38 +1373,6 @@ _bignum: context [
 		iR/value: as integer! R
 		if free? [bn-free A]
 		true
-	]
-
-	mod-int: func [
-		A			[bignum!]
-		int			[integer!]
-		iR			[int-ptr!]
-		free?		[logic!]
-		return:		[logic!]
-		/local
-			big		[bignum!]
-			ret		[logic!]
-	][
-		big: load-int int
-		ret: mod A big iR free?
-		bn-free big
-		ret
-	]
-
-	mod-uint: func [
-		A			[bignum!]
-		uint		[integer!]
-		iR			[int-ptr!]
-		free?		[logic!]
-		return:		[logic!]
-		/local
-			big		[bignum!]
-			ret		[logic!]
-	][
-		big: load-uint uint
-		ret: mod A big iR free?
-		bn-free big
-		ret
 	]
 
 	load-bin: func [
