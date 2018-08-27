@@ -245,6 +245,12 @@ big2: as bignum! 0
 
 ===start-group=== "load str base16"
 	--test-- "load-base16-1"
+		str: "3B9ACA00"
+		big: _bignum/load-str str 16
+		--assert 0 = _bignum/compare-int big 1000000000
+		_bignum/bn-free big
+
+	--test-- "load-base16-2"
 		str: "DE0B6B3A7640000"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-bin bin4 size? bin4
@@ -252,7 +258,7 @@ big2: as bignum! 0
 		_bignum/bn-free big
 		_bignum/bn-free big2
 
-	--test-- "load-base16-2"
+	--test-- "load-base16-3"
 		str: "112233445566778899AABBCCDDEEFF"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-bin bin2 size? bin2
@@ -260,7 +266,7 @@ big2: as bignum! 0
 		_bignum/bn-free big
 		_bignum/bn-free big2
 
-	--test-- "load-base16-3"
+	--test-- "load-base16-4"
 		str: "+112233445566778899AABBCCDDEEFF"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-bin bin2 size? bin2
@@ -268,7 +274,7 @@ big2: as bignum! 0
 		_bignum/bn-free big
 		_bignum/bn-free big2
 
-	--test-- "load-base16-4"
+	--test-- "load-base16-5"
 		str: "-112233445566778899AABBCCDDEEFF"
 		big: _bignum/load-str str 16
 		big2: _bignum/load-bin bin2 size? bin2

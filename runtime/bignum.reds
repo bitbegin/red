@@ -1440,25 +1440,131 @@ _bignum: context [
 		/local
 			sign			[integer!]
 			size			[integer!]
+			len				[integer!]
+			nsize			[integer!]
 			big				[bignum!]
-			p				[byte-ptr!]
+			p				[int-ptr!]
+			p2				[byte-ptr!]
 			index			[integer!]
+			value			[integer!]
 	][
 		if any [radix < 2 radix > 16] [return null]
 		size: length? str
-		big: load-int 0
-		p: as byte-ptr! str
-		sign: 1
-		if str/1 = #"-" [sign: -1 p: p + 1 size: size - 1]
-		if str/1 = #"+" [sign: 1 p: p + 1 size: size - 1]
-		loop size [
-			index: chr-index p/1 radix
-			if index = -1 [break]
-			big: mul-int big radix true
-			big: add-int big index true
-			p: p + 1
+		either radix = 16 [
+			p2: as byte-ptr! str
+			p2: p2 + size - 1
+			sign: 1
+			if str/1 = #"-" [sign: -1 size: size - 1]
+			if str/1 = #"+" [sign: 1 size: size - 1]
+			len: size
+			nsize: size * 4 / biL
+			if size * 4 % biL <> 0 [
+				nsize: nsize + 1
+			]
+
+			big: bn-alloc nsize
+			p: big/data
+
+			until [
+				either len >= 8 [
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: index
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 4)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 8)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 12)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 16)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 20)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 24)
+					p2: p2 - 1
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: value + (index << 28)
+					p2: p2 - 1
+					p/1: value
+					p: p + 1
+					len: len - 8
+				][
+					index: chr-index p2/1 radix
+					if index = -1 [break]
+					value: index
+					p2: p2 - 1
+					if len >= 2 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 4)
+						p2: p2 - 1
+					]
+					if len >= 3 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 8)
+						p2: p2 - 1
+					]
+					if len >= 4 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 12)
+						p2: p2 - 1
+					]
+					if len >= 5 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 16)
+						p2: p2 - 1
+					]
+					if len >= 6 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 20)
+						p2: p2 - 1
+					]
+					if len >= 7 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << 24)
+						p2: p2 - 1
+					]
+					p/1: value
+					len: 0
+				]
+				len <= 0
+			]
+			big/sign: sign
+			big/used: nsize
+		][
+			big: load-int 0
+			p2: as byte-ptr! str
+			sign: 1
+			if str/1 = #"-" [sign: -1 p2: p2 + 1 size: size - 1]
+			if str/1 = #"+" [sign: 1 p2: p2 + 1 size: size - 1]
+			loop size [
+				index: chr-index p2/1 radix
+				if index = -1 [break]
+				big: mul-int big radix true
+				big: add-int big index true
+				p2: p2 + 1
+			]
+			big/sign: sign
 		]
-		big/sign: sign
 		big
 	]
 comment {
