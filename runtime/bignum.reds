@@ -715,6 +715,14 @@ _bignum: context [
 		big			[bignum!]
 		return:		[logic!]
 	][
+		if big/sign = -1 [return true]
+		false
+	]
+
+	bn-positive?: func [
+		big			[bignum!]
+		return:		[logic!]
+	][
 		if big/sign = 1 [return true]
 		false
 	]
@@ -1038,10 +1046,14 @@ _bignum: context [
 		]
 
 		if 0 > absolute-compare A B [
-			Q: load-int 0
-			R: bn-copy A A/used
-			iQ/value: as integer! Q
-			iR/value: as integer! R
+			if iQ <> null [
+				Q: load-int 0
+				iQ/value: as integer! Q
+			]
+			if iR <> null [
+				R: bn-copy A A/used
+				iR/value: as integer! R
+			]
 			if free? [bn-free A]
 			return true
 		]
@@ -1155,20 +1167,28 @@ _bignum: context [
 
 		shrink Z
 
-		Q: Z
-		Q/sign: A/sign * B/sign
-		iQ/value: as integer! Q
+		either iQ <> null [
+			Q: Z
+			Q/sign: A/sign * B/sign
+			iQ/value: as integer! Q
+		][
+			bn-free Z
+		]
 
 		X: right-shift X k true
 		X/sign: A/sign
 		shrink X
-		R: X
-		
-		if 0 = compare-int R 0 [
-			R/sign: 1
+
+		either iR <> null [
+			R: X
+			if 0 = compare-int R 0 [
+				R/sign: 1
+			]
+			iR/value: as integer! R
+		][
+			bn-free X
 		]
 
-		iR/value: as integer! R
 		bn-free Y
 		bn-free T1
 		bn-free T2
@@ -1210,47 +1230,48 @@ _bignum: context [
 		ret
 	]
 
-	module: func [
+	;-- behave like rebol
+	mod: func [
 		A			[bignum!]
 		B			[bignum!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
-			iQ2		[integer!]
 			iR2		[integer!]
 			R		[bignum!]
-			BT		[bignum!]
+			T1		[bignum!]
 	][
 		if bn-zero? B [
 			return false
 		]
 
-		iQ2: 0
 		iR2: 0
-		if false = div A B :iQ2 :iR2 true [
+		if false = div A B null :iR2 false [
 			return false
 		]
 		R: as bignum! iR2
 
 		if 0 > compare-int R 0 [
-			BT: add B R false
-			bn-free R
-			R: BT
+			R: add R B true
 		]
 
-		if 0 <= compare R B [
-			BT: sub B R false
-			bn-free R
-			R: BT
+		T1: add R R false
+		T1: sub T1 B true
+		if all [
+			0 = compare R B
+			bn-positive? T1
+		][
+			R: sub R B true
 		]
 
+		bn-free T1
 		iR/value: as integer! R
 		if free? [bn-free A]
 		true
 	]
 
-	module-int: func [
+	mod-int: func [
 		A			[bignum!]
 		b			[integer!]
 		iR			[int-ptr!]
