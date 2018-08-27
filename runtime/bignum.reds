@@ -1209,83 +1209,96 @@ _bignum: context [
 		bn-free big
 		ret
 	]
-comment {
+
 	module: func [
 		A			[bignum!]
 		B			[bignum!]
-		return:		[bignum!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
 		/local
+			iQ2		[integer!]
+			iR2		[integer!]
 			R		[bignum!]
 			BT		[bignum!]
 	][
-		;-- need to be fixed
-		;if 0 > compare-int B 0 [
-		;	fire [TO_ERROR(math zero-divide)]
-		;	return A						;-- pass the compiler's type-checking
-		;]
-
 		if bn-zero? B [
-			1 / 0
-			return A
+			return false
 		]
 
-		R: div A B true
+		iQ2: 0
+		iR2: 0
+		if false = div A B :iQ2 :iR2 true [
+			return false
+		]
+		R: as bignum! iR2
 
 		if 0 > compare-int R 0 [
-			BT: add B R
+			BT: add B R false
 			bn-free R
 			R: BT
 		]
 
 		if 0 <= compare R B [
-			BT: sub B R
+			BT: sub B R false
 			bn-free R
 			R: BT
 		]
 
-		R
+		iR/value: as integer! R
+		if free? [bn-free A]
+		true
 	]
 
 	module-int: func [
 		A			[bignum!]
 		b			[integer!]
-		return:		[integer!]
+		iR			[int-ptr!]
+		free?		[logic!]
+		return:		[logic!]
 		/local
 			p		[int-ptr!]
 			x		[integer!]
 			y		[integer!]
 			z		[integer!]
 	][
-		;-- need to be fixed
 		if b = 0 [
-			1 / 0
-			return 0						;-- pass the compiler's type-checking
+			return false
+		]
+
+		if b = 1 [
+			iR/value: 0
+			if free? [bn-free A]
+			return true
 		]
 
 		p: A/data
-
-		if b = 1 [
-			return 0
-		]
-		
 		if b = 2 [
-			return p/1 and 1
+			iR/value: p/1 and 1
+			if free? [bn-free A]
+			return true
 		]
-		
+
 		y: 0
 		p: p + A/used - 1
 		loop A/used [
 			x: p/1
 			y: (y << biLH) or (x >>> biLH)
+			z: 0
 			if false = uint-div y b :z [
-				return -1
+				iR/value: -1
+				if free? [bn-free A]
+				return true
 			]
 			y: y - (z * b)
 			
 			x: x << biLH
 			y: (y << biLH) or (x >>> biLH)
+			z: 0
 			if false = uint-div y b :z [
-				return -1
+				iR/value: -1
+				if free? [bn-free A]
+				return true
 			]
 			y: y - (z * b)
 			
@@ -1298,10 +1311,11 @@ comment {
 		][
 			y: b - y
 		]
-
-		return y
+		iR/value: y
+		if free? [bn-free A]
+		return true
 	]
-}
+
 	load-bin: func [
 		bin					[byte-ptr!]
 		len					[integer!]
