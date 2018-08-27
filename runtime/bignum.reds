@@ -1327,7 +1327,9 @@ _bignum: context [
 			p2				[byte-ptr!]
 			i				[integer!]
 			value			[integer!]
+			shift			[integer!]
 	][
+		if len < 0 [return null]
 		size: len / 4
 		if len % 4 <> 0 [size: size + 1]
 		big: bn-alloc size
@@ -1337,30 +1339,27 @@ _bignum: context [
 		i: 0
 		until [
 			either len >= 4 [
-				value: as integer! p2/1
-				p2: p2 - 1
-				value: value + ((as integer! p2/1) << 8)
-				p2: p2 - 1
-				value: value + ((as integer! p2/1) << 16)
-				p2: p2 - 1
-				value: value + ((as integer! p2/1) << 24)
-				p2: p2 - 1
+				shift: 0
+				value: 0
+				loop 4 [
+					value: value + ((as integer! p2/1) << shift)
+					p2: p2 - 1
+					shift: shift + 8
+				]
 				p/1: value
 				p: p + 1
 				len: len - 4
 			][
-				value: as integer! p2/1
-				p2: p2 - 1
-				if len >= 2 [
-					value: value + ((as integer! p2/1) << 8)
+				shift: 0
+				value: 0
+				until [
+					value: value + ((as integer! p2/1) << shift)
 					p2: p2 - 1
-				]
-				if len >= 3 [
-					value: value + ((as integer! p2/1) << 16)
-					p2: p2 - 1
+					shift: shift + 8
+					len: len - 1
+					len <= 0
 				]
 				p/1: value
-				len: 0
 			]
 			len <= 0
 		]
@@ -1378,7 +1377,9 @@ _bignum: context [
 			pbin			[byte-ptr!]
 			i				[integer!]
 			value			[integer!]
+			shift			[integer!]
 	][
+		if len < 0 [return false]
 		len2: big/used * 4
 		if any [len2 < len len2 > (len + 4)] [return false]
 		p: big/data
@@ -1386,27 +1387,25 @@ _bignum: context [
 		i: 0
 		until [
 			either len >= 4 [
-				value: as integer! pbin/1
-				pbin: pbin - 1
-				value: value + ((as integer! pbin/1) << 8)
-				pbin: pbin - 1
-				value: value + ((as integer! pbin/1) << 16)
-				pbin: pbin - 1
-				value: value + ((as integer! pbin/1) << 24)
-				pbin: pbin - 1
+				shift: 0
+				value: 0
+				loop 4 [
+					value: value + ((as integer! pbin/1) << shift)
+					pbin: pbin - 1
+					shift: shift + 8
+				]
 				if p/1 <> value [return false]
 				p: p + 1
 				len: len - 4
 			][
-				value: as integer! pbin/1
-				pbin: pbin - 1
-				if len >= 2 [
-					value: value + ((as integer! pbin/1) << 8)
+				shift: 0
+				value: 0
+				until [
+					value: value + ((as integer! pbin/1) << shift)
 					pbin: pbin - 1
-				]
-				if len >= 3 [
-					value: value + ((as integer! pbin/1) << 16)
-					pbin: pbin - 1
+					shift: shift + 8
+					len: len - 1
+					len <= 0
 				]
 				if p/1 <> value [return false]
 				len: 0
@@ -1447,9 +1446,11 @@ _bignum: context [
 			p2				[byte-ptr!]
 			index			[integer!]
 			value			[integer!]
+			shift			[integer!]
 	][
 		if any [radix < 2 radix > 16] [return null]
 		size: length? str
+		if size < 0 [return null]
 		either radix = 16 [
 			p2: as byte-ptr! str
 			p2: p2 + size - 1
@@ -1457,6 +1458,7 @@ _bignum: context [
 			if str/1 = #"-" [sign: -1 size: size - 1]
 			if str/1 = #"+" [sign: 1 size: size - 1]
 			len: size
+			if len < 0 [return null]
 			nsize: size * 4 / biL
 			if size * 4 % biL <> 0 [
 				nsize: nsize + 1
@@ -1467,84 +1469,33 @@ _bignum: context [
 
 			until [
 				either len >= 8 [
-					index: chr-index p2/1 radix
+					shift: 0
+					value: 0
+					loop 8 [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << shift)
+						p2: p2 - 1
+						shift: shift + 4
+					]
 					if index = -1 [break]
-					value: index
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 4)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 8)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 12)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 16)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 20)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 24)
-					p2: p2 - 1
-					index: chr-index p2/1 radix
-					if index = -1 [break]
-					value: value + (index << 28)
-					p2: p2 - 1
 					p/1: value
 					p: p + 1
 					len: len - 8
 				][
-					index: chr-index p2/1 radix
+					shift: 0
+					value: 0
+					until [
+						index: chr-index p2/1 radix
+						if index = -1 [break]
+						value: value + (index << shift)
+						p2: p2 - 1
+						shift: shift + 4
+						len: len - 1
+						len <= 0
+					]
 					if index = -1 [break]
-					value: index
-					p2: p2 - 1
-					if len >= 2 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 4)
-						p2: p2 - 1
-					]
-					if len >= 3 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 8)
-						p2: p2 - 1
-					]
-					if len >= 4 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 12)
-						p2: p2 - 1
-					]
-					if len >= 5 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 16)
-						p2: p2 - 1
-					]
-					if len >= 6 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 20)
-						p2: p2 - 1
-					]
-					if len >= 7 [
-						index: chr-index p2/1 radix
-						if index = -1 [break]
-						value: value + (index << 24)
-						p2: p2 - 1
-					]
 					p/1: value
-					len: 0
 				]
 				len <= 0
 			]
