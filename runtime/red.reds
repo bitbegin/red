@@ -200,6 +200,7 @@ red: context [
 		date/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
+		bignum/init
 		
 		actions/init
 		
