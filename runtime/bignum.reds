@@ -1577,7 +1577,7 @@ _bignum: context [
 		]
 		big
 	]
-comment {
+
 	write-hlp: func [
 		big			[bignum!]
 		radix		[integer!]
@@ -1587,23 +1587,30 @@ comment {
 			ret		[integer!]
 			pi		[int-ptr!]
 			Q		[bignum!]
+			iQ		[integer!]
 			pb		[byte-ptr!]
 	][
 		if any [radix < 2 radix > 16] [return false]
 
-		ret: module-int big radix
-		Q: div-int big radix false
+		ret: 0
+		if false = modulo-int big radix :ret false [return false]
+		iQ: 0
+		if false = div-int big radix :iQ null false [return false]
+		Q: as bignum! iQ
 		if 0 <> compare-int Q 0 [
-			write-hlp Q radix buf
+			if false = write-hlp Q radix buf [
+				bn-free Q
+				return false
+			]
 		]
 		bn-free Q
 
 		pi: as int-ptr! buf
 		pb: as byte-ptr! pi/1
 		either ret < 10 [
-			pb/1: as byte! ret + 30h
+			pb/1: (as byte! ret) + 30h
 		][
-			pb/1: as byte! ret + 37h
+			pb/1: (as byte! ret) + 37h
 		]
 		pi/1: pi/1 + 1
 		true
@@ -1612,13 +1619,13 @@ comment {
 	write-string: func [
 		big			[bignum!]
 		radix		[integer!]
-		buf			[byte-ptr!]
-		buflen		[integer!]
+		obuf		[int-ptr!]
 		olen		[int-ptr!]
 		return:		[logic!]
 		/local
 			T		[bignum!]
 			n		[integer!]
+			buf		[byte-ptr!]
 			p		[integer!]
 			p2		[byte-ptr!]
 			px		[int-ptr!]
@@ -1626,21 +1633,20 @@ comment {
 			j		[integer!]
 			k		[integer!]
 			c		[integer!]
-			id		[byte!]
+			id		[integer!]
 	][
 		if any [radix < 2 radix > 16] [return false]
 
 		n: bitlen? big
 		if radix >= 4 [n: n >>> 1]
 		if radix >= 16 [n: n >>> 1]
-		n: n + 3
+		n: n + 3 + ((n + 1) and 1)
 
-		if buflen < n [
-			olen/value: n
-			return false
-		]
+		buf: allocate n + 4
+		px: as int-ptr! buf
+		px/1: n
 
-		p: as integer! buf
+		p: as integer! (buf + 4)
 
 		if big/sign = -1 [
 			p2: as byte-ptr! p
@@ -1656,26 +1662,27 @@ comment {
 			while [i > 0][
 				j: ciL
 				while [j > 0][
-					c: (px/i >>> ((j - 1) >>> 3)) and FFh
+					c: (px/i >>> ((j - 1) << 3)) and FFh
 					if all [
 						c = 0
 						k = 0
-						i + j <> 2
+						(i + j) <> 2
 					][
+						j: j - 1
 						continue
 					]
 
-					id: as byte! c >> 4 and 15 + 1
+					id: c and F0h >> 4 + 1
 					p2: as byte-ptr! p
-					p2/1: id
+					p2/1: radix-table/id
 					p: p + 1
-					id: as byte! c and 15 + 1
+					id: c and 0Fh + 1
 					p2: as byte-ptr! p
-					p2/1: id
+					p2/1: radix-table/id
 					p: p + 1
 
 					k: 1
-					j: j -1
+					j: j - 1
 				]
 				i: i - 1
 			]
@@ -1685,16 +1692,22 @@ comment {
 				T/sign: 1
 			]
 
-			if false = write-hlp T radix as integer! :p [return false]
+			if false = write-hlp T radix as integer! :p [
+				bn-free T
+				free buf
+				return false
+			]
+			bn-free T
 		]
 
 		p2: as byte-ptr! p
 		p2/1: as byte! 0
 		p: p + 1
-		olen/value: p - as integer! buf
+		olen/value: p - as integer! (buf + 4)
+		obuf/value: as integer! buf
 		true
 	]
-}
+
 	#if debug? = yes [
 		dump-bignum: func [
 			big			[bignum!]

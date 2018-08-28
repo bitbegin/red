@@ -647,6 +647,59 @@ big2: as bignum! 0
 
 ===end-group===
 
+===start-group=== "write-string tests"
+	--test-- "write-string-1"
+		str: "1000000000000000000"
+		big: _bignum/load-str str 10
+		iBuf: 0
+		iLen: 0
+		--assert true = _bignum/write-string big 10 :iBuf :iLen
+		buf: (as c-string! iBuf) + 4
+		big2: _bignum/load-str buf 10
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		free as byte-ptr! iBuf
 
+	--test-- "write-string-2"
+		str: "-1000000000000000000"
+		big: _bignum/load-str str 10
+		iBuf: 0
+		iLen: 0
+		--assert true = _bignum/write-string big 10 :iBuf :iLen
+		buf: (as c-string! iBuf) + 4
+		big2: _bignum/load-str buf 10
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		free as byte-ptr! iBuf
+
+	--test-- "write-string-3"
+		str: "112233445566778899AABBCCDDEEFF"
+		big: _bignum/load-str str 16
+		iBuf: 0
+		iLen: 0
+		--assert true = _bignum/write-string big 16 :iBuf :iLen
+		buf: (as c-string! iBuf) + 4
+		big2: _bignum/load-str buf 16
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		free as byte-ptr! iBuf
+
+	--test-- "write-string-4"
+		str: "-112233445566778899AABBCCDDEEFF"
+		big: _bignum/load-str str 16
+		iBuf: 0
+		iLen: 0
+		--assert true = _bignum/write-string big 16 :iBuf :iLen
+		buf: (as c-string! iBuf) + 4
+		big2: _bignum/load-str buf 16
+		--assert 0 = _bignum/compare big big2
+		_bignum/bn-free big
+		_bignum/bn-free big2
+		free as byte-ptr! iBuf
+
+===end-group===
 
 ~~~end-file~~~
