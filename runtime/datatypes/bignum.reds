@@ -201,6 +201,7 @@ bignum: context [
 			p		[byte-ptr!]
 			size	[integer!]
 			rsize	[integer!]
+			itmp	[integer!]
 			tmp		[byte-ptr!]
 			tsize	[integer!]
 			bytes	[integer!]
@@ -216,14 +217,13 @@ bignum: context [
 		]
 
 		rsize: 0
-		tsize: size * 32 / 2 + 3
-		tmp: allocate tsize
-		if not _bignum/write-string int-big 10 tmp tsize :rsize [
+		itmp: 0
+		if not _bignum/write-string int-big 10 :itmp :rsize [
 			print "something wrong!"
 		]
-
-		size: rsize
-		p: tmp
+		tmp: as byte-ptr! itmp
+		size: rsize - 1
+		p: tmp + 4
 
 		bytes: 0
 		if size > 30 [
@@ -293,6 +293,7 @@ bignum: context [
 			left	[red-bignum!]
 			right	[red-bignum!]
 			int		[red-integer!]
+			iB		[integer!]
 			big		[red-bignum!]
 	][
 		left: as red-bignum! stack/arguments
@@ -310,38 +311,66 @@ bignum: context [
 				int: as red-integer! right
 				switch type [
 					OP_ADD [
-						big: load-bn _bignum/add-int left/int int/value
+						big: load-bn _bignum/add-int left/int int/value false
 					]
 					OP_SUB [
-						big: load-bn _bignum/sub-int left/int int/value
+						big: load-bn _bignum/sub-int left/int int/value false
 					]
 					OP_MUL [
-						big: load-bn _bignum/mul-int left/int int/value
+						big: load-bn _bignum/mul-int left/int int/value false
 					]
 					OP_DIV [
-						big: load-bn _bignum/div-int left/int int/value false
+						if int/value = 0 [
+							fire [TO_ERROR(math zero-divide)]
+						]
+						iB: 0
+						if false = _bignum/div-int left/int int/value :iB null false [
+							fire [TO_ERROR(math overflow)]
+						]
+						big: load-bn as bignum! iB
 					]
 					OP_REM [
-						big: load-int _bignum/module-int left/int int/value
+						if int/value = 0 [
+							fire [TO_ERROR(math zero-divide)]
+						]
+						iB: 0
+						if false = _bignum/div-int left/int int/value null :iB false [
+							fire [TO_ERROR(math overflow)]
+						]
+						big: load-bn as bignum! iB
 					]
 				]
 			]
 			TYPE_BIGNUM [
 				switch type [
 					OP_ADD [
-						big: load-bn _bignum/add left/int right/int
+						big: load-bn _bignum/add left/int right/int false
 					]
 					OP_SUB [
-						big: load-bn _bignum/sub left/int right/int
+						big: load-bn _bignum/sub left/int right/int false
 					]
 					OP_MUL [
-						big: load-bn _bignum/mul left/int right/int
+						big: load-bn _bignum/mul left/int right/int false
 					]
 					OP_DIV [
-						big: load-bn _bignum/div left/int right/int false
+						if _bignum/bn-zero? right/int [
+							fire [TO_ERROR(math zero-divide)]
+						]
+						iB: 0
+						if false = _bignum/div left/int right/int :iB null false [
+							fire [TO_ERROR(math overflow)]
+						]
+						big: load-bn as bignum! iB
 					]
 					OP_REM [
-						big: load-bn _bignum/module left/int right/int
+						if _bignum/bn-zero? right/int [
+							fire [TO_ERROR(math zero-divide)]
+						]
+						iB: 0
+						if false = _bignum/div left/int right/int null :iB false [
+							fire [TO_ERROR(math overflow)]
+						]
+						big: load-bn as bignum! iB
 					]
 				]
 			]
