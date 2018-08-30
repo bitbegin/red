@@ -1493,6 +1493,7 @@ _bignum: context [
 
 	load-str: func [
 		str					[c-string!]
+		slen				[integer!]
 		radix				[integer!]
 		return:				[bignum!]
 		/local
@@ -1509,6 +1510,9 @@ _bignum: context [
 	][
 		if any [radix < 2 radix > 16] [return null]
 		size: length? str
+		if slen > 0 [
+			size: either size < slen [size][slen]
+		]
 		if size < 0 [return null]
 		either radix = 16 [
 			p2: as byte-ptr! str
