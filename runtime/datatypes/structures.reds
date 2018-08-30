@@ -333,7 +333,7 @@ red-handle!: alias struct! [
 
 red-bignum!: alias struct! [
 	header 	[integer!]								;-- cell header
-	int		[bignum!]								;-- bignum's interger part
-	frac	[bignum!]								;-- bignum's fractional part
+	value	[bignum!]								;-- bignum's interger part
+	point	[integer!]								;-- bignum's Decimal point
 	_pad	[integer!]
 ]

@@ -19,8 +19,8 @@ bignum: context [
 	][
 		big: as red-bignum! slot
 		big/header: TYPE_BIGNUM
-		big/int: null
-		big/frac: null
+		big/value: null
+		big/point: 0
 		big
 	]
 
@@ -41,18 +41,20 @@ bignum: context [
 			big		[red-bignum!]
 	][
 		big: make-at stack/push* 2
-		big/int: _bignum/load-int int
+		big/value: _bignum/load-int int
 		big
 	]
 
 	load-bn: func [
 		bn			[bignum!]
+		point		[integer!]
 		return:		[red-bignum!]
 		/local
 			big		[red-bignum!]
 	][
 		big: make-at stack/push* 2
-		big/int: bn
+		big/value: bn
+		big/point: point
 		big
 	]
 
@@ -68,7 +70,7 @@ bignum: context [
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		big: make-at slot size
-		big/int: _bignum/load-bin src size
+		big/value: _bignum/load-bin src size
 		big
 	]
 
@@ -148,7 +150,7 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
 
-		int-big: big/int
+		int-big: big/value
 		p: as byte-ptr! int-big/data
 		either int-big/used = 0 [
 			size: 1
@@ -208,7 +210,7 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
 
-		int-big: big/int
+		int-big: big/value
 		p: as byte-ptr! int-big/data
 		either int-big/used = 0 [
 			size: 1
@@ -306,66 +308,66 @@ bignum: context [
 				int: as red-integer! right
 				switch type [
 					OP_ADD [
-						big: load-bn _bignum/add-int left/int int/value false
+						big: load-bn _bignum/add-int left/value int/value false 0
 					]
 					OP_SUB [
-						big: load-bn _bignum/sub-int left/int int/value false
+						big: load-bn _bignum/sub-int left/value int/value false 0
 					]
 					OP_MUL [
-						big: load-bn _bignum/mul-int left/int int/value false
+						big: load-bn _bignum/mul-int left/value int/value false 0
 					]
 					OP_DIV [
 						if int/value = 0 [
 							fire [TO_ERROR(math zero-divide)]
 						]
 						iB: 0
-						if false = _bignum/div-int left/int int/value :iB null false [
+						if false = _bignum/div-int left/value int/value :iB null false [
 							fire [TO_ERROR(math overflow)]
 						]
-						big: load-bn as bignum! iB
+						big: load-bn as bignum! iB 0
 					]
 					OP_REM [
 						if int/value = 0 [
 							fire [TO_ERROR(math zero-divide)]
 						]
 						iB: 0
-						if false = _bignum/div-int left/int int/value null :iB false [
+						if false = _bignum/div-int left/value int/value null :iB false [
 							fire [TO_ERROR(math overflow)]
 						]
-						big: load-bn as bignum! iB
+						big: load-bn as bignum! iB 0
 					]
 				]
 			]
 			TYPE_BIGNUM [
 				switch type [
 					OP_ADD [
-						big: load-bn _bignum/add left/int right/int false
+						big: load-bn _bignum/add left/value right/value false 0
 					]
 					OP_SUB [
-						big: load-bn _bignum/sub left/int right/int false
+						big: load-bn _bignum/sub left/value right/value false 0
 					]
 					OP_MUL [
-						big: load-bn _bignum/mul left/int right/int false
+						big: load-bn _bignum/mul left/value right/value false 0
 					]
 					OP_DIV [
-						if _bignum/bn-zero? right/int [
+						if _bignum/bn-zero? right/value [
 							fire [TO_ERROR(math zero-divide)]
 						]
 						iB: 0
-						if false = _bignum/div left/int right/int :iB null false [
+						if false = _bignum/div left/value right/value :iB null false [
 							fire [TO_ERROR(math overflow)]
 						]
-						big: load-bn as bignum! iB
+						big: load-bn as bignum! iB 0
 					]
 					OP_REM [
-						if _bignum/bn-zero? right/int [
+						if _bignum/bn-zero? right/value [
 							fire [TO_ERROR(math zero-divide)]
 						]
 						iB: 0
-						if false = _bignum/div left/int right/int null :iB false [
+						if false = _bignum/div left/value right/value null :iB false [
 							fire [TO_ERROR(math overflow)]
 						]
-						big: load-bn as bignum! iB
+						big: load-bn as bignum! iB 0
 					]
 				]
 			]
@@ -389,8 +391,8 @@ bignum: context [
 		][return 1]
 
 		switch op [
-			COMP_EQUAL		[res: _bignum/compare value1/int value2/int]
-			COMP_NOT_EQUAL 	[res: not _bignum/compare value1/int value2/int]
+			COMP_EQUAL		[res: _bignum/compare value1/value value2/value]
+			COMP_NOT_EQUAL 	[res: not _bignum/compare value1/value value2/value]
 			default [
 				res: SIGN_COMPARE_RESULT(value1 value2)
 			]
@@ -407,7 +409,7 @@ bignum: context [
 		#if debug? = yes [if verbose > 0 [print-line "bignum/absolute"]]
 
 		big: as red-bignum! stack/arguments
-		bn: big/int
+		bn: big/value
 		bn/sign: 1
 		big 											;-- re-use argument slot for return value
 	]
@@ -437,7 +439,7 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/complement"]]
 
-		bn: big/int
+		bn: big/value
 		either bn/sign = 1 [
 			bn/sign: -1
 		][
@@ -462,17 +464,17 @@ bignum: context [
 		big2		[red-bignum!]
 		return:		[red-bignum!]
 		/local
-			int		[bignum!]
-			frac	[bignum!]
+			value	[bignum!]
+			point	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/swap"]]
 
-		int: big1/int
-		frac: big1/frac
-		big1/int: big2/int
-		big1/frac: big2/frac
-		big2/int: int
-		big2/frac: frac
+		value: big1/value
+		point: big1/point
+		big1/value: big2/value
+		big1/point: big2/point
+		big2/value: value
+		big2/point: point
 		big1
 	]
 
