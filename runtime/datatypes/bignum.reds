@@ -10,6 +10,108 @@ Red/System [
 bignum: context [
 	verbose: 0
 
+	expand-float: func [
+		str			[c-string!]
+		slen		[integer!]
+		iBuff		[int-ptr!]
+		iLen		[int-ptr!]
+		iPtLen		[int-ptr!]
+		return:		[logic!]
+		/local
+			bak		[c-string!]
+			len		[integer!]
+			pos		[integer!]
+			dot?	[logic!]
+			dotp	[integer!]
+			exp?	[logic!]
+			exp		[integer!]
+			expp	[integer!]
+			esign	[integer!]
+			intLen	[integer!]
+			ptLen	[integer!]
+			nptLen	[integer!]
+			total	[integer!]
+			buffer	[byte-ptr!]
+	][
+		len: length? str
+		if slen > 0 [
+			len: either len < slen [len][slen]
+		]
+		bak: str
+		pos: 1
+		dot?: false
+		exp?: false
+		until [
+			if str/1 = #"." [
+				either dot? [
+					return false
+				][
+					dot?: true
+					dotp: pos
+				]
+			]
+			if any [str/1 = #"e" str/1 = #"E"][
+				exp?: true
+				expp: pos
+				exp: 0
+				esign: 1
+				pos: pos + 1
+				str: str + 1
+				if pos > len [return false]
+				if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1]
+				if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1]
+				if pos > len [return false]
+				while [pos <= len] [
+					if any [str/1 < #"0" str/1 > #"9"][return false]
+					exp: exp * 10 + as integer! (str/1 - #"0")
+					pos: pos + 1
+					str: str + 1
+				]
+			]
+
+			pos: pos + 1
+			str: str + 1
+			pos > len
+		]
+
+		either exp? [
+			either dot? [
+				intLen: dotp - 1
+				ptLen: expp - dotp - 1
+			][
+				intLen: expp - 1
+				ptLen: 0
+			]
+			either esign = 1 [
+				nptLen: either ptLen < exp [exp][ptLen]
+				total: intLen + nptLen
+			][
+				nptLen: exp + ptLen
+				total: intLen + ptLen + exp
+			]
+		][
+			either dot? [
+				intLen: dotp - 1
+				ptLen: len - dotp
+			][
+				intLen: len
+				ptLen: 0
+			]
+			nptLen: ptLen
+			total: intLen + ptLen
+		]
+
+		buffer: allocate total
+		set-memory buffer #"0" total
+		copy-memory buffer as byte-ptr! bak intLen
+		copy-memory buffer + intLen as byte-ptr! bak + dotp ptLen
+
+		iBuff/value: as integer! buffer
+		iLen/value: total
+		iPtLen/value: nptLen
+		true
+	]
+
 	make-at: func [
 		slot		[red-value!]
 		size 		[integer!]								;-- number of bytes to pre-allocate
@@ -61,6 +163,7 @@ bignum: context [
 	load-in: func [
 		src			[byte-ptr!]
 		size		[integer!]
+		ptLen		[integer!]
 		blk			[red-block!]
 		cstr?		[logic!]
 		radix		[integer!]
@@ -76,17 +179,19 @@ bignum: context [
 		][
 			big/value: _bignum/load-bin src size
 		]
+		big/point: ptLen
 		big
 	]
 
 	load: func [
 		src			[byte-ptr!]
 		size		[integer!]
+		ptLen		[integer!]
 		cstr?		[logic!]
 		radix		[integer!]
 		return:		[red-bignum!]
 	][
-		load-in src size null cstr? radix
+		load-in src size ptLen null cstr? radix
 	]
 
 	make: func [
@@ -106,6 +211,11 @@ bignum: context [
 		return:		[red-value!]
 		/local
 			int		[red-integer!]
+			fl		[red-float!]
+			fl-buf	[c-string!]
+			iBuff	[integer!]
+			iLen	[integer!]
+			iPtLen	[integer!]
 			str		[red-string!]
 			s		[series!]
 			unit	[integer!]
@@ -125,13 +235,25 @@ bignum: context [
 				int: as red-integer! spec
 				big: load-int int/value
 			]
+			TYPE_FLOAT [
+				fl: as red-float! spec
+				fl-buf: float/form-float fl/value 1
+				print-line fl-buf
+				iBuff: 0
+				iLen: 0
+				iPtLen: 0
+				if false = expand-float fl-buf -1 :iBuff :iLen :iPtLen [
+					fire [TO_ERROR(math overflow)]
+				]
+				big: load as byte-ptr! iBuff iLen iPtLen true 10
+			]
 			TYPE_STRING [
 				str: as red-string! spec
 				s: GET_BUFFER(str)
 				unit: GET_UNIT(s)
 				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
 				len: (as-integer s/tail - p) >> log-b unit
-				big: load p len true 10
+				big: load p len 0 true 10
 			]
 			TYPE_BINARY [
 				bin: as red-binary! spec
@@ -142,7 +264,7 @@ bignum: context [
 				either size = 0 [
 					big: load-int 0
 				][
-					big: load head size false 0
+					big: load head size 0 false 0
 				]
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BIGNUM spec]]
@@ -184,7 +306,7 @@ bignum: context [
 		rsize: 0
 		itmp: 0
 		if not _bignum/write-string int-big 10 :itmp :rsize [
-			print "something wrong!"
+			fire [TO_ERROR(math overflow)]
 		]
 		tmp: as byte-ptr! itmp
 		size: rsize
