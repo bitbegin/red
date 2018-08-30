@@ -63,6 +63,7 @@ bignum: context [
 		size		[integer!]
 		blk			[red-block!]
 		cstr?		[logic!]
+		radix		[integer!]
 		return:		[red-bignum!]
 		/local
 			slot	[red-value!]
@@ -70,7 +71,11 @@ bignum: context [
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		big: make-at slot size
-		big/value: _bignum/load-bin src size
+		either cstr? [
+			big/value: _bignum/load-str as c-string! src radix
+		][
+			big/value: _bignum/load-bin src size
+		]
 		big
 	]
 
@@ -78,9 +83,10 @@ bignum: context [
 		src			[byte-ptr!]
 		size		[integer!]
 		cstr?		[logic!]
+		radix		[integer!]
 		return:		[red-bignum!]
 	][
-		load-in src size null cstr?
+		load-in src size null cstr? radix
 	]
 
 	make: func [
@@ -100,6 +106,11 @@ bignum: context [
 		return:		[red-value!]
 		/local
 			int		[red-integer!]
+			str		[red-string!]
+			s		[series!]
+			unit	[integer!]
+			p		[byte-ptr!]
+			len		[integer!]
 			big		[red-bignum!]
 			bin		[red-binary!]
 			sbin	[series!]
@@ -114,6 +125,14 @@ bignum: context [
 				int: as red-integer! spec
 				big: load-int int/value
 			]
+			TYPE_STRING [
+				str: as red-string! spec
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+				len: (as-integer s/tail - p) >> log-b unit
+				big: load p len true 10
+			]
 			TYPE_BINARY [
 				bin: as red-binary! spec
 				sbin: GET_BUFFER(bin)
@@ -123,7 +142,7 @@ bignum: context [
 				either size = 0 [
 					big: load-int 0
 				][
-					big: load head size false
+					big: load head size false 0
 				]
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BIGNUM spec]]
@@ -226,6 +245,9 @@ bignum: context [
 		tmp: as byte-ptr! itmp
 		size: rsize
 		p: tmp + 4
+
+		string/concatenate-literal buffer "make bignum! "
+		part: part - 13
 
 		bytes: 0
 		if size > 30 [
