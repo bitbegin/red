@@ -72,7 +72,7 @@ bignum: context [
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		big: make-at slot size
 		either cstr? [
-			big/value: _bignum/load-str as c-string! src radix
+			big/value: _bignum/load-str as c-string! src size radix
 		][
 			big/value: _bignum/load-bin src size
 		]
@@ -165,62 +165,6 @@ bignum: context [
 			int-big	[bignum!]
 			p		[byte-ptr!]
 			size	[integer!]
-			bytes	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
-
-		int-big: big/value
-		p: as byte-ptr! int-big/data
-		either int-big/used = 0 [
-			size: 1
-		][
-			size: int-big/used * 4
-		]
-		p: p + size
-
-		bytes: 0
-		if size > 30 [
-			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
-		]
-
-		if int-big/sign = -1 [
-			string/append-char GET_BUFFER(buffer) as-integer #"-"
-			part: part - 1
-		]
-
-		loop size [
-			p: p - 1
-			string/concatenate-literal buffer string/byte-to-hex as-integer p/value
-			bytes: bytes + 1
-			if bytes % 32 = 0 [
-				string/append-char GET_BUFFER(buffer) as-integer lf
-				part: part - 1
-			]
-			part: part - 2
-			if all [OPTION?(arg) part <= 0][return part]
-		]
-		if all [size > 30 bytes % 32 <> 0] [
-			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
-		]
-		part - 1
-	]
-
-	serialize-10: func [
-		big			[red-bignum!]
-		buffer		[red-string!]
-		only?		[logic!]
-		all?		[logic!]
-		flat?		[logic!]
-		arg			[red-value!]
-		part		[integer!]
-		mold?		[logic!]
-		return: 	[integer!]
-		/local
-			int-big	[bignum!]
-			p		[byte-ptr!]
-			size	[integer!]
 			rsize	[integer!]
 			itmp	[integer!]
 			tmp		[byte-ptr!]
@@ -262,7 +206,7 @@ bignum: context [
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
-			part: part - 2
+			part: part - 1
 			if all [OPTION?(arg) part <= 0][
 				free tmp
 				return part
@@ -286,7 +230,7 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/form"]]
 
-		serialize-10 big buffer no no no arg part no
+		serialize big buffer no no no arg part no
 	]
 
 	mold: func [
@@ -302,7 +246,7 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/mold"]]
 
-		serialize-10 big buffer only? all? flat? arg part yes
+		serialize big buffer only? all? flat? arg part yes
 	]
 
 	do-math: func [
