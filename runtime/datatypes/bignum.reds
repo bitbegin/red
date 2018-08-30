@@ -222,17 +222,12 @@ bignum: context [
 			print "something wrong!"
 		]
 		tmp: as byte-ptr! itmp
-		size: rsize - 1
+		size: rsize
 		p: tmp + 4
 
 		bytes: 0
 		if size > 30 [
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
-		]
-
-		if int-big/sign = -1 [
-			string/append-char GET_BUFFER(buffer) as-integer #"-"
 			part: part - 1
 		]
 
