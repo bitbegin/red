@@ -246,6 +246,7 @@ bignum: context [
 					fire [TO_ERROR(math overflow)]
 				]
 				big: load as byte-ptr! iBuff iLen iPtLen true 10
+				free as byte-ptr! iBuff
 			]
 			TYPE_STRING [
 				str: as red-string! spec
