@@ -30,6 +30,7 @@ bignum: context [
 			intLen	[integer!]
 			ptLen	[integer!]
 			nptLen	[integer!]
+			int2Len	[integer!]
 			total	[integer!]
 			buffer	[byte-ptr!]
 	][
@@ -83,11 +84,17 @@ bignum: context [
 				ptLen: 0
 			]
 			either esign = 1 [
-				nptLen: either ptLen < exp [exp][ptLen]
-				total: intLen + nptLen
+				either ptLen < exp [
+					int2Len: exp
+					nptLen: 0
+				][
+					int2Len: ptLen
+					nptLen: ptLen - exp
+				]
+				total: intLen + int2Len
 			][
 				nptLen: exp + ptLen
-				total: intLen + ptLen + exp
+				total: intLen + ptLen
 			]
 		][
 			either dot? [
@@ -100,7 +107,7 @@ bignum: context [
 			nptLen: ptLen
 			total: intLen + ptLen
 		]
-
+		;print-line ["intLen: " intLen " ptLen: " ptLen " nptLen: " nptLen " total: " total]
 		buffer: allocate total
 		set-memory buffer #"0" total
 		copy-memory buffer as byte-ptr! bak intLen
@@ -238,7 +245,7 @@ bignum: context [
 			TYPE_FLOAT [
 				fl: as red-float! spec
 				fl-buf: float/form-float fl/value 1
-				print-line fl-buf
+				;print-line fl-buf
 				iBuff: 0
 				iLen: 0
 				iPtLen: 0
@@ -254,7 +261,14 @@ bignum: context [
 				unit: GET_UNIT(s)
 				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
 				len: (as-integer s/tail - p) >> log-b unit
-				big: load p len 0 true 10
+				iBuff: 0
+				iLen: 0
+				iPtLen: 0
+				if false = expand-float as c-string! p len :iBuff :iLen :iPtLen [
+					fire [TO_ERROR(math overflow)]
+				]
+				big: load as byte-ptr! iBuff iLen iPtLen true 10
+				free as byte-ptr! iBuff
 			]
 			TYPE_BINARY [
 				bin: as red-binary! spec
@@ -285,7 +299,7 @@ bignum: context [
 		mold?		[logic!]
 		return: 	[integer!]
 		/local
-			int-big	[bignum!]
+			bn	[bignum!]
 			p		[byte-ptr!]
 			size	[integer!]
 			rsize	[integer!]
@@ -296,17 +310,18 @@ bignum: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
 
-		int-big: big/value
-		p: as byte-ptr! int-big/data
-		either int-big/used = 0 [
+		;print-line ["point: " big/point]
+		bn: big/value
+		p: as byte-ptr! bn/data
+		either bn/used = 0 [
 			size: 1
 		][
-			size: int-big/used * 4
+			size: bn/used * 4
 		]
 
 		rsize: 0
 		itmp: 0
-		if not _bignum/write-string int-big 10 :itmp :rsize [
+		if not _bignum/write-string bn 10 :itmp :rsize [
 			fire [TO_ERROR(math overflow)]
 		]
 		tmp: as byte-ptr! itmp
