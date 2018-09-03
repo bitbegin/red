@@ -1704,11 +1704,11 @@ _bignum: context [
 			bn-free T
 		]
 
+		olen/value: p - as integer! (buf + 4)
+		obuf/value: as integer! buf
 		p2: as byte-ptr! p
 		p2/1: as byte! 0
 		p: p + 1
-		olen/value: p - as integer! (buf + 4)
-		obuf/value: as integer! buf
 		true
 	]
 

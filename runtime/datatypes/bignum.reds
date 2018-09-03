@@ -288,6 +288,245 @@ bignum: context [
 		as red-value! big
 	]
 
+	;-- count same char from buffer tail
+	count-same-char: func [
+		str			[byte-ptr!]
+		slen		[integer!]
+		chr			[byte!]
+		return:		[integer!]
+		/local
+			p		[byte-ptr!]
+			cnt		[integer!]
+	][
+		p: str + slen - 1
+		cnt: 0
+		loop slen [
+			either p/1 = chr [cnt: cnt + 1 p: p - 1][break]
+		]
+		cnt
+	]
+
+	to-decimal: func [
+		value		[integer!]
+		return:		[c-string!]
+		/local
+			s		[c-string!]
+			r		[c-string!]
+			m		[c-string!]
+			rem		[integer!]
+			t		[integer!]
+			i		[integer!]
+			rsize	[integer!]
+			j		[integer!]
+			p		[byte-ptr!]
+	][
+		s: "0000000000"
+		r: "0000000000"
+		m: "0123456789"
+
+		i: 1
+		rem: value
+		until [
+			t: (rem % 10) + 1
+			s/i: m/t
+			rem: rem / 10
+
+			i: i + 1
+			rem = 0
+		]
+		s/i: null-byte
+
+		rsize: i - 1
+		j: 1
+		p: as byte-ptr! s + rsize - 1
+		loop rsize [
+			r/j: p/1
+			
+			p: p - 1
+			j: j + 1
+		]
+		r/j: null-byte
+		r
+	]
+
+	form-to-decimal: func [
+		ibuf		[byte-ptr!]
+		ilen		[integer!]
+		point		[integer!]
+		obuf		[int-ptr!]
+		olen		[int-ptr!]
+		/local
+			sign	[integer!]
+			zcnt	[integer!]
+			size	[integer!]
+			buf		[byte-ptr!]
+			pi		[int-ptr!]
+			p		[byte-ptr!]
+			zpad	[integer!]
+			pos		[integer!]
+	][
+		sign: 1
+		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
+
+		zcnt: count-same-char ibuf ilen #"0"
+		either point >= ilen [
+			size: point + 2 - zcnt + 1
+			if sign = -1 [size: size + 1]
+			buf: allocate size + 4
+			pi: as int-ptr! buf
+			pi/1: size
+			p: buf + 4
+
+			pos: 1
+			if sign = -1 [
+				p/pos: #"-"
+				pos: pos + 1
+			]
+			p/pos: #"0"
+			pos: pos + 1
+			p/pos: #"."
+			pos: pos + 1
+			zpad: point - ilen + 1
+			set-memory p + pos - 1 #"0" zpad
+			copy-memory p + pos - 1 + zpad ibuf ilen - zcnt
+		][
+			size: ilen + 1 - zcnt + 1
+			if sign = -1 [size: size + 1]
+			buf: allocate size + 4
+			pi: as int-ptr! buf
+			pi/1: size
+			p: buf + 4
+
+			pos: 1
+			if sign = -1 [
+				p/pos: #"-"
+				pos: pos + 1
+			]
+			p/pos: ibuf/1
+			pos: pos + 1
+			p/pos: #"."
+			pos: pos + 1
+			copy-memory p + pos - 1 ibuf + 1 ilen - zcnt - 1
+		]
+		p/size: null-byte
+		obuf/value: as integer! buf
+		olen/value: size - 1
+	]
+
+	form-to-exp: func [
+		ibuf		[byte-ptr!]
+		ilen		[integer!]
+		point		[integer!]
+		obuf		[int-ptr!]
+		olen		[int-ptr!]
+		/local
+			sign	[integer!]
+			zcnt	[integer!]
+			eLen	[integer!]
+			eSign	[integer!]
+			eStr	[c-string!]
+			eSLen	[integer!]
+			size	[integer!]
+			buf		[byte-ptr!]
+			pi		[int-ptr!]
+			p		[byte-ptr!]
+			pos		[integer!]
+	][
+		sign: 1
+		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
+
+		zcnt: count-same-char ibuf ilen #"0"
+
+		either point >= ilen [
+			eLen: point - ilen + 1
+			eStr: to-decimal eLen
+			eSLen: length? eStr
+			eSign: -1
+			size: ilen + 1 - zcnt + 2 + eSLen + 1
+		][
+			eLen: ilen - point - 1
+			eStr: to-decimal eLen
+			eSLen: length? eStr
+			eSign: 1
+			size: ilen + 1 - zcnt + 1 + eSLen + 1
+		]
+		size: size + 1			;-- for one point at least
+		if sign = -1 [size: size + 1]
+		;print-line ["point: " point " ilen: " ilen " zcnt: " zcnt " eLen: " eLen " eStr: " eStr " eSLen: " eSLen " eSign: " eSign " size: " size]
+		buf: allocate size + 4
+		pi: as int-ptr! buf
+		pi/1: size
+		p: buf + 4
+
+		pos: 1
+		if sign = -1 [
+			p/pos: #"-"
+			pos: pos + 1
+		]
+		p/pos: ibuf/1
+		pos: pos + 1
+		p/pos: #"."
+		pos: pos + 1
+		either 0 = (ilen - zcnt - 1) [
+			p/pos: #"0"
+			pos: pos + 1
+		][
+			copy-memory p + pos - 1 ibuf + 1 ilen - zcnt - 1
+			pos: pos + ilen - zcnt - 1
+		]
+		p/pos: #"E"
+		pos: pos + 1
+		if eSign = -1 [p/pos: #"-" pos: pos + 1]
+		copy-memory p + pos - 1 as byte-ptr! eStr eSLen
+
+		p/size: null-byte
+		obuf/value: as integer! buf
+		olen/value: size - 1
+	]
+
+	form-big-float: func [
+		big			[red-bignum!]
+		obuf		[int-ptr!]
+		olen		[int-ptr!]
+		/local
+			size	[integer!]
+			ibuf	[integer!]
+			buf		[byte-ptr!]
+			exp?	[logic!]
+			nbuf	[integer!]
+			nsize	[integer!]
+	][
+		size: 0
+		ibuf: 0
+		if not _bignum/write-string big/value 10 :ibuf :size [
+			fire [TO_ERROR(math overflow)]
+		]
+		buf: as byte-ptr! ibuf + 4
+
+		exp?: true
+		if big/point <= 10 [
+			either size > big/point [
+				if (size - big/point) <= 10 [
+					exp?: false
+				]
+			][
+				exp?: false
+			]
+		]
+		if big/point = (size - 1) [exp?: false]
+
+		nbuf: 0
+		nsize: 0
+		either exp? [
+			form-to-exp buf size big/point :nbuf :nsize
+		][
+			form-to-decimal buf size big/point :nbuf :nsize
+		]
+		free as byte-ptr! ibuf
+		obuf/value: nbuf
+		olen/value: nsize
+	]
+
 	serialize: func [
 		big			[red-bignum!]
 		buffer		[red-string!]
@@ -299,34 +538,22 @@ bignum: context [
 		mold?		[logic!]
 		return: 	[integer!]
 		/local
-			bn	[bignum!]
 			p		[byte-ptr!]
 			size	[integer!]
-			rsize	[integer!]
-			itmp	[integer!]
-			tmp		[byte-ptr!]
-			tsize	[integer!]
+			ibuf	[integer!]
+			buf		[byte-ptr!]
 			bytes	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bignum/serialize"]]
 
 		;print-line ["point: " big/point]
-		bn: big/value
-		p: as byte-ptr! bn/data
-		either bn/used = 0 [
-			size: 1
-		][
-			size: bn/used * 4
-		]
 
-		rsize: 0
-		itmp: 0
-		if not _bignum/write-string bn 10 :itmp :rsize [
-			fire [TO_ERROR(math overflow)]
-		]
-		tmp: as byte-ptr! itmp
-		size: rsize
-		p: tmp + 4
+		size: 0
+		ibuf: 0
+		form-big-float big :ibuf :size
+
+		buf: as byte-ptr! ibuf
+		p: buf + 4
 
 		string/concatenate-literal buffer "make bignum! "
 		part: part - 13
@@ -337,7 +564,7 @@ bignum: context [
 			part: part - 1
 		]
 
-		loop size - 1 [
+		loop size [
 			string/append-char GET_BUFFER(buffer) as-integer p/1
 			bytes: bytes + 1
 			if bytes % 32 = 0 [
@@ -346,7 +573,7 @@ bignum: context [
 			]
 			part: part - 1
 			if all [OPTION?(arg) part <= 0][
-				free tmp
+				free buf
 				return part
 			]
 			p: p + 1
@@ -355,7 +582,7 @@ bignum: context [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
-		free tmp
+		free buf
 		part - 1
 	]
 
