@@ -402,11 +402,16 @@ bignum: context [
 				p/pos: #"-"
 				pos: pos + 1
 			]
-			p/pos: ibuf/1
-			pos: pos + 1
-			p/pos: #"."
-			pos: pos + 1
-			copy-memory p + pos - 1 ibuf + 1 ilen - zcnt - 1
+			copy-memory p + pos - 1 ibuf ilen - point
+			pos: pos + ilen - point
+
+			either (point - zcnt) = 0 [
+				p/pos: null-byte
+			][
+				p/pos: #"."
+				pos: pos + 1
+				copy-memory p + pos - 1 ibuf + ilen - point point - zcnt
+			]
 		]
 		p/size: null-byte
 		obuf/value: as integer! buf
