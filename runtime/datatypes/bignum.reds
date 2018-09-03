@@ -368,8 +368,8 @@ bignum: context [
 		sign: 1
 		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
 
-		zcnt: count-same-char ibuf ilen #"0"
 		either point >= ilen [
+			zcnt: count-same-char ibuf ilen #"0"
 			size: point + 2 - zcnt + 1
 			if sign = -1 [size: size + 1]
 			buf: allocate size + 4
@@ -388,9 +388,12 @@ bignum: context [
 			pos: pos + 1
 			zpad: point - ilen + 1
 			set-memory p + pos - 1 #"0" zpad
-			copy-memory p + pos - 1 + zpad ibuf ilen - zcnt
+			pos: pos + zpad
+			copy-memory p + pos - 1 ibuf ilen - zcnt
+			pos: pos + ilen - zcnt
+			p/pos: null-byte
 		][
-			size: ilen + 1 - zcnt + 1
+			size: ilen + 1 + 1
 			if sign = -1 [size: size + 1]
 			buf: allocate size + 4
 			pi: as int-ptr! buf
@@ -405,17 +408,21 @@ bignum: context [
 			copy-memory p + pos - 1 ibuf ilen - point
 			pos: pos + ilen - point
 
-			either (point - zcnt) = 0 [
+			zcnt: count-same-char ibuf + ilen - point point #"0"
+			;print-line ["ilen: " ilen " point: " point " zcnt: " zcnt]
+			either point <= zcnt [
 				p/pos: null-byte
 			][
 				p/pos: #"."
 				pos: pos + 1
 				copy-memory p + pos - 1 ibuf + ilen - point point - zcnt
+				pos: pos + point - zcnt
+				p/pos: null-byte
 			]
 		]
 		p/size: null-byte
 		obuf/value: as integer! buf
-		olen/value: size - 1
+		olen/value: pos
 	]
 
 	form-to-exp: func [
@@ -483,10 +490,12 @@ bignum: context [
 		pos: pos + 1
 		if eSign = -1 [p/pos: #"-" pos: pos + 1]
 		copy-memory p + pos - 1 as byte-ptr! eStr eSLen
+		pos: pos + eSLen
+		p/pos: null-byte
 
 		p/size: null-byte
 		obuf/value: as integer! buf
-		olen/value: size - 1
+		olen/value: pos
 	]
 
 	form-big-float: func [
@@ -520,6 +529,7 @@ bignum: context [
 		]
 		if big/point = (size - 1) [exp?: false]
 
+		;print-line ["size: " size " point: " big/point "^/data: " as c-string! buf]
 		nbuf: 0
 		nsize: 0
 		either exp? [
