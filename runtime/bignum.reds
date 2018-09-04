@@ -16,20 +16,6 @@ bignum!: alias struct! [
 
 _bignum: context [
 
-	cpu-little-endian?: func [
-		return:		[logic!]
-		/local
-			int		[integer!]
-			p		[byte-ptr!]
-	][
-		int: 44332211h
-		p: as byte-ptr! :int
-		if p/1 = #"^(11)" [return yes]
-		no
-	]
-
-	little-endian?: cpu-little-endian?
-
 	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
@@ -240,19 +226,19 @@ _bignum: context [
 			big/used: 1
 		]
 	]
-
+	
 	;-- u1 < u2
-	uint-less: func [
-		u1			[integer!]
-		u2			[integer!]
-		return:		[logic!]
-		/local
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
-	][
-		p1: as byte-ptr! :u1
-		p2: as byte-ptr! :u2
-		if little-endian? [
+	;#either config/cpu/little-endian? [
+		uint-less: func [
+			u1			[integer!]
+			u2			[integer!]
+			return:		[logic!]
+			/local
+				p1		[byte-ptr!]
+				p2		[byte-ptr!]
+		][
+			p1: as byte-ptr! :u1
+			p2: as byte-ptr! :u2
 			if p1/4 < p2/4 [return true]
 			if p1/4 > p2/4 [return false]
 			if p1/3 < p2/3 [return true]
@@ -263,16 +249,28 @@ _bignum: context [
 			if p1/1 > p2/1 [return false]
 			return false
 		]
-		if p1/1 < p2/1 [return true]
-		if p1/1 > p2/1 [return false]
-		if p1/2 < p2/2 [return true]
-		if p1/2 > p2/2 [return false]
-		if p1/3 < p2/3 [return true]
-		if p1/3 > p2/3 [return false]
-		if p1/4 < p2/4 [return true]
-		if p1/4 > p2/4 [return false]
-		return false
-	]
+	;][
+	;	uint-less: func [
+	;		u1			[integer!]
+	;		u2			[integer!]
+	;		return:		[logic!]
+	;		/local
+	;			p1		[byte-ptr!]
+	;			p2		[byte-ptr!]
+	;	][
+	;		p1: as byte-ptr! :u1
+	;		p2: as byte-ptr! :u2
+	;		if p1/1 < p2/1 [return true]
+	;		if p1/1 > p2/1 [return false]
+	;		if p1/2 < p2/2 [return true]
+	;		if p1/2 > p2/2 [return false]
+	;		if p1/3 < p2/3 [return true]
+	;		if p1/3 > p2/3 [return false]
+	;		if p1/4 < p2/4 [return true]
+	;		if p1/4 > p2/4 [return false]
+	;		return false
+	;	]
+	;]
 
 	lset: func [
 		big			[bignum!]
