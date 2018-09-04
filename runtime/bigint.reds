@@ -1,26 +1,27 @@
 Red/System [
-	Title:   "bignum"
+	Title:   "big integer lib"
 	Author:  "bitbegin"
-	File: 	 %bignum.reds
+	File: 	 %bigint.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-bignum!: alias struct! [
+bigint!: alias struct! [
 	size		[integer!]				;-- size in integer!
 	used		[integer!]				;-- used length in integer!
 	sign		[integer!]
+	resv1		[integer!]
+	resv2		[integer!]
 	data		[int-ptr!]
 ]
 
-_bignum: context [
+bigint: context [
 
-	ciL:				4				;-- bignum! unit is 4 bytes; chars in limb
+	ciL:				4				;-- bigint! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
 	BN_MAX_LIMB:		1024			;-- support 1024 * 32 bits
-	BN_WINDOW_SIZE:		6				;-- Maximum window size used for modular exponentiation
 
 	#define MULADDC_INIT [
 		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
@@ -47,53 +48,55 @@ _bignum: context [
 		if size > 0 [BN_MAX_LIMB: size]
 	]
 
-	bn-alloc: func [
+	alloc*: func [
 		size			[integer!]			;-- size in integer!
-		return:			[bignum!]
+		return:			[bigint!]
 		/local
 			len			[integer!]
 			p			[byte-ptr!]
-			big			[bignum!]
+			big			[bigint!]
 	][
 		if size > BN_MAX_LIMB [return null]
 
-		len: size * 4 + size? bignum!
+		len: size * 4 + size? bigint!
 		p: allocate len
 		set-memory p null-byte len
-		big: as bignum! p
+		big: as bigint! p
 		big/size: size
 		big/used: 0
 		big/sign: 1
-		big/data: as int-ptr! (p + size? bignum!)
+		big/data: as int-ptr! (p + size? bigint!)
 		big
 	]
 
-	bn-free: func [big [bignum!]][
+	free*: func [big [bigint!]][
 		if big <> null [free as byte-ptr! big]
 	]
 
-	bn-copy: func [
-		big					[bignum!]
+	copy*: func [
+		big					[bigint!]
 		expand				[integer!]			;-- expand size in integer!
-		return:				[bignum!]
+		return:				[bigint!]
 		/local
 			size			[integer!]
 			cp-size			[integer!]
-			ret				[bignum!]
+			ret				[bigint!]
 	][
 		if big = null [return null]
 		size: either expand > big/size [expand][big/size]
-		ret: bn-alloc size
+		ret: alloc* size
 		ret/size: size
 		ret/used: expand
 		ret/sign: big/sign
+		ret/resv1: 0
+		ret/resv2: 0
 		cp-size: either expand > big/used [big/used][expand]
 		copy-memory as byte-ptr! ret/data as byte-ptr! big/data cp-size * 4
 		ret
 	]
 
 	from-int: func [
-		big					[bignum!]
+		big					[bigint!]
 		int					[integer!]
 		/local
 			p				[int-ptr!]
@@ -110,7 +113,7 @@ _bignum: context [
 	]
 
 	from-uint: func [
-		big					[bignum!]
+		big					[bigint!]
 		uint				[integer!]
 		/local
 			p				[int-ptr!]
@@ -123,22 +126,22 @@ _bignum: context [
 
 	load-int: func [
 		int					[integer!]
-		return:				[bignum!]
+		return:				[bigint!]
 		/local
-			big				[bignum!]
+			big				[bigint!]
 	][
-		big: bn-alloc 2
+		big: alloc* 2
 		from-int big int
 		big
 	]
 
 	load-uint: func [
 		uint				[integer!]
-		return:				[bignum!]
+		return:				[bigint!]
 		/local
-			big				[bignum!]
+			big				[bigint!]
 	][
-		big: bn-alloc 2
+		big: alloc* 2
 		from-uint big uint
 		big
 	]
@@ -165,7 +168,7 @@ _bignum: context [
 	]
 
 	bitlen?: func [
-		big			[bignum!]
+		big			[bigint!]
 		return:		[integer!]
 		/local
 			p		[int-ptr!]
@@ -180,7 +183,7 @@ _bignum: context [
 	]
 
 	len?: func [
-		big			[bignum!]
+		big			[bigint!]
 		return:		[integer!]
 		/local
 			ret		[integer!]
@@ -190,25 +193,8 @@ _bignum: context [
 		ret
 	]
 
-	grow: func [
-		big			[bignum!]
-		size		[integer!]
-		return:		[bignum!]
-		/local
-			ret		[bignum!]
-	][
-		if size = 0 [return big]
-
-		if (size - big/size) > 0 [ 
-			ret: bn-copy big size
-			bn-free big
-			return ret
-		]
-		big
-	]
-
 	shrink: func [
-		big			[bignum!]
+		big			[bigint!]
 		/local
 			p		[int-ptr!]
 			len		[integer!]
@@ -273,7 +259,7 @@ _bignum: context [
 	;]
 
 	lset: func [
-		big			[bignum!]
+		big			[bigint!]
 		int			[integer!]
 		/local
 			p		[int-ptr!]
@@ -284,10 +270,10 @@ _bignum: context [
 	]
 
 	left-shift: func [
-		big			[bignum!]
+		big			[bigint!]
 		count		[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
 			i		[integer!]
 			v0		[integer!]
@@ -298,7 +284,7 @@ _bignum: context [
 			p		[int-ptr!]
 			p1		[int-ptr!]
 			p2		[int-ptr!]
-			ret		[bignum!]
+			ret		[bigint!]
 	][
 		r0: 0
 		v0: count / biL
@@ -315,7 +301,7 @@ _bignum: context [
 			size: big/used
 		]
 
-		ret: bn-copy big size
+		ret: copy* big size
 
 		p: ret/data
 
@@ -353,15 +339,15 @@ _bignum: context [
 		][
 			shrink ret
 		]
-		if free? [bn-free big]
+		if free? [free* big]
 		ret
 	]
 
 	right-shift: func [
-		big			[bignum!]
+		big			[bigint!]
 		count		[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
 			i		[integer!]
 			v0		[integer!]
@@ -371,13 +357,13 @@ _bignum: context [
 			p		[int-ptr!]
 			p1		[int-ptr!]
 			p2		[int-ptr!]
-			ret		[bignum!]
+			ret		[bigint!]
 	][
 		r0: 0
 		v0: count / biL
 		v1: count and (biL - 1)
 
-		ret: bn-copy big big/used
+		ret: copy* big big/used
 		p: ret/data
 
 		if any [
@@ -425,16 +411,16 @@ _bignum: context [
 		][
 			shrink ret
 		]
-		if free? [bn-free big]
+		if free? [free* big]
 		ret
 	]
 
 	absolute-add: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			p		[int-ptr!]
 			p2		[int-ptr!]
 			i		[integer!]
@@ -443,7 +429,7 @@ _bignum: context [
 	][
 		p2: big2/data
 
-		big: bn-copy big1 either big1/size > big2/size [big1/size][big2/size]
+		big: copy* big1 either big1/size > big2/size [big1/size][big2/size]
 		big/sign: 1
 		big/used: big1/used
 		p: big/data
@@ -501,15 +487,15 @@ _bignum: context [
 
 	;-- big1 must large than big2
 	absolute-sub: func [
-		big1		[bignum!]
-		big2		[bignum!]
-		return:		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 	][
 		if big1/used < big2/used [return big1]
 
-		big: bn-copy big1 big1/used
+		big: copy* big1 big1/used
 		big/sign: 1
 
 		sub-hlp big2/used big2/data big/data
@@ -519,12 +505,12 @@ _bignum: context [
 	]
 
 	add: func [
-		big1		[bignum!]
-		big2		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 	][
 		either big1/sign <> big2/sign [
 			either (absolute-compare big1 big2) >= 0 [
@@ -538,17 +524,17 @@ _bignum: context [
 			big: absolute-add big1 big2
 			big/sign: big1/sign
 		]
-		if free? [bn-free big1]
+		if free? [free* big1]
 		big
 	]
 
 	sub: func [
-		big1		[bignum!]
-		big2		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 	][
 		either big1/sign = big2/sign [
 			either (absolute-compare big1 big2) >= 0 [
@@ -562,73 +548,73 @@ _bignum: context [
 			big: absolute-add big1 big2
 			big/sign: big1/sign
 		]
-		if free? [bn-free big1]
+		if free? [free* big1]
 		big
 	]
 
 	add-int: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		int			[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
-			ret		[bignum!]
+			big		[bigint!]
+			ret		[bigint!]
 	][
 		big: load-int int
 		ret: add big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	add-uint: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		uint		[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
-			ret		[bignum!]
+			big		[bigint!]
+			ret		[bigint!]
 	][
 		big: load-uint uint
 		ret: add big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	sub-int: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		int			[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
-			ret		[bignum!]
+			big		[bigint!]
+			ret		[bigint!]
 	][
 		big: load-int int
 		ret: sub big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	sub-uint: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		uint		[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
-			ret		[bignum!]
+			big		[bigint!]
+			ret		[bigint!]
 	][
 		big: load-uint uint
 		ret: sub big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	absolute-compare: func [
-		big1		[bignum!]
-		big2		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
 		return:		[integer!]
 		/local
 			p1		[int-ptr!]
@@ -656,8 +642,8 @@ _bignum: context [
 	]
 
 	compare: func [
-		big1		[bignum!]
-		big2		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
 		return:		[integer!]
 	][
 		if all [
@@ -680,8 +666,8 @@ _bignum: context [
 		absolute-compare big2 big1
 	]
 
-	bn-zero?: func [
-		big			[bignum!]
+	zero?*: func [
+		big			[bigint!]
 		return:		[logic!]
 		/local
 			p		[int-ptr!]
@@ -692,33 +678,33 @@ _bignum: context [
 		false
 	]
 
-	bn-negative: func [
-		big			[bignum!]
+	negative*: func [
+		big			[bigint!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			ret		[bignum!]
+			ret		[bigint!]
 	][
-		ret: bn-copy big big/used
-		if bn-zero? big [
-			if free? [bn-free big]
+		ret: copy* big big/used
+		if zero?* big [
+			if free? [free* big]
 			return ret
 		]
 		ret/sign: either big/sign = 1 [-1][1]
-		if free? [bn-free big]
+		if free? [free* big]
 		ret
 	]
 
-	bn-negative?: func [
-		big			[bignum!]
+	negative?*: func [
+		big			[bigint!]
 		return:		[logic!]
 	][
 		if big/sign = -1 [return true]
 		false
 	]
 
-	bn-positive?: func [
-		big			[bignum!]
+	positive?*: func [
+		big			[bigint!]
 		return:		[logic!]
 	][
 		if big/sign = 1 [return true]
@@ -727,37 +713,37 @@ _bignum: context [
 
 	;-- don't allocate memory, just change sign field
 	set-negative: func [
-		big			[bignum!]
+		big			[bigint!]
 	][
-		if bn-zero? big [exit]
+		if zero?* big [exit]
 		big/sign: either big/sign = 1 [-1][1]
 	]
 
 	compare-int: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		int			[integer!]
 		return:		[integer!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			ret		[integer!]
 	][
 		big: load-int int
 		ret: compare big1 big
-		bn-free big
+		free* big
 		ret
 	]
 
 	compare-uint: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		uint		[integer!]
 		return:		[integer!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			ret		[integer!]
 	][
 		big: load-uint uint
 		ret: compare big1 big
-		bn-free big
+		free* big
 		ret
 	]
 
@@ -825,12 +811,12 @@ _bignum: context [
 	]
 
 	mul: func [
-		big1		[bignum!]
-		big2		[bignum!]
+		big1		[bigint!]
+		big2		[bigint!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			p		[int-ptr!]
 			p1		[int-ptr!]
 			p2		[int-ptr!]
@@ -845,7 +831,7 @@ _bignum: context [
 		len2: big2/used
 
 		len: len1 + len2 + 1
-		big: bn-alloc len
+		big: alloc* len
 		big/used: len
 		p: big/data
 
@@ -859,37 +845,37 @@ _bignum: context [
 
 		big/sign: big1/sign * big2/sign
 		shrink big
-		if free? [bn-free big1]
+		if free? [free* big1]
 		big
 	]
 
 	mul-int: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		int			[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big	 	[bignum!]
-			ret		[bignum!]
+			big	 	[bigint!]
+			ret		[bigint!]
 	][
 		big: load-int int
 		ret: mul big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	mul-uint: func [
-		big1		[bignum!]
+		big1		[bigint!]
 		uint		[integer!]
 		free?		[logic!]
-		return:		[bignum!]
+		return:		[bigint!]
 		/local
-			big	 	[bignum!]
-			ret		[bignum!]
+			big	 	[bigint!]
+			ret		[bigint!]
 	][
 		big: load-uint uint
 		ret: mul big1 big free?
-		bn-free big
+		free* big
 		ret
 	]
 
@@ -1013,20 +999,20 @@ _bignum: context [
 
 	;-- A = Q * B + R
 	div: func [
-		A			[bignum!]
-		B			[bignum!]
+		A			[bigint!]
+		B			[bigint!]
 		iQ			[int-ptr!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
-			Q		[bignum!]
-			R		[bignum!]
-			X		[bignum!]
-			Y		[bignum!]
-			Z		[bignum!]
-			T1		[bignum!]
-			T2		[bignum!]
+			Q		[bigint!]
+			R		[bigint!]
+			X		[bigint!]
+			Y		[bigint!]
+			Z		[bigint!]
+			T1		[bigint!]
+			T2		[bigint!]
 			i		[integer!]
 			n		[integer!]
 			t		[integer!]
@@ -1049,22 +1035,22 @@ _bignum: context [
 				iQ/value: as integer! Q
 			]
 			if iR <> null [
-				R: bn-copy A A/used
+				R: copy* A A/used
 				iR/value: as integer! R
 			]
-			if free? [bn-free A]
+			if free? [free* A]
 			return true
 		]
 
-		X: bn-copy A A/used
+		X: copy* A A/used
 		X/sign: 1
-		Y: bn-copy B B/used
+		Y: copy* B B/used
 		Y/sign: 1
-		Z: bn-alloc A/used + 2
+		Z: alloc* A/used + 2
 		Z/used: A/used + 2
-		T1: bn-alloc 2
+		T1: alloc* 2
 		T1/used: 2
-		T2: bn-alloc 3
+		T2: alloc* 3
 		T2/used: 3
 		
 		k: (bitlen? Y) % biL
@@ -1103,11 +1089,11 @@ _bignum: context [
 			][
 				tmp2: i - 1
 				if false = long-divide px/i px/tmp2 py/t pz + tmp - 1 [
-					bn-free X
-					bn-free Y
-					bn-free Z
-					bn-free T1
-					bn-free T2
+					free* X
+					free* Y
+					free* Z
+					free* T1
+					free* T2
 					return false
 				]
 			]
@@ -1153,8 +1139,8 @@ _bignum: context [
 			X: sub X T1 true
 			px: X/data
 			if 0 > compare-int X 0 [
-				bn-free T1
-				T1: bn-copy Y Y/used
+				free* T1
+				T1: copy* Y Y/used
 				T1: left-shift T1 biL * (tmp - 1) true
 				X: add X T1 true
 				px: X/data
@@ -1170,7 +1156,7 @@ _bignum: context [
 			Q/sign: A/sign * B/sign
 			iQ/value: as integer! Q
 		][
-			bn-free Z
+			free* Z
 		]
 
 		X: right-shift X k true
@@ -1184,62 +1170,62 @@ _bignum: context [
 			]
 			iR/value: as integer! R
 		][
-			bn-free X
+			free* X
 		]
 
-		bn-free Y
-		bn-free T1
-		bn-free T2
-		if free? [bn-free A]
+		free* Y
+		free* T1
+		free* T2
+		if free? [free* A]
 		true
 	]
 
 	div-int: func [
-		A			[bignum!]
+		A			[bigint!]
 		int			[integer!]
 		iQ			[int-ptr!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			ret		[logic!]
 	][
 		big: load-int int
 		ret: div A big iQ iR free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	div-uint: func [
-		A			[bignum!]
+		A			[bigint!]
 		uint		[integer!]
 		iQ			[int-ptr!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
-			big		[bignum!]
+			big		[bigint!]
 			ret		[logic!]
 	][
 		big: load-uint uint
 		ret: div A big iQ iR free?
-		bn-free big
+		free* big
 		ret
 	]
 
 	modulo: func [
-		A			[bignum!]
-		B			[bignum!]
+		A			[bigint!]
+		B			[bigint!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
 			iR2		[integer!]
-			R		[bignum!]
-			BT		[bignum!]
+			R		[bigint!]
+			BT		[bigint!]
 	][
-		if bn-zero? B [
+		if zero?* B [
 			return false
 		]
 
@@ -1247,27 +1233,27 @@ _bignum: context [
 		if false = div A B null :iR2 false [
 			return false
 		]
-		R: as bignum! iR2
+		R: as bigint! iR2
 
 		if 0 > compare-int R 0 [
 			BT: add B R false
-			bn-free R
+			free* R
 			R: BT
 		]
 
 		if 0 <= compare R B [
 			BT: sub B R false
-			bn-free R
+			free* R
 			R: BT
 		]
 
 		iR/value: as integer! R
-		if free? [bn-free A]
+		if free? [free* A]
 		true
 	]
 
 	modulo-int: func [
-		A			[bignum!]
+		A			[bigint!]
 		b			[integer!]
 		iR			[int-ptr!]
 		free?		[logic!]
@@ -1284,14 +1270,14 @@ _bignum: context [
 
 		if b = 1 [
 			iR/value: 0
-			if free? [bn-free A]
+			if free? [free* A]
 			return true
 		]
 
 		p: A/data
 		if b = 2 [
 			iR/value: p/1 and 1
-			if free? [bn-free A]
+			if free? [free* A]
 			return true
 		]
 
@@ -1303,7 +1289,7 @@ _bignum: context [
 			z: 0
 			if false = uint-div y b :z [
 				iR/value: -1
-				if free? [bn-free A]
+				if free? [free* A]
 				return true
 			]
 			y: y - (z * b)
@@ -1313,7 +1299,7 @@ _bignum: context [
 			z: 0
 			if false = uint-div y b :z [
 				iR/value: -1
-				if free? [bn-free A]
+				if free? [free* A]
 				return true
 			]
 			y: y - (z * b)
@@ -1328,23 +1314,23 @@ _bignum: context [
 			y: b - y
 		]
 		iR/value: y
-		if free? [bn-free A]
+		if free? [free* A]
 		return true
 	]
 
 	;-- behave like rebol
 	mod: func [
-		A			[bignum!]
-		B			[bignum!]
+		A			[bigint!]
+		B			[bigint!]
 		iR			[int-ptr!]
 		free?		[logic!]
 		return:		[logic!]
 		/local
 			iR2		[integer!]
-			R		[bignum!]
-			T1		[bignum!]
+			R		[bigint!]
+			T1		[bigint!]
 	][
-		if bn-zero? B [
+		if zero?* B [
 			return false
 		]
 
@@ -1352,7 +1338,7 @@ _bignum: context [
 		if false = div A B null :iR2 false [
 			return false
 		]
-		R: as bignum! iR2
+		R: as bigint! iR2
 
 		if 0 > compare-int R 0 [
 			R: add R B true
@@ -1362,24 +1348,24 @@ _bignum: context [
 		T1: sub T1 B true
 		if all [
 			0 = compare R B
-			bn-positive? T1
+			positive?* T1
 		][
 			R: sub R B true
 		]
 
-		bn-free T1
+		free* T1
 		iR/value: as integer! R
-		if free? [bn-free A]
+		if free? [free* A]
 		true
 	]
 
 	load-bin: func [
 		bin					[byte-ptr!]
 		len					[integer!]
-		return:				[bignum!]
+		return:				[bigint!]
 		/local
 			size			[integer!]
-			big				[bignum!]
+			big				[bigint!]
 			p				[int-ptr!]
 			p2				[byte-ptr!]
 			i				[integer!]
@@ -1389,7 +1375,7 @@ _bignum: context [
 		if len < 0 [return null]
 		size: len / 4
 		if len % 4 <> 0 [size: size + 1]
-		big: bn-alloc size
+		big: alloc* size
 		big/used: size
 		p: big/data
 		p2: bin + len - 1
@@ -1424,7 +1410,7 @@ _bignum: context [
 	]
 
 	equal-bin?: func [
-		big					[bignum!]
+		big					[bigint!]
 		bin					[byte-ptr!]
 		len					[integer!]
 		return:				[logic!]
@@ -1493,13 +1479,13 @@ _bignum: context [
 		str					[c-string!]
 		slen				[integer!]
 		radix				[integer!]
-		return:				[bignum!]
+		return:				[bigint!]
 		/local
 			sign			[integer!]
 			size			[integer!]
 			len				[integer!]
 			nsize			[integer!]
-			big				[bignum!]
+			big				[bigint!]
 			p				[int-ptr!]
 			p2				[byte-ptr!]
 			index			[integer!]
@@ -1525,7 +1511,7 @@ _bignum: context [
 				nsize: nsize + 1
 			]
 
-			big: bn-alloc nsize
+			big: alloc* nsize
 			p: big/data
 
 			until [
@@ -1581,14 +1567,14 @@ _bignum: context [
 	]
 
 	write-hlp: func [
-		big			[bignum!]
+		big			[bigint!]
 		radix		[integer!]
 		buf			[integer!]
 		return:		[logic!]
 		/local
 			ret		[integer!]
 			pi		[int-ptr!]
-			Q		[bignum!]
+			Q		[bigint!]
 			iQ		[integer!]
 			pb		[byte-ptr!]
 	][
@@ -1598,14 +1584,14 @@ _bignum: context [
 		if false = modulo-int big radix :ret false [return false]
 		iQ: 0
 		if false = div-int big radix :iQ null false [return false]
-		Q: as bignum! iQ
+		Q: as bigint! iQ
 		if 0 <> compare-int Q 0 [
 			if false = write-hlp Q radix buf [
-				bn-free Q
+				free* Q
 				return false
 			]
 		]
-		bn-free Q
+		free* Q
 
 		pi: as int-ptr! buf
 		pb: as byte-ptr! pi/1
@@ -1619,13 +1605,13 @@ _bignum: context [
 	]
 
 	write-string: func [
-		big			[bignum!]
+		big			[bigint!]
 		radix		[integer!]
 		obuf		[int-ptr!]
 		olen		[int-ptr!]
 		return:		[logic!]
 		/local
-			T		[bignum!]
+			T		[bigint!]
 			n		[integer!]
 			buf		[byte-ptr!]
 			p		[integer!]
@@ -1689,17 +1675,17 @@ _bignum: context [
 				i: i - 1
 			]
 		][
-			T: bn-copy big big/used
+			T: copy* big big/used
 			if T/sign = -1 [
 				T/sign: 1
 			]
 
 			if false = write-hlp T radix as integer! :p [
-				bn-free T
+				free* T
 				free buf
 				return false
 			]
-			bn-free T
+			free* T
 		]
 
 		olen/value: p - as integer! (buf + 4)
@@ -1711,20 +1697,20 @@ _bignum: context [
 	]
 
 	#if debug? = yes [
-		dump-bignum: func [
-			big			[bignum!]
+		dump-bigint: func [
+			big			[bigint!]
 			/local
 				p		[byte-ptr!]
 		][
 			p: as byte-ptr! big/data
-			print-line [lf "===============dump bignum!==============="]
+			print-line [lf "===============dump bigint!==============="]
 			print-line ["size: " big/size " used: " big/used " sign: " big/sign " addr: " p]
 			p: p + (big/used * 4)
 			loop big/used * 4 [
 				p: p - 1
 				prin-hex-chars as-integer p/1 2
 			]
-			print-line [lf "=============dump bignum! end============="]
+			print-line [lf "=============dump bigint! end============="]
 		]
 	]
 
