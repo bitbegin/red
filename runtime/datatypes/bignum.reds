@@ -386,7 +386,7 @@ bignum: context [
 			pos: pos + 1
 			p/pos: #"."
 			pos: pos + 1
-			zpad: point - ilen + 1
+			zpad: point - ilen
 			set-memory p + pos - 1 #"0" zpad
 			pos: pos + zpad
 			copy-memory p + pos - 1 ibuf ilen - zcnt
