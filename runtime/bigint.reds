@@ -11,8 +11,7 @@ bigint!: alias struct! [
 	size		[integer!]				;-- size in integer!
 	used		[integer!]				;-- used length in integer!
 	sign		[integer!]
-	resv1		[integer!]
-	resv2		[integer!]
+	resv		[integer!]
 	data		[int-ptr!]
 ]
 
@@ -65,6 +64,7 @@ bigint: context [
 		big/size: size
 		big/used: 0
 		big/sign: 1
+		big/resv: 0
 		big/data: as int-ptr! (p + size? bigint!)
 		big
 	]
@@ -88,8 +88,7 @@ bigint: context [
 		ret/size: size
 		ret/used: expand
 		ret/sign: big/sign
-		ret/resv1: 0
-		ret/resv2: 0
+		ret/resv: 0
 		cp-size: either expand > big/used [big/used][expand]
 		copy-memory as byte-ptr! ret/data as byte-ptr! big/data cp-size * 4
 		ret
@@ -156,7 +155,7 @@ bigint: context [
 	][
 		mask: 1 << (biL - 1)
 		ret: 0
-		
+
 		loop biL [
 			if (int and mask) <> 0 [
 				break
@@ -212,7 +211,7 @@ bigint: context [
 			big/used: 1
 		]
 	]
-	
+
 	;-- u1 < u2
 	;#either config/cpu/little-endian? [
 		uint-less: func [
@@ -476,7 +475,7 @@ bigint: context [
 			s: s + 1
 			d: d + 1
 		]
-		
+
 		while [c <> 0][
 			z: as integer! (uint-less d/1 c)
 			d/1: d/1 - c
@@ -882,7 +881,8 @@ bigint: context [
 	uint-div: func [
 		u1				[integer!]
 		u0				[integer!]
-		ret				[int-ptr!]
+		q				[int-ptr!]
+		r				[int-ptr!]
 		return:			[logic!]
 		/local
 			i			[integer!]
@@ -890,22 +890,25 @@ bigint: context [
 		if u0 = 0 [
 			return false
 		]
-		
+
 		if uint-less u1 u0 [
-			ret/value: 0
+			q/value: 0
+			r/value: u1
 			return true
 		]
-		
+
 		i: 0
 		while [true] [
 			u1: u1 - u0
 			i: i + 1
 			if uint-less u1 u0 [
-				ret/value: i
+				q/value: i
+				r/value: u1
 				return true
 			]
 		]
-		ret/value: i
+		q/value: i
+		r/value: 0
 		return true
 	]
 
@@ -922,6 +925,7 @@ bigint: context [
 			d1			[integer!]
 			q0			[integer!]
 			q1			[integer!]
+			rt			[integer!]
 			rAX			[integer!]
 			r0			[integer!]
 			u0_msw		[integer!]
@@ -955,9 +959,10 @@ bigint: context [
 
 		u0_msw: u0 >>> biLH
 		u0_lsw: u0 and hmask
-		
+
 		q1: 0
-		if false = uint-div u1 d1 :q1 [
+		rt: 0
+		if false = uint-div u1 d1 :q1 :rt [
 			return false
 		]
 		r0: u1 - (d1 * q1)
@@ -976,7 +981,8 @@ bigint: context [
 
 		rAX: (u1 * radix) + (u0_msw - (q1 * d))
 		q0: 0
-		if false = uint-div rAX d1 :q0 [
+		rt: 0
+		if false = uint-div rAX d1 :q0 :rt [
 			return false
 		]
 		r0: rAX - (q0 * d1)
@@ -1052,9 +1058,9 @@ bigint: context [
 		T1/used: 2
 		T2: alloc* 3
 		T2/used: 3
-		
+
 		k: (bitlen? Y) % biL
-		
+
 		either k < (biL - 1) [
 			k: biL - 1 - k
 			X: left-shift X k true
@@ -1130,7 +1136,7 @@ bigint: context [
 				]
 				pt2/3: px/i
 				T2/used: 3
-				
+
 				0 >= compare T1 T2
 			]
 
@@ -1263,6 +1269,7 @@ bigint: context [
 			x		[integer!]
 			y		[integer!]
 			z		[integer!]
+			rt		[integer!]
 	][
 		if b = 0 [
 			return false
@@ -1287,26 +1294,28 @@ bigint: context [
 			x: p/1
 			y: (y << biLH) or (x >>> biLH)
 			z: 0
-			if false = uint-div y b :z [
+			rt: 0
+			if false = uint-div y b :z :rt [
 				iR/value: -1
 				if free? [free* A]
 				return true
 			]
 			y: y - (z * b)
-			
+
 			x: x << biLH
 			y: (y << biLH) or (x >>> biLH)
 			z: 0
-			if false = uint-div y b :z [
+			rt: 0
+			if false = uint-div y b :z :rt [
 				iR/value: -1
 				if free? [free* A]
 				return true
 			]
 			y: y - (z * b)
-			
+
 			p: p - 1
 		]
-		
+
 		if all [
 			A/sign < 0
 			y <> 0
@@ -1697,14 +1706,14 @@ bigint: context [
 	]
 
 	#if debug? = yes [
-		dump-bigint: func [
+		dump: func [
 			big			[bigint!]
 			/local
 				p		[byte-ptr!]
 		][
 			p: as byte-ptr! big/data
 			print-line [lf "===============dump bigint!==============="]
-			print-line ["size: " big/size " used: " big/used " sign: " big/sign " addr: " p]
+			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " addr: " p]
 			p: p + (big/used * 4)
 			loop big/used * 4 [
 				p: p - 1
@@ -1715,4 +1724,3 @@ bigint: context [
 	]
 
 ]
-
