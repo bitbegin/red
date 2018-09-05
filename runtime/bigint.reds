@@ -159,6 +159,7 @@ bigint: context [
 		p/1: uL
 		p/2: uH
 		big/used: 2
+		big
 	]
 
 	;-- Count leading zero bits in a given integer
