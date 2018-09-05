@@ -145,6 +145,22 @@ bigint: context [
 		big
 	]
 
+	load-ulong: func [
+		uL					[integer!]
+		uH					[integer!]
+		return:				[bigint!]
+		/local
+			big				[bigint!]
+			p				[int-ptr!]
+	][
+		big: alloc* 3
+		p: big/data
+		big/sign: 1
+		p/1: uL
+		p/2: uH
+		big/used: 2
+	]
+
 	;-- Count leading zero bits in a given integer
 	clz: func [
 		int			[integer!]
@@ -708,6 +724,23 @@ bigint: context [
 	][
 		if big/sign = 1 [return true]
 		false
+	]
+
+	absolute*: func [
+		big			[bigint!]
+		free?		[logic!]
+		return:		[bigint!]
+		/local
+			ret		[bigint!]
+	][
+		ret: copy* big big/used
+		if zero?* big [
+			if free? [free* big]
+			return ret
+		]
+		ret/sign: 1
+		if free? [free* big]
+		ret
 	]
 
 	;-- don't allocate memory, just change sign field
