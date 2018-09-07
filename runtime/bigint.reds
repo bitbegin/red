@@ -12,6 +12,7 @@ bigint!: alias struct! [
 	used		[integer!]				;-- used length in integer!
 	sign		[integer!]
 	resv		[integer!]
+	resv2		[integer!]
 	data		[int-ptr!]
 ]
 
@@ -65,6 +66,7 @@ bigint: context [
 		big/used: 0
 		big/sign: 1
 		big/resv: 0
+		big/resv2: 0
 		big/data: as int-ptr! (p + size? bigint!)
 		big
 	]
@@ -88,7 +90,8 @@ bigint: context [
 		ret/size: size
 		ret/used: expand
 		ret/sign: big/sign
-		ret/resv: 0
+		ret/resv: big/resv
+		big/resv2: big/resv2
 		cp-size: either expand > big/used [big/used][expand]
 		copy-memory as byte-ptr! ret/data as byte-ptr! big/data cp-size * 4
 		ret
@@ -1747,7 +1750,7 @@ bigint: context [
 		][
 			p: as byte-ptr! big/data
 			print-line [lf "===============dump bigint!==============="]
-			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " addr: " p]
+			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " p]
 			p: p + (big/used * 4)
 			loop big/used * 4 [
 				p: p - 1
