@@ -393,7 +393,8 @@ bigint: context [
 			]
 		][
 			lset ret 0
-			ret
+			if free? [free* big]
+			return ret
 		]
 
 		if v0 > 0 [
