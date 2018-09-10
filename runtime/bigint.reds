@@ -1889,15 +1889,19 @@ bigint: context [
 		dump: func [
 			big			[bigint!]
 			/local
-				p		[byte-ptr!]
+				p		[int-ptr!]
 		][
-			p: as byte-ptr! big/data
 			print-line [lf "===============dump bigint!==============="]
-			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " p]
-			p: p + (big/used * 4)
-			loop big/used * 4 [
+			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " big/data]
+			p: big/data
+			p: p + big/used - 1
+			loop big/used [
+				prin-hex-chars ((p/1 >>> 24) and FFh) 2
+				prin-hex-chars ((p/1 >>> 16) and FFh) 2
+				prin-hex-chars ((p/1 >>> 8) and FFh) 2
+				prin-hex-chars (p/1 and FFh) 2
+				print " "
 				p: p - 1
-				prin-hex-chars as-integer p/1 2
 			]
 			print-line [lf "=============dump bigint! end============="]
 		]
