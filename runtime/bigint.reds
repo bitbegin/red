@@ -112,6 +112,7 @@ bigint: context [
 			0 - int
 		]
 		big/used: 1
+		if int = 0 [big/used: 0]
 	]
 
 	from-uint: func [
@@ -124,6 +125,7 @@ bigint: context [
 		big/sign: 1
 		p/1: uint
 		big/used: 1
+		if uint = 0 [big/used: 0]
 	]
 
 	load-int: func [
@@ -162,6 +164,7 @@ bigint: context [
 		p/1: uL
 		p/2: uH
 		big/used: 2
+		if all [uL = 0 uH = 0][big/used: 0]
 		big
 	]
 
@@ -218,6 +221,7 @@ bigint: context [
 			p		[int-ptr!]
 			len		[integer!]
 	][
+		if big/used = 0 [exit]
 		p: big/data + big/used - 1
 		loop big/used [
 			either p/value = 0 [
@@ -226,9 +230,6 @@ bigint: context [
 				break
 			]
 			p: p - 1
-		]
-		if big/used = 0 [
-			big/used: 1
 		]
 	]
 
@@ -305,6 +306,10 @@ bigint: context [
 			p2		[int-ptr!]
 			ret		[bigint!]
 	][
+		if big/used = 0 [
+			if free? [free* big]
+			return load-int 0
+		]
 		r0: 0
 		v0: count / biL
 		t1: count and (biL - 1)
@@ -378,6 +383,10 @@ bigint: context [
 			p2		[int-ptr!]
 			ret		[bigint!]
 	][
+		if big/used = 0 [
+			if free? [free* big]
+			return load-int 0
+		]
 		r0: 0
 		v0: count / biL
 		v1: count and (biL - 1)
@@ -513,7 +522,7 @@ bigint: context [
 		/local
 			big		[bigint!]
 	][
-		if big1/used < big2/used [return big1]
+		if big1/used < big2/used [return null]
 
 		big: copy* big1 big1/used
 		big/sign: 1
@@ -532,6 +541,21 @@ bigint: context [
 		/local
 			big		[bigint!]
 	][
+		if all [big1/used = 0 big2/used = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+		if big1/used = 0 [
+			big: copy* big2 big2/used
+			if free? [free* big1]
+			return big
+		]
+		if big2/used = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		either big1/sign <> big2/sign [
 			either (absolute-compare big1 big2) >= 0 [
 				big: absolute-sub big1 big2
@@ -556,6 +580,22 @@ bigint: context [
 		/local
 			big		[bigint!]
 	][
+		if all [big1/used = 0 big2/used = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+		if big1/used = 0 [
+			big: copy* big2 big2/used
+			big/sign: either big2/sign = 1 [-1][1]
+			if free? [free* big1]
+			return big
+		]
+		if big2/used = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		either big1/sign = big2/sign [
 			either (absolute-compare big1 big2) >= 0 [
 				big: absolute-sub big1 big2
@@ -581,6 +621,20 @@ bigint: context [
 			big		[bigint!]
 			ret		[bigint!]
 	][
+		if all [big1/used = 0 int = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+		if big1/used = 0 [
+			if free? [free* big1]
+			return load-int int
+		]
+		if int = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		big: load-int int
 		ret: add big1 big free?
 		free* big
@@ -596,6 +650,20 @@ bigint: context [
 			big		[bigint!]
 			ret		[bigint!]
 	][
+		if all [big1/used = 0 uint = 0][
+			if free? [free* big1]
+			return load-uint 0
+		]
+		if big1/used = 0 [
+			if free? [free* big1]
+			return load-uint uint
+		]
+		if uint = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		big: load-uint uint
 		ret: add big1 big free?
 		free* big
@@ -611,6 +679,20 @@ bigint: context [
 			big		[bigint!]
 			ret		[bigint!]
 	][
+		if all [big1/used = 0 int = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+		if big1/used = 0 [
+			if free? [free* big1]
+			return load-int 0 - int
+		]
+		if int = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		big: load-int int
 		ret: sub big1 big free?
 		free* big
@@ -626,6 +708,22 @@ bigint: context [
 			big		[bigint!]
 			ret		[bigint!]
 	][
+		if all [big1/used = 0 uint = 0][
+			if free? [free* big1]
+			return load-uint 0
+		]
+		if big1/used = 0 [
+			big: load-uint uint
+			big/sign: -1
+			if free? [free* big1]
+			return big
+		]
+		if uint = 0 [
+			big: copy* big1 big1/used
+			if free? [free* big1]
+			return big
+		]
+
 		big: load-uint uint
 		ret: sub big1 big free?
 		free* big
@@ -666,6 +764,16 @@ bigint: context [
 		big2		[bigint!]
 		return:		[integer!]
 	][
+		if all [big1/used = 0 big2/used = 0][
+			return 0
+		]
+		if big1/used = 0 [
+			return either big2/sign = 1 [-1][1]
+		]
+		if big2/used = 0 [
+			return either big1/sign = 1 [1][-1]
+		]
+
 		if all [
 			big1/sign = 1
 			big2/sign = -1
@@ -719,6 +827,7 @@ bigint: context [
 		big			[bigint!]
 		return:		[logic!]
 	][
+		if zero?* big [return false]
 		if big/sign = -1 [return true]
 		false
 	]
@@ -727,6 +836,7 @@ bigint: context [
 		big			[bigint!]
 		return:		[logic!]
 	][
+		if zero?* big [return false]
 		if big/sign = 1 [return true]
 		false
 	]
@@ -764,6 +874,16 @@ bigint: context [
 			big		[bigint!]
 			ret		[integer!]
 	][
+		if all [big1/used = 0 int = 0][
+			return 0
+		]
+		if big1/used = 0 [
+			return either int > 0 [-1][1]
+		]
+		if int = 0 [
+			return either big1/sign = 1 [1][-1]
+		]
+
 		big: load-int int
 		ret: compare big1 big
 		free* big
@@ -778,6 +898,16 @@ bigint: context [
 			big		[bigint!]
 			ret		[integer!]
 	][
+		if all [big1/used = 0 uint = 0][
+			return 0
+		]
+		if big1/used = 0 [
+			return -1
+		]
+		if uint = 0 [
+			return either big1/sign = 1 [1][-1]
+		]
+
 		big: load-uint uint
 		ret: compare big1 big
 		free* big
@@ -862,6 +992,11 @@ bigint: context [
 			pt		[int-ptr!]
 			len		[integer!]
 	][
+		if any [big1/used = 0 big2/used = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+
 		p1: big1/data
 		p2: big2/data
 		len1: big1/used
@@ -895,6 +1030,11 @@ bigint: context [
 			big	 	[bigint!]
 			ret		[bigint!]
 	][
+		if any [big1/used = 0 int = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+
 		big: load-int int
 		ret: mul big1 big free?
 		free* big
@@ -910,6 +1050,11 @@ bigint: context [
 			big	 	[bigint!]
 			ret		[bigint!]
 	][
+		if any [big1/used = 0 uint = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+
 		big: load-uint uint
 		ret: mul big1 big free?
 		free* big
@@ -1209,9 +1354,6 @@ bigint: context [
 
 		either iR <> null [
 			R: X
-			if 0 = compare-int R 0 [
-				R/sign: 1
-			]
 			iR/value: as integer! R
 		][
 			free* X
