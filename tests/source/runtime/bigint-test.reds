@@ -78,7 +78,7 @@ big2: as bigint! 0
 	--test-- "load-int-neg-1"
 		big: bigint/load-int 0
 		big2: bigint/negative* big false
-		--assert 0 = bigint/compare-int big2 -0 
+		--assert 0 = bigint/compare-int big2 -0
 		bigint/free* big
 		bigint/free* big2
 
@@ -647,13 +647,13 @@ big2: as bigint! 0
 
 ===end-group===
 
-===start-group=== "write-string tests"
-	--test-- "write-string-1"
+===start-group=== "form tests"
+	--test-- "form-1"
 		str: "1000000000000000000"
 		big: bigint/load-str str -1 10
 		iBuf: 0
 		iLen: 0
-		--assert true = bigint/write-string big 10 :iBuf :iLen
+		--assert true = bigint/form big 10 :iBuf :iLen
 		buf: (as c-string! iBuf) + 4
 		big2: bigint/load-str buf -1 10
 		--assert 0 = bigint/compare big big2
@@ -661,12 +661,12 @@ big2: as bigint! 0
 		bigint/free* big2
 		free as byte-ptr! iBuf
 
-	--test-- "write-string-2"
+	--test-- "form-2"
 		str: "-1000000000000000000"
 		big: bigint/load-str str -1 10
 		iBuf: 0
 		iLen: 0
-		--assert true = bigint/write-string big 10 :iBuf :iLen
+		--assert true = bigint/form big 10 :iBuf :iLen
 		buf: (as c-string! iBuf) + 4
 		big2: bigint/load-str buf -1 10
 		--assert 0 = bigint/compare big big2
@@ -674,12 +674,12 @@ big2: as bigint! 0
 		bigint/free* big2
 		free as byte-ptr! iBuf
 
-	--test-- "write-string-3"
+	--test-- "form-3"
 		str: "112233445566778899AABBCCDDEEFF"
 		big: bigint/load-str str -1 16
 		iBuf: 0
 		iLen: 0
-		--assert true = bigint/write-string big 16 :iBuf :iLen
+		--assert true = bigint/form big 16 :iBuf :iLen
 		buf: (as c-string! iBuf) + 4
 		big2: bigint/load-str buf -1 16
 		--assert 0 = bigint/compare big big2
@@ -687,12 +687,12 @@ big2: as bigint! 0
 		bigint/free* big2
 		free as byte-ptr! iBuf
 
-	--test-- "write-string-4"
+	--test-- "form-4"
 		str: "-112233445566778899AABBCCDDEEFF"
 		big: bigint/load-str str -1 16
 		iBuf: 0
 		iLen: 0
-		--assert true = bigint/write-string big 16 :iBuf :iLen
+		--assert true = bigint/form big 16 :iBuf :iLen
 		buf: (as c-string! iBuf) + 4
 		big2: bigint/load-str buf -1 16
 		--assert 0 = bigint/compare big big2

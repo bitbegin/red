@@ -1755,7 +1755,7 @@ bigint: context [
 		big
 	]
 
-	write-hlp: func [
+	form-hlp: func [
 		big			[bigint!]
 		radix		[integer!]
 		buf			[integer!]
@@ -1775,7 +1775,7 @@ bigint: context [
 		if false = div-int big radix :iQ null false [return false]
 		Q: as bigint! iQ
 		if 0 <> compare-int Q 0 [
-			if false = write-hlp Q radix buf [
+			if false = form-hlp Q radix buf [
 				free* Q
 				return false
 			]
@@ -1793,7 +1793,7 @@ bigint: context [
 		true
 	]
 
-	write-string: func [
+	form: func [
 		big			[bigint!]
 		radix		[integer!]
 		obuf		[int-ptr!]
@@ -1869,7 +1869,7 @@ bigint: context [
 				T/sign: 1
 			]
 
-			if false = write-hlp T radix as integer! :p [
+			if false = form-hlp T radix as integer! :p [
 				free* T
 				free buf
 				return false
