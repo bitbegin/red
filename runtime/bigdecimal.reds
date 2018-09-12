@@ -204,6 +204,35 @@ bigdecimal: context [
 		big
 	]
 
+	load-bigint: func [
+		big					[bigint!]
+		return:				[bigdecimal!]
+		/local
+			ibuf			[integer!]
+			ilen			[integer!]
+			ret				[bigdecimal!]
+			buf				[byte-ptr!]
+	][
+		ibuf: 0
+		ilen: 0
+		if false = bigint/form big 10 :ibuf :ilen [
+			return null
+		]
+		buf: (as byte-ptr! ibuf) + 4
+		if ilen > default-prec [
+			ret: as bigdecimal! bigint/load-str as c-string! buf default-prec 10
+			ret/expo: ilen - default-prec
+			ret/prec: default-prec
+			free buf
+			return ret
+		]
+		free buf
+		ret: as bigdecimal! bigint/copy* big big/used
+		ret/expo: 0
+		ret/prec: default-prec
+		ret
+	]
+
 	free*: func [big [bigdecimal!]][
 		if big <> null [free as byte-ptr! big]
 	]
@@ -280,3 +309,27 @@ bigdecimal/free* big
 big: bigdecimal/load-float "1.#NaN" 6
 bigdecimal/dump big
 bigdecimal/free* big
+
+str: "1000000000000000000"
+big2: bigint/load-str str -1 10
+big3: bigdecimal/load-bigint big2
+bigint/dump big2
+bigdecimal/dump big3
+bigint/free* big2
+bigdecimal/free* big3
+
+str: "10000000000000000000"
+big2: bigint/load-str str -1 10
+big3: bigdecimal/load-bigint big2
+bigint/dump big2
+bigdecimal/dump big3
+bigint/free* big2
+bigdecimal/free* big3
+
+str: "100000000000000000000"
+big2: bigint/load-str str -1 10
+big3: bigdecimal/load-bigint big2
+bigint/dump big2
+bigdecimal/dump big3
+bigint/free* big2
+bigdecimal/free* big3
