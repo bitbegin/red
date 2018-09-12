@@ -1892,16 +1892,20 @@ bigint: context [
 				p		[int-ptr!]
 		][
 			print-line [lf "===============dump bigint!==============="]
-			print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " big/data]
-			p: big/data
-			p: p + big/used - 1
-			loop big/used [
-				prin-hex-chars ((p/1 >>> 24) and FFh) 2
-				prin-hex-chars ((p/1 >>> 16) and FFh) 2
-				prin-hex-chars ((p/1 >>> 8) and FFh) 2
-				prin-hex-chars (p/1 and FFh) 2
-				print " "
-				p: p - 1
+			either big = null [
+				print-line "null"
+			][
+				print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " big/data]
+				p: big/data
+				p: p + big/used - 1
+				loop big/used [
+					prin-hex-chars ((p/1 >>> 24) and FFh) 2
+					prin-hex-chars ((p/1 >>> 16) and FFh) 2
+					prin-hex-chars ((p/1 >>> 8) and FFh) 2
+					prin-hex-chars (p/1 and FFh) 2
+					print " "
+					p: p - 1
+				]
 			]
 			print-line [lf "=============dump bigint! end============="]
 		]

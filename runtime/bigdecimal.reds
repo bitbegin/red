@@ -104,37 +104,21 @@ bigdecimal: context [
 
 		if all [
 			len = 6
-			str/1 = #"1"
-			str/2 = #"."
-			str/3 = #"#"
-			str/4 = #"I"
-			str/5 = #"N"
-			str/6 = #"F"
+			0 = compare-memory as byte-ptr! str as byte-ptr! "1.#INF" 6
 		][
 			return load-inf 1
 		]
 
 		if all [
 			len = 7
-			str/1 = #"-"
-			str/2 = #"1"
-			str/3 = #"."
-			str/4 = #"#"
-			str/5 = #"I"
-			str/6 = #"N"
-			str/7 = #"F"
+			0 = compare-memory as byte-ptr! str as byte-ptr! "-1.#INF" 7
 		][
 			return load-inf -1
 		]
 
 		if all [
 			len = 6
-			str/1 = #"1"
-			str/2 = #"."
-			str/3 = #"#"
-			str/4 = #"N"
-			str/5 = #"a"
-			str/6 = #"N"
+			0 = compare-memory as byte-ptr! str as byte-ptr! "1.#NaN" 6
 		][
 			return load-nan
 		]
@@ -144,33 +128,36 @@ bigdecimal: context [
 		dot?: false
 		exp?: false
 		until [
-			if str/1 = #"." [
-				either dot? [
-					return null
-				][
-					dot?: true
-					dotp: pos
+			case [
+				str/1 = #"." [
+					either dot? [
+						return null
+					][
+						dot?: true
+						dotp: pos
+					]
 				]
-			]
-			if any [str/1 = #"e" str/1 = #"E"][
-				exp?: true
-				expp: pos
-				exp: 0
-				esign: 1
-				pos: pos + 1
-				str: str + 1
-				if pos > len [return null]
-				if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return null]]
-				if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return null]]
-
-				while [pos <= len] [
-					if any [str/1 < #"0" str/1 > #"9"][return null]
-					exp: exp * 10 + as integer! (str/1 - #"0")
+				any [str/1 = #"e" str/1 = #"E"][
+					exp?: true
+					expp: pos
+					exp: 0
+					esign: 1
 					pos: pos + 1
 					str: str + 1
-				]
-			]
+					if pos > len [return null]
+					if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return null]]
+					if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return null]]
 
+					while [pos <= len] [
+						if any [str/1 < #"0" str/1 > #"9"][return null]
+						exp: exp * 10 + as integer! (str/1 - #"0")
+						pos: pos + 1
+						str: str + 1
+					]
+				]
+				any [str/1 < #"0" str/1 > #"9"][return null]
+				true []
+			]
 			pos: pos + 1
 			str: str + 1
 			pos > len
@@ -228,16 +215,20 @@ bigdecimal: context [
 				p		[int-ptr!]
 		][
 			print-line [lf "===============dump bigdecimal!==============="]
-			print-line ["size: " big/size " used: " big/used " sign: " big/sign " expo: " big/expo " prec: " big/prec " addr: " big/data]
-			p: big/data
-			p: p + big/used - 1
-			loop big/used [
-				prin-hex-chars ((p/1 >>> 24) and FFh) 2
-				prin-hex-chars ((p/1 >>> 16) and FFh) 2
-				prin-hex-chars ((p/1 >>> 8) and FFh) 2
-				prin-hex-chars (p/1 and FFh) 2
-				print " "
-				p: p - 1
+			either big = null [
+				print-line "null"
+			][
+				print-line ["size: " big/size " used: " big/used " sign: " big/sign " expo: " big/expo " prec: " big/prec " addr: " big/data]
+				p: big/data
+				p: p + big/used - 1
+				loop big/used [
+					prin-hex-chars ((p/1 >>> 24) and FFh) 2
+					prin-hex-chars ((p/1 >>> 16) and FFh) 2
+					prin-hex-chars ((p/1 >>> 8) and FFh) 2
+					prin-hex-chars (p/1 and FFh) 2
+					print " "
+					p: p - 1
+				]
 			]
 			print-line [lf "=============dump bigdecimal! end============="]
 		]
@@ -275,5 +266,17 @@ bigdecimal/dump big
 bigdecimal/free* big
 
 big: bigdecimal/load-float "01234567890.123456789111" 24
+bigdecimal/dump big
+bigdecimal/free* big
+
+big: bigdecimal/load-float "1.#INF" 6
+bigdecimal/dump big
+bigdecimal/free* big
+
+big: bigdecimal/load-float "-1.#INF" 7
+bigdecimal/dump big
+bigdecimal/free* big
+
+big: bigdecimal/load-float "1.#NaN" 6
 bigdecimal/dump big
 bigdecimal/free* big
