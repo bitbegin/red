@@ -351,7 +351,7 @@ bigdecimal: context [
 			p/pos: null-byte
 			p/size: null-byte
 			obuf/value: as integer! buf
-			olen/value: pos
+			olen/value: pos - 1
 			exit
 		]
 
@@ -409,7 +409,7 @@ bigdecimal: context [
 
 		p/size: null-byte
 		obuf/value: as integer! buf
-		olen/value: pos
+		olen/value: pos - 1
 	]
 
 	exp-form: func [
@@ -492,7 +492,7 @@ bigdecimal: context [
 
 		p/size: null-byte
 		obuf/value: as integer! buf
-		olen/value: pos
+		olen/value: pos - 1
 	]
 
 	form: func [
@@ -550,7 +550,13 @@ bigdecimal: context [
 		]
 		buf: as byte-ptr! ibuf
 
-		if big/expo = 0 [
+		if any [
+			big/expo = 0
+			all [
+				big/used = 1
+				p/1 = 0
+			]
+		][
 			obuf/value: ibuf
 			olen/value: ilen
 			return true
@@ -614,181 +620,3 @@ bigdecimal: context [
 	]
 
 ]
-
-big: bigdecimal/load-float "0.0" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "1.0" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "10.0" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "100.0" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "100" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "2.0" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "0.1" -1
-bigdecimal/dump big
-bigdecimal/free* big
-big: bigdecimal/load-float "0.01" -1
-bigdecimal/dump big
-bigdecimal/free* big
-
-str: "01234567890.123456789"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "01234567890.123456789111"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "01234567890.123456789111E999"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "01234567890.123456789111E-999"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "9.0E1000000000"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "9.0E-1000000000"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "1.0E10000000000"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-str: "1.0E-10000000000"
-big: bigdecimal/load-float str -1
-bigdecimal/dump big
-ibuf: 0
-ilen: 0
-bigdecimal/form big :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigdecimal/free* big
-
-big: bigdecimal/load-float "1.#INF" -1
-bigdecimal/dump big
-bigdecimal/free* big
-
-big: bigdecimal/load-float "-1.#INF" -1
-bigdecimal/dump big
-bigdecimal/free* big
-
-big: bigdecimal/load-float "1.#NaN" -1
-bigdecimal/dump big
-bigdecimal/free* big
-
-str: "1000000000000000000"
-big2: bigint/load-str str -1 10
-big3: bigdecimal/load-bigint big2
-bigint/dump big2
-bigdecimal/dump big3
-ibuf: 0
-ilen: 0
-bigdecimal/form big3 :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigint/free* big2
-bigdecimal/free* big3
-
-str: "10000000000000000000"
-big2: bigint/load-str str -1 10
-big3: bigdecimal/load-bigint big2
-bigint/dump big2
-bigdecimal/dump big3
-ibuf: 0
-ilen: 0
-bigdecimal/form big3 :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigint/free* big2
-bigdecimal/free* big3
-
-str: "100000000000000000000"
-big2: bigint/load-str str -1 10
-big3: bigdecimal/load-bigint big2
-bigint/dump big2
-bigdecimal/dump big3
-ibuf: 0
-ilen: 0
-bigdecimal/form big3 :ibuf :ilen
-print-line ["origin string: " str]
-print "bigdecimal:    "
-print-line as c-string! ibuf
-free as byte-ptr! ibuf
-bigint/free* big2
-bigdecimal/free* big3
