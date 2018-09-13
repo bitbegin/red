@@ -425,6 +425,61 @@ Red/System []
 		bigdecimal/free* big
 
 	--test-- "load-and-form-39"
+		str: "9.00000E-1000000000"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 15
+		--assert 0 = compare-memory as byte-ptr! "9.0E-1000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-40"
+		str: "00009.00000E-1000000000"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 15
+		--assert 0 = compare-memory as byte-ptr! "9.0E-1000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-41"
+		str: "-00009.00000E-1000000000"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 16
+		--assert 0 = compare-memory as byte-ptr! "-9.0E-1000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-42"
+		str: "+00009.00000E-1000000000"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 15
+		--assert 0 = compare-memory as byte-ptr! "9.0E-1000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-43"
+		str: "00009.00000E-00001000000000"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 15
+		--assert 0 = compare-memory as byte-ptr! "9.0E-1000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-44"
 		str: "1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -435,7 +490,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-40"
+	--test-- "load-and-form-45"
 		str: "-1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -446,7 +501,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-41"
+	--test-- "load-and-form-46"
 		str: "+1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -457,7 +512,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-42"
+	--test-- "load-and-form-47"
 		str: "1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -468,7 +523,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-43"
+	--test-- "load-and-form-48"
 		str: "-1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -479,7 +534,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-44"
+	--test-- "load-and-form-49"
 		str: "+1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -490,7 +545,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-45"
+	--test-- "load-and-form-50"
 		str: "1.#INF"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -501,7 +556,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-46"
+	--test-- "load-and-form-51"
 		str: "-1.#INF"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -512,7 +567,7 @@ Red/System []
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-47"
+	--test-- "load-and-form-52"
 		str: "1.#NaN"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
