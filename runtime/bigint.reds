@@ -1819,11 +1819,8 @@ bigint: context [
 		if radix >= 16 [n: n >>> 1]
 		n: n + 3 + ((n + 1) and 1)
 
-		buf: allocate n + 4
-		px: as int-ptr! buf
-		px/1: n
-
-		p: as integer! (buf + 4)
+		buf: allocate n + 1
+		p: as integer! buf
 
 		if big/sign = -1 [
 			p2: as byte-ptr! p
@@ -1877,11 +1874,10 @@ bigint: context [
 			free* T
 		]
 
-		olen/value: p - as integer! (buf + 4)
+		olen/value: p - as integer! buf
 		obuf/value: as integer! buf
 		p2: as byte-ptr! p
 		p2/1: as byte! 0
-		p: p + 1
 		true
 	]
 

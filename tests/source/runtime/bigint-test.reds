@@ -654,7 +654,7 @@ big2: as bigint! 0
 		iBuf: 0
 		iLen: 0
 		--assert true = bigint/form big 10 :iBuf :iLen
-		buf: (as c-string! iBuf) + 4
+		buf: as c-string! iBuf
 		big2: bigint/load-str buf -1 10
 		--assert 0 = bigint/compare big big2
 		bigint/free* big
@@ -667,7 +667,7 @@ big2: as bigint! 0
 		iBuf: 0
 		iLen: 0
 		--assert true = bigint/form big 10 :iBuf :iLen
-		buf: (as c-string! iBuf) + 4
+		buf: as c-string! iBuf
 		big2: bigint/load-str buf -1 10
 		--assert 0 = bigint/compare big big2
 		bigint/free* big
@@ -680,7 +680,7 @@ big2: as bigint! 0
 		iBuf: 0
 		iLen: 0
 		--assert true = bigint/form big 16 :iBuf :iLen
-		buf: (as c-string! iBuf) + 4
+		buf: as c-string! iBuf
 		big2: bigint/load-str buf -1 16
 		--assert 0 = bigint/compare big big2
 		bigint/free* big
@@ -693,7 +693,7 @@ big2: as bigint! 0
 		iBuf: 0
 		iLen: 0
 		--assert true = bigint/form big 16 :iBuf :iLen
-		buf: (as c-string! iBuf) + 4
+		buf: as c-string! iBuf
 		big2: bigint/load-str buf -1 16
 		--assert 0 = bigint/compare big big2
 		bigint/free* big
