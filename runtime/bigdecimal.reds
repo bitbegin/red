@@ -235,13 +235,13 @@ bigdecimal: context [
 
 	;-- count same char from buffer tail
 	count-same-char: func [
-		str			[byte-ptr!]
-		slen		[integer!]
-		chr			[byte!]
-		return:		[integer!]
+		str					[byte-ptr!]
+		slen				[integer!]
+		chr					[byte!]
+		return:				[integer!]
 		/local
-			p		[byte-ptr!]
-			cnt		[integer!]
+			p				[byte-ptr!]
+			cnt				[integer!]
 	][
 		p: str + slen - 1
 		cnt: 0
@@ -252,18 +252,18 @@ bigdecimal: context [
 	]
 
 	decimalize-uint: func [
-		value		[integer!]
-		return:		[c-string!]
+		value				[integer!]
+		return:				[c-string!]
 		/local
-			s		[c-string!]
-			r		[c-string!]
-			m		[c-string!]
-			rem		[integer!]
-			t		[integer!]
-			i		[integer!]
-			rsize	[integer!]
-			j		[integer!]
-			p		[byte-ptr!]
+			s				[c-string!]
+			r				[c-string!]
+			m				[c-string!]
+			rem				[integer!]
+			t				[integer!]
+			i				[integer!]
+			rsize			[integer!]
+			j				[integer!]
+			p				[byte-ptr!]
 	][
 		s: "0000000000"
 		r: "0000000000"
@@ -295,25 +295,26 @@ bigdecimal: context [
 	]
 
 	point-form: func [
-		ibuf		[byte-ptr!]
-		ilen		[integer!]
-		expo		[integer!]
-		obuf		[int-ptr!]
-		olen		[int-ptr!]
+		ibuf				[byte-ptr!]
+		ilen				[integer!]
+		expo				[integer!]
+		obuf				[int-ptr!]
+		olen				[int-ptr!]
 		/local
-			sign	[integer!]
-			size	[integer!]
-			buf		[byte-ptr!]
-			p		[byte-ptr!]
-			pos		[integer!]
-			point	[integer!]
-			zcnt	[integer!]
-			zpad	[integer!]
+			sign			[integer!]
+			size			[integer!]
+			buf				[byte-ptr!]
+			p				[byte-ptr!]
+			pos				[integer!]
+			point			[integer!]
+			zcnt			[integer!]
+			zpad			[integer!]
 	][
 		sign: 1
 		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
 
 		if expo >= 0 [
+			; x..x 0..0 null
 			size: ilen + expo + 1
 			if sign = -1 [size: size + 1]
 			buf: allocate size
@@ -340,6 +341,7 @@ bigdecimal: context [
 		point: 0 - expo
 		either point >= ilen [
 			zcnt: count-same-char ibuf ilen #"0"
+			; 0. x..x null
 			size: point + 2 - zcnt + 1
 			if sign = -1 [size: size + 1]
 			buf: allocate size
@@ -361,6 +363,7 @@ bigdecimal: context [
 			pos: pos + ilen - zcnt
 			p/pos: null-byte
 		][
+			; x..x . y..y null
 			size: ilen + 1 + 1
 			if sign = -1 [size: size + 1]
 			buf: allocate size
@@ -386,6 +389,89 @@ bigdecimal: context [
 				p/pos: null-byte
 			]
 		]
+
+		p/size: null-byte
+		obuf/value: as integer! buf
+		olen/value: pos
+	]
+
+	exp-form: func [
+		ibuf				[byte-ptr!]
+		ilen				[integer!]
+		expo				[integer!]
+		obuf				[int-ptr!]
+		olen				[int-ptr!]
+		/local
+			sign			[integer!]
+			zcnt			[integer!]
+			eLen			[integer!]
+			eSign			[integer!]
+			eStr			[c-string!]
+			eSLen			[integer!]
+			size			[integer!]
+			point			[integer!]
+			buf				[byte-ptr!]
+			pi				[int-ptr!]
+			p				[byte-ptr!]
+			pos				[integer!]
+	][
+		sign: 1
+		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
+
+		zcnt: count-same-char ibuf ilen #"0"
+
+		either expo >= 0 [
+			eLen: ilen - 1 + expo
+			eStr: decimalize-uint eLen
+			eSLen: length? eStr
+			eSign: 1
+			; x . y..y E e..e null
+			size: ilen + 1 - zcnt + 1 + eSLen + 1
+		][
+			point: 0 - expo
+			either point >= ilen [
+				eLen: point - ilen + 1
+				eStr: decimalize-uint eLen
+				eSLen: length? eStr
+				eSign: -1
+				size: ilen + 1 - zcnt + 2 + eSLen + 1
+			][
+				eLen: ilen - point - 1
+				eStr: decimalize-uint eLen
+				eSLen: length? eStr
+				eSign: 1
+				size: ilen + 1 - zcnt + 1 + eSLen + 1
+			]
+		]
+
+		size: size + 1			;-- for one point at least
+		if sign = -1 [size: size + 1]
+		;print-line ["point: " point " ilen: " ilen " zcnt: " zcnt " eLen: " eLen " eStr: " eStr " eSLen: " eSLen " eSign: " eSign " size: " size]
+		buf: allocate size
+		p: buf
+
+		pos: 1
+		if sign = -1 [
+			p/pos: #"-"
+			pos: pos + 1
+		]
+		p/pos: ibuf/1
+		pos: pos + 1
+		p/pos: #"."
+		pos: pos + 1
+		either 0 = (ilen - zcnt - 1) [
+			p/pos: #"0"
+			pos: pos + 1
+		][
+			copy-memory p + pos - 1 ibuf + 1 ilen - zcnt - 1
+			pos: pos + ilen - zcnt - 1
+		]
+		p/pos: #"E"
+		pos: pos + 1
+		if eSign = -1 [p/pos: #"-" pos: pos + 1]
+		copy-memory p + pos - 1 as byte-ptr! eStr eSLen
+		pos: pos + eSLen
+		p/pos: null-byte
 
 		p/size: null-byte
 		obuf/value: as integer! buf
@@ -434,8 +520,11 @@ bigdecimal: context [
 
 		nbuf: 0
 		nlen: 0
-
-		point-form buf ilen big/expo :nbuf :nlen
+		either exp? [
+			exp-form buf ilen big/expo :nbuf :nlen
+		][
+			point-form buf ilen big/expo :nbuf :nlen
+		]
 		free buf
 		obuf/value: nbuf
 		olen/value: nlen
@@ -499,20 +588,26 @@ big: bigdecimal/load-float "0.01" 4
 bigdecimal/dump big
 bigdecimal/free* big
 
-big: bigdecimal/load-float "01234567890.123456789" 21
+str: "01234567890.123456789"
+big: bigdecimal/load-float str 21
 bigdecimal/dump big
 ibuf: 0
 ilen: 0
 bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
 print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigdecimal/free* big
 
-big: bigdecimal/load-float "01234567890.123456789111" 24
+str: "01234567890.123456789111"
+big: bigdecimal/load-float str 24
 bigdecimal/dump big
 ibuf: 0
 ilen: 0
 bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
 print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigdecimal/free* big
@@ -537,6 +632,8 @@ bigdecimal/dump big3
 ibuf: 0
 ilen: 0
 bigdecimal/form big3 :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
 print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigint/free* big2
@@ -550,6 +647,8 @@ bigdecimal/dump big3
 ibuf: 0
 ilen: 0
 bigdecimal/form big3 :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
 print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigint/free* big2
@@ -563,6 +662,8 @@ bigdecimal/dump big3
 ibuf: 0
 ilen: 0
 bigdecimal/form big3 :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
 print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigint/free* big2
