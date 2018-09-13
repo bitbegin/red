@@ -20,6 +20,8 @@ bigdecimal!: alias struct! [
 
 bigdecimal: context [
 	default-prec: 20
+	exp-min: -1000000000
+	exp-max:  1000000000
 
 	set-default-prec: func [
 		precise				[integer!]
@@ -94,6 +96,7 @@ bigdecimal: context [
 			intLen			[integer!]
 			ptLen			[integer!]
 			total			[integer!]
+			temp			[integer!]
 			buffer			[byte-ptr!]
 			big				[bigdecimal!]
 	][
@@ -131,7 +134,7 @@ bigdecimal: context [
 			case [
 				str/1 = #"." [
 					either dot? [
-						return null
+						return load-nan
 					][
 						dot?: true
 						dotp: pos
@@ -144,18 +147,18 @@ bigdecimal: context [
 					esign: 1
 					pos: pos + 1
 					str: str + 1
-					if pos > len [return null]
-					if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return null]]
-					if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return null]]
+					if pos > len [return load-nan]
+					if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+					if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
 
 					while [pos <= len] [
-						if any [str/1 < #"0" str/1 > #"9"][return null]
+						if any [str/1 < #"0" str/1 > #"9"][return load-nan]
 						exp: exp * 10 + as integer! (str/1 - #"0")
 						pos: pos + 1
 						str: str + 1
 					]
 				]
-				any [str/1 < #"0" str/1 > #"9"][return null]
+				any [str/1 < #"0" str/1 > #"9"][return load-nan]
 				true []
 			]
 			pos: pos + 1
@@ -181,9 +184,22 @@ bigdecimal: context [
 			]
 			exp: 0
 		]
-		exp: exp - ptLen
 
+		;print-line ["esign: " esign " exp: " exp " intLen: " intLen " ptLen: " ptLen]
+		if esign = -1 [
+			exp: 0 - exp
+		]
+		exp: exp - ptLen
 		total: intLen + ptLen
+
+		temp: total - 1 + exp
+		if temp < exp-min [
+			return load-inf -1
+		]
+		if temp > exp-max [
+			return load-inf 1
+		]
+
 		buffer: allocate total
 		copy-memory buffer as byte-ptr! bak intLen
 		if dot? [
@@ -201,6 +217,7 @@ bigdecimal: context [
 			big/expo: exp
 			big/prec: default-prec
 		]
+		free buffer
 		big
 	]
 
@@ -484,6 +501,7 @@ bigdecimal: context [
 		olen				[int-ptr!]
 		return:				[logic!]
 		/local
+			p				[int-ptr!]
 			ibuf			[integer!]
 			ilen			[integer!]
 			buf				[byte-ptr!]
@@ -491,6 +509,40 @@ bigdecimal: context [
 			nbuf			[integer!]
 			nlen			[integer!]
 	][
+		p: big/data
+		if all [
+			big/expo = 7FFFFFFFh
+			big/used = 1
+			p/1 = 0
+		][
+			buf: allocate 7
+			copy-memory buf as byte-ptr! "1.#INF" 7
+			obuf/value: as integer! buf
+			olen/value: 6
+			return true
+		]
+		if all [
+			big/expo = 80000000h
+			big/used = 1
+			p/1 = 0
+		][
+			buf: allocate 8
+			copy-memory buf as byte-ptr! "-1.#INF" 8
+			obuf/value: as integer! buf
+			olen/value: 7
+			return true
+		]
+		if any [
+			big/expo = 7FFFFFFFh
+			big/expo = 80000000h
+		][
+			buf: allocate 7
+			copy-memory buf as byte-ptr! "1.#NaN" 7
+			obuf/value: as integer! buf
+			olen/value: 6
+			return true
+		]
+
 		ibuf: 0
 		ilen: 0
 		if false = bigint/form as bigint! big 10 :ibuf :ilen [
@@ -563,33 +615,33 @@ bigdecimal: context [
 
 ]
 
-big: bigdecimal/load-float "0.0" 3
+big: bigdecimal/load-float "0.0" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "1.0" 3
+big: bigdecimal/load-float "1.0" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "10.0" 4
+big: bigdecimal/load-float "10.0" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "100.0" 5
+big: bigdecimal/load-float "100.0" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "100" 3
+big: bigdecimal/load-float "100" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "2.0" 3
+big: bigdecimal/load-float "2.0" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "0.1" 3
+big: bigdecimal/load-float "0.1" -1
 bigdecimal/dump big
 bigdecimal/free* big
-big: bigdecimal/load-float "0.01" 4
+big: bigdecimal/load-float "0.01" -1
 bigdecimal/dump big
 bigdecimal/free* big
 
 str: "01234567890.123456789"
-big: bigdecimal/load-float str 21
+big: bigdecimal/load-float str -1
 bigdecimal/dump big
 ibuf: 0
 ilen: 0
@@ -601,7 +653,7 @@ free as byte-ptr! ibuf
 bigdecimal/free* big
 
 str: "01234567890.123456789111"
-big: bigdecimal/load-float str 24
+big: bigdecimal/load-float str -1
 bigdecimal/dump big
 ibuf: 0
 ilen: 0
@@ -612,15 +664,87 @@ print-line as c-string! ibuf
 free as byte-ptr! ibuf
 bigdecimal/free* big
 
-big: bigdecimal/load-float "1.#INF" 6
+str: "01234567890.123456789111E999"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+str: "01234567890.123456789111E-999"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+str: "9.0E1000000000"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+str: "9.0E-1000000000"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+str: "1.0E10000000000"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+str: "1.0E-10000000000"
+big: bigdecimal/load-float str -1
+bigdecimal/dump big
+ibuf: 0
+ilen: 0
+bigdecimal/form big :ibuf :ilen
+print-line ["origin string: " str]
+print "bigdecimal:    "
+print-line as c-string! ibuf
+free as byte-ptr! ibuf
+bigdecimal/free* big
+
+big: bigdecimal/load-float "1.#INF" -1
 bigdecimal/dump big
 bigdecimal/free* big
 
-big: bigdecimal/load-float "-1.#INF" 7
+big: bigdecimal/load-float "-1.#INF" -1
 bigdecimal/dump big
 bigdecimal/free* big
 
-big: bigdecimal/load-float "1.#NaN" 6
+big: bigdecimal/load-float "1.#NaN" -1
 bigdecimal/dump big
 bigdecimal/free* big
 
