@@ -5,6 +5,13 @@ Red/System []
 
 ~~~start-file~~~ "bigdecimal tests"
 
+;-- this test file use precision of 20 digits in decimal
+bigdecimal/set-default-prec 20
+;-- use -1000000000 for exp min
+bigdecimal/set-exp-min -1000000000
+;-- use 1000000000 for exp max
+bigdecimal/set-exp-max  1000000000
+
 ===start-group=== "load and form"
 	--test-- "load-and-form-1"
 		str: "0.0"

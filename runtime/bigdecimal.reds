@@ -29,6 +29,18 @@ bigdecimal: context [
 		default-prec: either precise >= 2 [precise][2]
 	]
 
+	set-exp-min: func [
+		exp					[integer!]
+	][
+		exp-min: either exp >= -1000000000 [exp][-1000000000]
+	]
+
+	set-exp-max: func [
+		exp					[integer!]
+	][
+		exp-max: either exp <= 1000000000 [exp][1000000000]
+	]
+
 	load-int: func [
 		int					[integer!]
 		return:				[bigdecimal!]
