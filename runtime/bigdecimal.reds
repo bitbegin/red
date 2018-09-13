@@ -74,7 +74,8 @@ bigdecimal: context [
 	][
 		big: as bigdecimal! bigint/load-int 0
 		big/used: 1
-		big/expo: either sign = 1 [7FFFFFFFh][80000000h]
+		big/expo: 7FFFFFFFh
+		big/sign: sign
 		big/prec: default-prec
 		big
 	]
@@ -90,13 +91,16 @@ bigdecimal: context [
 			dot?			[logic!]
 			dotp			[integer!]
 			exp?			[logic!]
+			sign			[integer!]
 			exp				[integer!]
 			expp			[integer!]
 			esign			[integer!]
 			intLen			[integer!]
 			ptLen			[integer!]
+			zcnt			[integer!]
 			total			[integer!]
 			temp			[integer!]
+			prec			[integer!]
 			buffer			[byte-ptr!]
 			big				[bigdecimal!]
 	][
@@ -130,6 +134,12 @@ bigdecimal: context [
 		pos: 1
 		dot?: false
 		exp?: false
+		sign: 0
+		case [
+			str/1 = #"-" [sign: -1 pos: pos + 1 str: str + 1]
+			str/1 = #"+" [sign: 1 pos: pos + 1 str: str + 1]
+			true []
+		]
 		until [
 			case [
 				str/1 = #"." [
@@ -148,8 +158,11 @@ bigdecimal: context [
 					pos: pos + 1
 					str: str + 1
 					if pos > len [return load-nan]
-					if str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
-					if str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+					case [
+						str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+						str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+						true []
+					]
 
 					while [pos <= len] [
 						if any [str/1 < #"0" str/1 > #"9"][return load-nan]
@@ -170,6 +183,8 @@ bigdecimal: context [
 			either dot? [
 				intLen: dotp - 1
 				ptLen: expp - dotp - 1
+				zcnt: count-same-char as byte-ptr! bak + dotp ptLen #"0"
+				ptLen: ptLen - zcnt
 			][
 				intLen: expp - 1
 				ptLen: 0
@@ -178,6 +193,9 @@ bigdecimal: context [
 			either dot? [
 				intLen: dotp - 1
 				ptLen: len - dotp
+				zcnt: count-same-char as byte-ptr! bak + dotp ptLen #"0"
+				;print-line ["dotp: " dotp " zcnt: " zcnt " ptLen: " ptLen]
+				ptLen: ptLen - zcnt
 			][
 				intLen: len
 				ptLen: 0
@@ -193,27 +211,38 @@ bigdecimal: context [
 		total: intLen + ptLen
 
 		temp: total - 1 + exp
-		if temp < exp-min [
-			return load-inf -1
+		if sign <> 0 [
+			temp: temp - 1
 		]
-		if temp > exp-max [
+		if any [
+			temp < exp-min
+			temp > exp-max
+		][
+			if sign = -1 [return load-inf -1]
 			return load-inf 1
 		]
 
 		buffer: allocate total
 		copy-memory buffer as byte-ptr! bak intLen
-		if dot? [
+		if all [dot? ptLen > 0] [
 			copy-memory buffer + intLen as byte-ptr! bak + dotp ptLen
 		]
 
-		if total > default-prec [
-			exp: exp + (total - default-prec)
-			total: default-prec
+		either sign = 0 [
+			prec: default-prec
+		][
+			prec: default-prec + 1
+		]
+
+		if total > prec [
+			exp: exp + (total - prec)
+			total: prec
 		]
 
 		big: as bigdecimal! bigint/load-str as c-string! buffer total 10
 		if big <> null [
-			if bigint/zero?* as bigint! big [big/used: 1]
+			bigint/shrink as bigint! big
+			if bigint/zero?* as bigint! big [big/used: 1 big/sign: 1]
 			big/expo: exp
 			big/prec: default-prec
 		]
@@ -510,28 +539,23 @@ bigdecimal: context [
 			nlen			[integer!]
 	][
 		p: big/data
-		if all [
-			big/expo = 7FFFFFFFh
-			big/used = 1
-			p/1 = 0
-		][
-			buf: allocate 7
-			copy-memory buf as byte-ptr! "1.#INF" 7
-			obuf/value: as integer! buf
-			olen/value: 6
-			return true
+		if big/expo = 7FFFFFFFh [
+			if bigint/zero?* as bigint! big [
+				if big/sign = 1 [
+					buf: allocate 7
+					copy-memory buf as byte-ptr! "1.#INF" 7
+					obuf/value: as integer! buf
+					olen/value: 6
+					return true
+				]
+				buf: allocate 8
+				copy-memory buf as byte-ptr! "-1.#INF" 8
+				obuf/value: as integer! buf
+				olen/value: 7
+				return true
+			]
 		]
-		if all [
-			big/expo = 80000000h
-			big/used = 1
-			p/1 = 0
-		][
-			buf: allocate 8
-			copy-memory buf as byte-ptr! "-1.#INF" 8
-			obuf/value: as integer! buf
-			olen/value: 7
-			return true
-		]
+
 		if any [
 			big/expo = 7FFFFFFFh
 			big/expo = 80000000h
