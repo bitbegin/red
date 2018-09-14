@@ -629,6 +629,18 @@ bigdecimal: context [
 		if big <> null [free as byte-ptr! big]
 	]
 
+	zero?*: func [
+		big					[bigdecimal!]
+		return:				[logic!]
+	][
+		if any [
+			big/expo = 7FFFFFFFh
+			big/expo = 80000000h
+		][return false]
+		if bigint/zero?* as bigint! big [return true]
+		false
+	]
+
 	#if debug? = yes [
 		dump: func [
 			big				[bigdecimal!]

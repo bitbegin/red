@@ -589,4 +589,55 @@ bigdecimal/set-exp-max  1000000000
 		;print-line ["ibuf: " as c-string! ibuf]
 ===end-group===
 
+===start-group=== "zero*?"
+	--test-- "zero*?-1"
+		str: "0.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-2"
+		str: "+00000.00000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-3"
+		str: "-00000.00000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-4"
+		str: "1.0"
+		big: bigdecimal/load-float str -1
+		--assert false = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-5"
+		str: "0.1"
+		big: bigdecimal/load-float str -1
+		--assert false = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-6"
+		str: "1.#INF"
+		big: bigdecimal/load-float str -1
+		--assert false = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-7"
+		str: "-1.#INF"
+		big: bigdecimal/load-float str -1
+		--assert false = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+	--test-- "zero*?-8"
+		str: "1.#NaN"
+		big: bigdecimal/load-float str -1
+		--assert false = bigdecimal/zero?* big
+		bigdecimal/free* big
+
+===end-group===
+
 ~~~end-file~~~
