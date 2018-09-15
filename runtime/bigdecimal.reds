@@ -10,12 +10,11 @@ Red/System [
 #include %bigint.reds
 
 bigdecimal!: alias struct! [
-	size		[integer!]				;-- size in integer!
-	used		[integer!]				;-- used length in integer!
-	sign		[integer!]
+	bint		[bigint!]
 	expo		[integer!]
 	prec		[integer!]
-	data		[int-ptr!]
+	dlen		[integer!]
+	digit		[byte-ptr!]
 ]
 
 bigdecimal: context [
@@ -23,58 +22,51 @@ bigdecimal: context [
 	exp-min: -1000000000
 	exp-max:  1000000000
 
-	set-default-prec: func [
-		precise				[integer!]
-	][
+	set-default-prec: func [precise [integer!]][
 		default-prec: either precise >= 2 [precise][2]
 	]
 
-	set-exp-min: func [
-		exp					[integer!]
-	][
+	set-exp-min: func [exp [integer!]][
 		exp-min: either exp >= -1000000000 [exp][-1000000000]
 	]
 
-	set-exp-max: func [
-		exp					[integer!]
-	][
+	set-exp-max: func [exp [integer!]][
 		exp-max: either exp <= 1000000000 [exp][1000000000]
 	]
 
-	load-int: func [
-		int					[integer!]
-		return:				[bigdecimal!]
+	alloc*: func [
+		return:			[bigdecimal!]
 		/local
-			big				[bigdecimal!]
+			p			[byte-ptr!]
 	][
-		big: as bigdecimal! bigint/load-int int
-		if int = 0 [big/used: 1]
-		big/expo: 0
-		big/prec: default-prec
-		big
+		p: allocate size? bigdecimal!
+		as bigdecimal! p
 	]
 
-	load-uint: func [
-		uint				[integer!]
-		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-	][
-		big: as bigdecimal! bigint/load-uint uint
-		if uint = 0 [big/used: 1]
-		big/expo: 0
-		big/prec: default-prec
-		big
+	free*: func [big [bigdecimal!]][
+		if big <> null [
+			bigint/free* big/bint
+			if big/digit <> null [
+				free big/digit
+			]
+			free as byte-ptr! big
+		]
 	]
 
 	load-nan: func [
 		return:				[bigdecimal!]
 		/local
+			bint			[bigint!]
 			big				[bigdecimal!]
 	][
-		big: as bigdecimal! bigint/load-int -1
+		bint: bigint/load-int -1
+
+		big: alloc*
+		big/bint: bint
 		big/expo: 7FFFFFFFh
 		big/prec: default-prec
+		big/dlen: 0
+		big/digit: null
 		big
 	]
 
@@ -82,14 +74,92 @@ bigdecimal: context [
 		sign				[integer!]
 		return:				[bigdecimal!]
 		/local
+			bint			[bigint!]
 			big				[bigdecimal!]
 	][
-		big: as bigdecimal! bigint/load-int 0
-		big/used: 1
+		bint: bigint/load-int 0
+		bint/used: 1
+		bint/sign: sign
+
+		big: alloc*
+		big/bint: bint
 		big/expo: 7FFFFFFFh
-		big/sign: sign
 		big/prec: default-prec
+		big/dlen: 0
+		big/digit: null
 		big
+	]
+
+	load-int: func [
+		int					[integer!]
+		return:				[bigdecimal!]
+		/local
+			bint			[bigint!]
+			ibuf			[integer!]
+			ilen			[integer!]
+			big				[bigdecimal!]
+			p				[int-ptr!]
+	][
+		bint: bigint/load-int int
+		if int = 0 [bint/used: 1]
+		ibuf: 0
+		ilen: 0
+		if false = bigint/form bint 10 :ibuf :ilen [
+			bigint/free* bint
+			return load-nan
+		]
+		big: alloc*
+		big/bint: bint
+		big/expo: 0
+		big/prec: default-prec
+		big/dlen: ilen
+		big/digit: as byte-ptr! ibuf
+		big
+	]
+
+	load-uint: func [
+		uint				[integer!]
+		return:				[bigdecimal!]
+		/local
+			bint			[bigint!]
+			ibuf			[integer!]
+			ilen			[integer!]
+			big				[bigdecimal!]
+			p				[int-ptr!]
+	][
+		bint: bigint/load-uint uint
+		if uint = 0 [bint/used: 1]
+		ibuf: 0
+		ilen: 0
+		if false = bigint/form bint 10 :ibuf :ilen [
+			bigint/free* bint
+			return load-nan
+		]
+		big: alloc*
+		big/bint: bint
+		big/expo: 0
+		big/prec: default-prec
+		big/dlen: ilen
+		big/digit: as byte-ptr! ibuf
+		big
+	]
+
+	;-- count same char from buffer tail
+	count-same-char: func [
+		str					[byte-ptr!]
+		slen				[integer!]
+		chr					[byte!]
+		return:				[integer!]
+		/local
+			p				[byte-ptr!]
+			cnt				[integer!]
+	][
+		p: str + slen - 1
+		cnt: 0
+		loop slen [
+			either p/1 = chr [cnt: cnt + 1 p: p - 1][break]
+		]
+		cnt
 	]
 
 	load-float: func [
@@ -114,6 +184,9 @@ bigdecimal: context [
 			temp			[integer!]
 			prec			[integer!]
 			buffer			[byte-ptr!]
+			bint			[bigint!]
+			ibuf			[integer!]
+			ilen			[integer!]
 			big				[bigdecimal!]
 	][
 		len: length? str
@@ -251,12 +324,25 @@ bigdecimal: context [
 			total: prec
 		]
 
-		big: as bigdecimal! bigint/load-str as c-string! buffer total 10
-		if big <> null [
-			bigint/shrink as bigint! big
-			if bigint/zero?* as bigint! big [big/used: 1 big/sign: 1]
+		bint: bigint/load-str as c-string! buffer total 10
+		either bint <> null [
+			bigint/shrink bint
+			if bigint/zero?* bint [bint/used: 1 bint/sign: 1]
+			ibuf: 0
+			ilen: 0
+			if false = bigint/form bint 10 :ibuf :ilen [
+				free buffer
+				bigint/free* bint
+				return load-nan
+			]
+			big: alloc*
+			big/bint: bint
 			big/expo: exp
 			big/prec: default-prec
+			big/dlen: ilen
+			big/digit: as byte-ptr! ibuf
+		][
+			big: load-nan
 		]
 		free buffer
 		big
@@ -264,52 +350,40 @@ bigdecimal: context [
 
 	load-bigint: func [
 		big					[bigint!]
+		prec				[integer!]
 		return:				[bigdecimal!]
 		/local
 			ibuf			[integer!]
 			ilen			[integer!]
+			bint			[bigint!]
 			ret				[bigdecimal!]
-			buf				[byte-ptr!]
 	][
 		ibuf: 0
 		ilen: 0
 		if false = bigint/form big 10 :ibuf :ilen [
-			return null
+			return load-nan
 		]
-		buf: as byte-ptr! ibuf
-		if ilen > default-prec [
-			ret: as bigdecimal! bigint/load-str as c-string! buf default-prec 10
-			ret/expo: ilen - default-prec
-			ret/prec: default-prec
-			free buf
+		if ilen > prec [
+			bint: bigint/load-str as c-string! ibuf prec 10
+			ret: alloc*
+			ret/bint: bint
+			ret/expo: ilen - prec
+			ret/prec: prec
+			ret/dlen: prec
+			ret/digit: as byte-ptr! ibuf
 			return ret
 		]
-		free buf
-		ret: as bigdecimal! bigint/copy* big big/used
+		bint: bigint/copy* big big/used
+		ret: alloc*
+		ret/bint: bint
 		ret/expo: 0
-		ret/prec: default-prec
+		ret/prec: prec
+		ret/dlen: ilen
+		ret/digit: as byte-ptr! ibuf
 		ret
 	]
 
-	;-- count same char from buffer tail
-	count-same-char: func [
-		str					[byte-ptr!]
-		slen				[integer!]
-		chr					[byte!]
-		return:				[integer!]
-		/local
-			p				[byte-ptr!]
-			cnt				[integer!]
-	][
-		p: str + slen - 1
-		cnt: 0
-		loop slen [
-			either p/1 = chr [cnt: cnt + 1 p: p - 1][break]
-		]
-		cnt
-	]
-
-	decimalize-uint: func [
+	decimalize-int: func [
 		value				[integer!]
 		return:				[c-string!]
 		/local
@@ -480,7 +554,7 @@ bigdecimal: context [
 
 		either expo >= 0 [
 			eLen: ilen - 1 + expo
-			eStr: decimalize-uint eLen
+			eStr: decimalize-int eLen
 			eSLen: length? eStr
 			eSign: 1
 			; x . y..y E e..e null
@@ -489,13 +563,13 @@ bigdecimal: context [
 			point: 0 - expo
 			either point >= ilen [
 				eLen: point - ilen + 1
-				eStr: decimalize-uint eLen
+				eStr: decimalize-int eLen
 				eSLen: length? eStr
 				eSign: -1
 				size: ilen + 1 - zcnt + 2 + eSLen + 1
 			][
 				eLen: ilen - point - 1
-				eStr: decimalize-uint eLen
+				eStr: decimalize-int eLen
 				eSLen: length? eStr
 				eSign: 1
 				size: ilen + 1 - zcnt + 1 + eSLen + 1
@@ -542,18 +616,17 @@ bigdecimal: context [
 		olen				[int-ptr!]
 		return:				[logic!]
 		/local
-			p				[int-ptr!]
-			ibuf			[integer!]
-			ilen			[integer!]
+			bint			[bigint!]
 			buf				[byte-ptr!]
+			size			[integer!]
 			exp?			[logic!]
 			nbuf			[integer!]
 			nlen			[integer!]
 	][
-		p: big/data
+		bint: big/bint
 		if big/expo = 7FFFFFFFh [
-			if bigint/zero?* as bigint! big [
-				if big/sign = 1 [
+			if bigint/zero?* bint [
+				if bint/sign = 1 [
 					buf: allocate 7
 					copy-memory buf as byte-ptr! "1.#INF" 7
 					obuf/value: as integer! buf
@@ -579,22 +652,16 @@ bigdecimal: context [
 			return true
 		]
 
-		ibuf: 0
-		ilen: 0
-		if false = bigint/form as bigint! big 10 :ibuf :ilen [
-			return false
-		]
-		buf: as byte-ptr! ibuf
-
 		if any [
 			big/expo = 0
-			all [
-				big/used = 1
-				p/1 = 0
-			]
+			bigint/zero?* bint
 		][
-			obuf/value: ibuf
-			olen/value: ilen
+			size: big/dlen + 1
+			buf: allocate size
+			buf/size: null-byte
+			copy-memory buf big/digit big/dlen
+			obuf/value: as integer! buf
+			olen/value: big/dlen
 			return true
 		]
 
@@ -602,7 +669,7 @@ bigdecimal: context [
 		if any [
 			all [
 				big/expo > 0
-				(big/expo + ilen) > big/prec
+				(big/expo + big/dlen) > big/prec
 			]
 			all [
 				big/expo < 0
@@ -615,18 +682,14 @@ bigdecimal: context [
 		nbuf: 0
 		nlen: 0
 		either exp? [
-			exp-form buf ilen big/expo :nbuf :nlen
+			exp-form big/digit big/dlen big/expo :nbuf :nlen
 		][
-			point-form buf ilen big/expo :nbuf :nlen
+			point-form big/digit big/dlen big/expo :nbuf :nlen
 		]
-		free buf
+
 		obuf/value: nbuf
 		olen/value: nlen
 		return true
-	]
-
-	free*: func [big [bigdecimal!]][
-		if big <> null [free as byte-ptr! big]
 	]
 
 	zero?*: func [
@@ -637,7 +700,7 @@ bigdecimal: context [
 			big/expo = 7FFFFFFFh
 			big/expo = 80000000h
 		][return false]
-		if bigint/zero?* as bigint! big [return true]
+		if bigint/zero?* big/bint [return true]
 		false
 	]
 
@@ -645,23 +708,16 @@ bigdecimal: context [
 		dump: func [
 			big				[bigdecimal!]
 			/local
+				bint		[bigint!]
 				p			[int-ptr!]
 		][
 			print-line [lf "===============dump bigdecimal!==============="]
 			either big = null [
 				print-line "null"
 			][
-				print-line ["size: " big/size " used: " big/used " sign: " big/sign " expo: " big/expo " prec: " big/prec " addr: " big/data]
-				p: big/data
-				p: p + big/used - 1
-				loop big/used [
-					prin-hex-chars ((p/1 >>> 24) and FFh) 2
-					prin-hex-chars ((p/1 >>> 16) and FFh) 2
-					prin-hex-chars ((p/1 >>> 8) and FFh) 2
-					prin-hex-chars (p/1 and FFh) 2
-					print " "
-					p: p - 1
-				]
+				bigint/dump big/bint
+				print-line ["expo: " big/expo " prec: " big/prec " dlen: " big/dlen]
+				print-line as c-string! big/digit
 			]
 			print-line [lf "=============dump bigdecimal! end============="]
 		]
