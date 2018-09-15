@@ -350,6 +350,7 @@ bigdecimal: context [
 
 	load-bigint: func [
 		big					[bigint!]
+		expo				[integer!]
 		prec				[integer!]
 		return:				[bigdecimal!]
 		/local
@@ -367,7 +368,7 @@ bigdecimal: context [
 			bint: bigint/load-str as c-string! ibuf prec 10
 			ret: alloc*
 			ret/bint: bint
-			ret/expo: ilen - prec
+			ret/expo: expo + ilen - prec
 			ret/prec: prec
 			ret/dlen: prec
 			ret/digit: as byte-ptr! ibuf
@@ -376,7 +377,7 @@ bigdecimal: context [
 		bint: bigint/copy* big big/used
 		ret: alloc*
 		ret/bint: bint
-		ret/expo: 0
+		ret/expo: expo
 		ret/prec: prec
 		ret/dlen: ilen
 		ret/digit: as byte-ptr! ibuf
