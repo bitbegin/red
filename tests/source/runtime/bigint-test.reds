@@ -700,6 +700,28 @@ big2: as bigint! 0
 		bigint/free* big2
 		free as byte-ptr! iBuf
 
+	--test-- "form-5"
+		str: "0"
+		big: bigint/load-str str -1 10
+		iBuf: 0
+		iLen: 0
+		--assert true = bigint/form big 10 :iBuf :iLen
+		--assert iLen = 1
+		--assert 0 = compare-memory as byte-ptr! str as byte-ptr! iBuf iLen
+		bigint/free* big
+		free as byte-ptr! iBuf
+
+	--test-- "form-6"
+		str: "123456789012345678901234567890"
+		big: bigint/load-str str -1 10
+		iBuf: 0
+		iLen: 0
+		--assert true = bigint/form big 10 :iBuf :iLen
+		--assert iLen = 30
+		--assert 0 = compare-memory as byte-ptr! str as byte-ptr! iBuf iLen
+		bigint/free* big
+		free as byte-ptr! iBuf
+
 ===end-group===
 
 ===start-group=== "complex tests"

@@ -11,8 +11,6 @@ bigint!: alias struct! [
 	size		[integer!]				;-- size in integer!
 	used		[integer!]				;-- used length in integer!
 	sign		[integer!]
-	resv		[integer!]
-	resv2		[integer!]
 	data		[int-ptr!]
 ]
 
@@ -65,8 +63,6 @@ bigint: context [
 		big/size: size
 		big/used: 0
 		big/sign: 1
-		big/resv: 0
-		big/resv2: 0
 		big/data: as int-ptr! (p + size? bigint!)
 		big
 	]
@@ -90,8 +86,6 @@ bigint: context [
 		ret/size: size
 		ret/used: expand
 		ret/sign: big/sign
-		ret/resv: big/resv
-		big/resv2: big/resv2
 		cp-size: either expand > big/used [big/used][expand]
 		copy-memory as byte-ptr! ret/data as byte-ptr! big/data cp-size * 4
 		ret
@@ -1812,6 +1806,15 @@ bigint: context [
 			c		[integer!]
 			id		[integer!]
 	][
+		if zero?* big [
+			buf: allocate 4
+			buf/1: #"0"
+			buf/2: null-byte
+			olen/value: 1
+			obuf/value: as integer! buf
+			return true
+		]
+
 		if any [radix < 2 radix > 16] [return false]
 
 		n: bitlen? big
@@ -1891,7 +1894,7 @@ bigint: context [
 			either big = null [
 				print-line "null"
 			][
-				print-line ["size: " big/size " used: " big/used " sign: " big/sign " resv: " big/resv " resv2: " big/resv2 " addr: " big/data]
+				print-line ["size: " big/size " used: " big/used " sign: " big/sign " addr: " big/data]
 				p: big/data
 				p: p + big/used - 1
 				loop big/used [
