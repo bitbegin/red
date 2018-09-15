@@ -1890,7 +1890,7 @@ bigint: context [
 			/local
 				p		[int-ptr!]
 		][
-			print-line [lf "===============dump bigint!==============="]
+			print-line [lf "---------------dump bigint!---------------"]
 			either big = null [
 				print-line "null"
 			][
@@ -1906,7 +1906,7 @@ bigint: context [
 					p: p - 1
 				]
 			]
-			print-line [lf "=============dump bigint! end============="]
+			print-line [lf "-------------dump bigint! end-------------"]
 		]
 	]
 
