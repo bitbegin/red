@@ -11,6 +11,8 @@ bigdecimal/set-default-prec 20
 bigdecimal/set-exp-min -1000000000
 ;-- use 1000000000 for exp max
 bigdecimal/set-exp-max  1000000000
+;-- use ROUND-DOWN for rounding mode
+bigdecimal/set-rounding-mode ROUND-DOWN
 
 ===start-group=== "load and form"
 	--test-- "load-and-form-1"
@@ -245,17 +247,6 @@ bigdecimal/set-exp-max  1000000000
 		bigdecimal/free* big
 
 	--test-- "load-and-form-22"
-		str: "0.00000000000000000001"
-		big: bigdecimal/load-float str -1
-		ibuf: 0
-		ilen: 0
-		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 1
-		--assert 0 = compare-memory as byte-ptr! str as byte-ptr! ibuf ilen
-		free as byte-ptr! ibuf
-		bigdecimal/free* big
-
-	--test-- "load-and-form-23"
 		str: "-0.0000000000000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -266,7 +257,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-24"
+	--test-- "load-and-form-23"
 		str: "+0.0000000000000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -277,7 +268,106 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
+	--test-- "load-and-form-24"
+		str: "0.00000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
 	--test-- "load-and-form-25"
+		str: "+0.00000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-26"
+		str: "-0.00000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 8
+		--assert 0 = compare-memory as byte-ptr! "-1.0E-20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-27"
+		str: "0.000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-28"
+		str: "+0.000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-29"
+		str: "-0.000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 8
+		--assert 0 = compare-memory as byte-ptr! "-1.0E-21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-30"
+		str: "0.0000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-22" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-31"
+		str: "+0.0000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "1.0E-22" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-32"
+		str: "-0.0000000000000000000001"
+		big: bigdecimal/load-float str -1
+		ibuf: 0
+		ilen: 0
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 8
+		--assert 0 = compare-memory as byte-ptr! "-1.0E-22" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "load-and-form-33"
 		str: "01234567890.123456789"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -288,84 +378,84 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-26"
+	--test-- "load-and-form-34"
 		str: "01234567890.123456789111"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 20
+		--assert ilen = 21
 		--assert 0 = compare-memory as byte-ptr! str + 1 as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-27"
+	--test-- "load-and-form-35"
 		str: "01234567890.123456789111E999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 25
-		--assert 0 = compare-memory as byte-ptr! "1.234567890123456789E1008" as byte-ptr! ibuf ilen
+		--assert ilen = 26
+		--assert 0 = compare-memory as byte-ptr! "1.2345678901234567891E1008" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-28"
+	--test-- "load-and-form-36"
 		str: "-01234567890.123456789111E999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 26
-		--assert 0 = compare-memory as byte-ptr! "-1.234567890123456789E1008" as byte-ptr! ibuf ilen
+		--assert ilen = 27
+		--assert 0 = compare-memory as byte-ptr! "-1.2345678901234567891E1008" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-29"
+	--test-- "load-and-form-37"
 		str: "+01234567890.123456789111E999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 25
-		--assert 0 = compare-memory as byte-ptr! "1.234567890123456789E1008" as byte-ptr! ibuf ilen
+		--assert ilen = 26
+		--assert 0 = compare-memory as byte-ptr! "1.2345678901234567891E1008" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-30"
+	--test-- "load-and-form-38"
 		str: "01234567890.123456789111E-999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 25
-		--assert 0 = compare-memory as byte-ptr! "1.234567890123456789E-990" as byte-ptr! ibuf ilen
+		--assert ilen = 26
+		--assert 0 = compare-memory as byte-ptr! "1.2345678901234567891E-990" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-31"
+	--test-- "load-and-form-39"
 		str: "-01234567890.123456789111E-999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 26
-		--assert 0 = compare-memory as byte-ptr! "-1.234567890123456789E-990" as byte-ptr! ibuf ilen
+		--assert ilen = 27
+		--assert 0 = compare-memory as byte-ptr! "-1.2345678901234567891E-990" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-32"
+	--test-- "load-and-form-40"
 		str: "+01234567890.123456789111E-999"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
 		ilen: 0
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 25
-		--assert 0 = compare-memory as byte-ptr! "1.234567890123456789E-990" as byte-ptr! ibuf ilen
+		--assert ilen = 26
+		--assert 0 = compare-memory as byte-ptr! "1.2345678901234567891E-990" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-33"
+	--test-- "load-and-form-41"
 		str: "9.0E1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -376,7 +466,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-34"
+	--test-- "load-and-form-42"
 		str: "-9.0E1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -387,7 +477,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-35"
+	--test-- "load-and-form-43"
 		str: "+9.0E1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -398,7 +488,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-36"
+	--test-- "load-and-form-44"
 		str: "9.0E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -409,7 +499,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-37"
+	--test-- "load-and-form-45"
 		str: "-9.0E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -420,7 +510,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-38"
+	--test-- "load-and-form-46"
 		str: "+9.0E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -431,7 +521,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-39"
+	--test-- "load-and-form-47"
 		str: "9.00000E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -442,7 +532,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-40"
+	--test-- "load-and-form-48"
 		str: "00009.00000E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -453,7 +543,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-41"
+	--test-- "load-and-form-49"
 		str: "-00009.00000E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -464,7 +554,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-42"
+	--test-- "load-and-form-50"
 		str: "+00009.00000E-1000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -475,7 +565,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-43"
+	--test-- "load-and-form-51"
 		str: "00009.00000E-00001000000000"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -486,7 +576,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-44"
+	--test-- "load-and-form-52"
 		str: "1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -497,7 +587,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-45"
+	--test-- "load-and-form-53"
 		str: "-1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -508,7 +598,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-46"
+	--test-- "load-and-form-54"
 		str: "+1.0E1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -519,7 +609,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-47"
+	--test-- "load-and-form-55"
 		str: "1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -530,7 +620,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-48"
+	--test-- "load-and-form-56"
 		str: "-1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -541,7 +631,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-49"
+	--test-- "load-and-form-57"
 		str: "+1.0E-1000000001"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -552,7 +642,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-50"
+	--test-- "load-and-form-58"
 		str: "1.#INF"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -563,7 +653,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-51"
+	--test-- "load-and-form-59"
 		str: "-1.#INF"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -574,7 +664,7 @@ bigdecimal/set-exp-max  1000000000
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "load-and-form-52"
+	--test-- "load-and-form-60"
 		str: "1.#NaN"
 		big: bigdecimal/load-float str -1
 		ibuf: 0
@@ -639,5 +729,15 @@ bigdecimal/set-exp-max  1000000000
 		bigdecimal/free* big
 
 ===end-group===
+
+;===start-group=== "ROUND-UP test"
+;	--test-- "ROUND-UP-1"
+;		str: "100000000000000000001"
+;		bint: bigint/load-str str -1 10
+;		big: bigdecimal/load-float str -1
+;		--assert true = bigdecimal/zero?* big
+;		bigdecimal/free* big
+;
+;===end-group===
 
 ~~~end-file~~~
