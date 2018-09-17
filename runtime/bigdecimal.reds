@@ -17,10 +17,24 @@ bigdecimal!: alias struct! [
 	digit		[byte-ptr!]
 ]
 
+#enum ROUNDING! [
+	ROUND-UP							;Rounds away from zero
+	ROUND-DOWN							;Rounds towards zero
+	ROUND-CEIL							;Rounds towards Infinity
+	ROUND-FLOOR							;Rounds towards -Infinity
+	ROUND-HALF-UP						;Rounds towards nearest neighbour. If equidistant, rounds away from zero
+	ROUND-HALF-DOWN						;Rounds towards nearest neighbour. If equidistant, rounds towards zero
+	ROUND-HALF-EVEN						;Rounds towards nearest neighbour. If equidistant, rounds towards even neighbour
+	ROUND-HALF-ODD						;Rounds towards nearest neighbour. If equidistant, rounds towards odd neighbour
+	ROUND-HALF-CEIL						;Rounds towards nearest neighbour. If equidistant, rounds towards Infinity
+	ROUND-HALF-FLOOR					;Rounds towards nearest neighbour. If equidistant, rounds towards -Infinity
+]
+
 bigdecimal: context [
 	default-prec: 20
 	exp-min: -1000000000
 	exp-max:  1000000000
+	rounding-mode: ROUND-HALF-UP
 
 	set-default-prec: func [precise [integer!]][
 		default-prec: either precise >= 2 [precise][2]
@@ -32,6 +46,10 @@ bigdecimal: context [
 
 	set-exp-max: func [exp [integer!]][
 		exp-max: either exp <= 1000000000 [exp][1000000000]
+	]
+
+	set-rounding-mode: func [mode [ROUNDING!]][
+		rounding-mode: mode
 	]
 
 	alloc*: func [
@@ -144,8 +162,156 @@ bigdecimal: context [
 		big
 	]
 
+	round: func [
+		big					[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			prec			[integer!]
+			p				[byte-ptr!]
+			last			[byte!]
+			tail			[byte!]
+			bint			[bigint!]
+			ibuf			[integer!]
+			ilen			[integer!]
+			ret				[bigdecimal!]
+	][
+		prec: big/prec
+		if bigint/negative?* big/bint [
+			prec: prec + 1
+		]
+		if big/dlen <= prec [return big]
+
+		p: big/digit + prec - 1
+		last: p/1
+		tail: p/2
+		bint: bigint/load-str as c-string! big/digit prec 10
+		switch rounding-mode [
+			ROUND-UP			[
+				either bigint/positive?* bint [
+					bint: bigint/add-uint bint 1 true
+				][
+					bint: bigint/sub-uint bint 1 true
+				]
+			]
+			ROUND-DOWN			[]
+			ROUND-CEIL			[
+				if bigint/positive?* bint [
+					bint: bigint/add-uint bint 1 true
+				]
+			]
+			ROUND-FLOOR			[
+				if bigint/negative?* bint [
+					bint: bigint/sub-uint bint 1 true
+				]
+			]
+			ROUND-HALF-UP		[
+				if tail >= #"5" [
+					either bigint/positive?* bint [
+						bint: bigint/add-uint bint 1 true
+					][
+						bint: bigint/sub-uint bint 1 true
+					]
+				]
+			]
+			ROUND-HALF-DOWN		[
+				if tail > #"5" [
+					either bigint/positive?* bint [
+						bint: bigint/add-uint bint 1 true
+					][
+						bint: bigint/sub-uint bint 1 true
+					]
+				]
+			]
+			ROUND-HALF-EVEN		[
+				if any [
+					tail > #"5"
+					all [
+						tail = #"5"
+						any [
+							last = #"1" last = #"3" last = #"5" last = #"7" last = #"9"
+						]
+					]
+				][
+					either bigint/positive?* bint [
+						bint: bigint/add-uint bint 1 true
+					][
+						bint: bigint/sub-uint bint 1 true
+					]
+				]
+			]
+			ROUND-HALF-ODD		[
+				if any [
+					tail > #"5"
+					all [
+						tail = #"5"
+						any [
+							last = #"0" last = #"2" last = #"4" last = #"6" last = #"8"
+						]
+					]
+				][
+					either bigint/positive?* bint [
+						bint: bigint/add-uint bint 1 true
+					][
+						bint: bigint/sub-uint bint 1 true
+					]
+				]
+			]
+			ROUND-HALF-CEIL		[
+				case [
+					tail > #"5" [
+						either bigint/positive?* bint [
+							bint: bigint/add-uint bint 1 true
+						][
+							bint: bigint/sub-uint bint 1 true
+						]
+					]
+					tail = #"5" [
+						if bigint/positive?* bint [
+							bint: bigint/add-uint bint 1 true
+						]
+					]
+					true []
+				]
+			]
+			ROUND-HALF-FLOOR	[
+				case [
+					tail > #"5" [
+						either bigint/positive?* bint [
+							bint: bigint/add-uint bint 1 true
+						][
+							bint: bigint/sub-uint bint 1 true
+						]
+					]
+					tail = #"5" [
+						if bigint/negative?* bint [
+							bint: bigint/sub-uint bint 1 true
+						]
+					]
+					true []
+				]
+			]
+		]
+
+		ibuf: 0
+		ilen: 0
+		if false = bigint/form bint 10 :ibuf :ilen [
+			bigint/free* bint
+			if free? [free* big]
+			return load-nan
+		]
+		ret: alloc*
+		ret/bint: bint
+		ret/expo: big/expo + big/dlen - prec
+		ret/prec: big/prec
+		ret/dlen: ilen
+		ret/digit: as byte-ptr! ibuf
+		if free? [free* big]
+		ret
+	]
+
 	;-- count same char from buffer tail
-	count-same-char: func [
+	count-char-from-tail: func [
 		str					[byte-ptr!]
 		slen				[integer!]
 		chr					[byte!]
@@ -158,6 +324,24 @@ bigdecimal: context [
 		cnt: 0
 		loop slen [
 			either p/1 = chr [cnt: cnt + 1 p: p - 1][break]
+		]
+		cnt
+	]
+
+	;-- count same char from buffer head
+	count-char-from-head: func [
+		str					[byte-ptr!]
+		slen				[integer!]
+		chr					[byte!]
+		return:				[integer!]
+		/local
+			p				[byte-ptr!]
+			cnt				[integer!]
+	][
+		p: str
+		cnt: 0
+		loop slen [
+			either p/1 = chr [cnt: cnt + 1 p: p + 1][break]
 		]
 		cnt
 	]
@@ -180,9 +364,10 @@ bigdecimal: context [
 			intLen			[integer!]
 			ptLen			[integer!]
 			zcnt			[integer!]
+			int-head-zero	[integer!]
+			point-head-zero	[integer!]
 			total			[integer!]
 			temp			[integer!]
-			prec			[integer!]
 			buffer			[byte-ptr!]
 			bint			[bigint!]
 			ibuf			[integer!]
@@ -264,12 +449,17 @@ bigdecimal: context [
 			pos > len
 		]
 
+		int-head-zero: 0
+		point-head-zero: 0
 		either exp? [
 			either dot? [
 				intLen: dotp - 1
 				ptLen: expp - dotp - 1
-				zcnt: count-same-char as byte-ptr! bak + dotp ptLen #"0"
+				zcnt: count-char-from-tail as byte-ptr! bak + dotp ptLen #"0"
 				ptLen: ptLen - zcnt
+				if intLen <= 0 [
+					point-head-zero: count-char-from-head as byte-ptr! bak + dotp ptLen #"0"
+				]
 			][
 				intLen: expp - 1
 				ptLen: 0
@@ -278,22 +468,38 @@ bigdecimal: context [
 			either dot? [
 				intLen: dotp - 1
 				ptLen: len - dotp
-				zcnt: count-same-char as byte-ptr! bak + dotp ptLen #"0"
+				zcnt: count-char-from-tail as byte-ptr! bak + dotp ptLen #"0"
 				;print-line ["dotp: " dotp " zcnt: " zcnt " ptLen: " ptLen]
 				ptLen: ptLen - zcnt
+				if intLen <= 0 [
+					point-head-zero: count-char-from-head as byte-ptr! bak + dotp ptLen #"0"
+				]
 			][
 				intLen: len
 				ptLen: 0
 			]
 			exp: 0
 		]
+		if any [
+			all [
+				sign = 0
+				intLen > 1
+			]
+			all [
+				sign <> 0
+				intLen > 2
+			]
+		][
+			int-head-zero: count-char-from-head as byte-ptr! bak intLen #"0"
+		]
 
 		;print-line ["esign: " esign " exp: " exp " intLen: " intLen " ptLen: " ptLen]
+		;print-line ["int-head-zero: " int-head-zero " point-head-zero: " point-head-zero]
 		if esign = -1 [
 			exp: 0 - exp
 		]
 		exp: exp - ptLen
-		total: intLen + ptLen
+		total: (intLen - int-head-zero) + (ptLen - point-head-zero)
 
 		temp: total - 1 + exp
 		if sign <> 0 [
@@ -308,20 +514,11 @@ bigdecimal: context [
 		]
 
 		buffer: allocate total
-		copy-memory buffer as byte-ptr! bak intLen
-		if all [dot? ptLen > 0] [
-			copy-memory buffer + intLen as byte-ptr! bak + dotp ptLen
+		if (intLen - int-head-zero) > 0 [
+			copy-memory buffer as byte-ptr! bak + int-head-zero intLen - int-head-zero
 		]
-
-		either sign = 0 [
-			prec: default-prec
-		][
-			prec: default-prec + 1
-		]
-
-		if total > prec [
-			exp: exp + (total - prec)
-			total: prec
+		if all [dot? (ptLen - point-head-zero) > 0] [
+			copy-memory buffer + (intLen - int-head-zero) as byte-ptr! bak + dotp + point-head-zero ptLen - point-head-zero
 		]
 
 		bint: bigint/load-str as c-string! buffer total 10
@@ -342,9 +539,11 @@ bigdecimal: context [
 			big/dlen: ilen
 			big/digit: as byte-ptr! ibuf
 		][
-			big: load-nan
+			free buffer
+			return load-nan
 		]
 		free buffer
+		big: round big true
 		big
 	]
 
@@ -473,7 +672,7 @@ bigdecimal: context [
 
 		point: 0 - expo
 		either point >= ilen [
-			zcnt: count-same-char ibuf ilen #"0"
+			zcnt: count-char-from-tail ibuf ilen #"0"
 			; 0. x..x null
 			size: point + 2 - zcnt + 1
 			if sign = -1 [size: size + 1]
@@ -510,7 +709,7 @@ bigdecimal: context [
 			copy-memory p + pos - 1 ibuf ilen - point
 			pos: pos + ilen - point
 
-			zcnt: count-same-char ibuf + ilen - point point #"0"
+			zcnt: count-char-from-tail ibuf + ilen - point point #"0"
 			;print-line ["ilen: " ilen " point: " point " zcnt: " zcnt]
 			either point <= zcnt [
 				p/pos: null-byte
@@ -551,7 +750,7 @@ bigdecimal: context [
 		sign: 1
 		if ibuf/1 = #"-" [sign: -1 ibuf: ibuf + 1 ilen: ilen - 1]
 
-		zcnt: count-same-char ibuf ilen #"0"
+		zcnt: count-char-from-tail ibuf ilen #"0"
 
 		either expo >= 0 [
 			eLen: ilen - 1 + expo
@@ -674,7 +873,7 @@ bigdecimal: context [
 			]
 			all [
 				big/expo < 0
-				big/expo < (0 - big/prec)
+				big/expo <= (0 - big/prec)
 			]
 		][
 			exp?: true
