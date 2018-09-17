@@ -734,6 +734,15 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 	bigdecimal/set-rounding-mode ROUND-UP
 
 	--test-- "ROUND-UP-1"
+		str: "10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-2"
 		str: "10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -742,7 +751,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-2"
+	--test-- "ROUND-UP-3"
 		str: "10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -751,7 +760,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-3"
+	--test-- "ROUND-UP-4"
 		str: "10000000000000000000.8"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -760,7 +769,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-4"
+	--test-- "ROUND-UP-5"
+		str: "99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-6"
+		str: "-10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-7"
 		str: "-10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -769,7 +796,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-5"
+	--test-- "ROUND-UP-8"
 		str: "-10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -778,7 +805,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-6"
+	--test-- "ROUND-UP-9"
 		str: "-10000000000000000000.8"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -787,7 +814,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-7"
+	--test-- "ROUND-UP-10"
+		str: "-99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-11"
+		str: "100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-12"
 		str: "100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -796,7 +841,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-8"
+	--test-- "ROUND-UP-13"
 		str: "100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -805,7 +850,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-9"
+	--test-- "ROUND-UP-14"
 		str: "100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -814,7 +859,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-10"
+	--test-- "ROUND-UP-15"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-16"
+		str: "-100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-17"
 		str: "-100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -823,7 +886,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-11"
+	--test-- "ROUND-UP-18"
 		str: "-100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -832,12 +895,21 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-UP-12"
+	--test-- "ROUND-UP-19"
 		str: "-100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 25
 		--assert 0 = compare-memory as byte-ptr! "-1.0000000000000000001E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-UP-20"
+		str: "-999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E21" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
@@ -847,7 +919,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 	bigdecimal/set-rounding-mode ROUND-DOWN
 
 	--test-- "ROUND-DOWN-1"
-		str: "10000000000000000000.2"
+		str: "10000000000000000000.0"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -856,7 +928,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-2"
-		str: "10000000000000000000.5"
+		str: "10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -865,7 +937,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-3"
-		str: "10000000000000000000.8"
+		str: "10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -874,25 +946,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-4"
-		str: "-10000000000000000000.2"
+		str: "10000000000000000000.8"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 21
-		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-5"
-		str: "-10000000000000000000.5"
+		str: "99999999999999999999.9"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 21
-		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "99999999999999999999" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-6"
-		str: "-10000000000000000000.8"
+		str: "-10000000000000000000.0"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 21
@@ -901,6 +973,51 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-DOWN-7"
+		str: "-10000000000000000000.2"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-8"
+		str: "-10000000000000000000.5"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-9"
+		str: "-10000000000000000000.8"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-10"
+		str: "-99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-99999999999999999999" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-11"
+		str: "100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-12"
 		str: "100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -909,7 +1026,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-DOWN-8"
+	--test-- "ROUND-DOWN-13"
 		str: "100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -918,7 +1035,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-DOWN-9"
+	--test-- "ROUND-DOWN-14"
 		str: "100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -927,7 +1044,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-DOWN-10"
+	--test-- "ROUND-DOWN-15"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 24
+		--assert 0 = compare-memory as byte-ptr! "9.9999999999999999999E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-16"
+		str: "-100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-17"
 		str: "-100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -936,7 +1071,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-DOWN-11"
+	--test-- "ROUND-DOWN-18"
 		str: "-100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -945,12 +1080,21 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-DOWN-12"
+	--test-- "ROUND-DOWN-19"
 		str: "-100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 7
 		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-DOWN-20"
+		str: "-999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 25
+		--assert 0 = compare-memory as byte-ptr! "-9.9999999999999999999E20" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
@@ -960,6 +1104,15 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 	bigdecimal/set-rounding-mode ROUND-CEIL
 
 	--test-- "ROUND-CEIL-1"
+		str: "10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-2"
 		str: "10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -968,7 +1121,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-2"
+	--test-- "ROUND-CEIL-3"
 		str: "10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -977,7 +1130,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-3"
+	--test-- "ROUND-CEIL-4"
 		str: "10000000000000000000.8"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -986,26 +1139,17 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-4"
-		str: "-10000000000000000000.2"
-		big: bigdecimal/load-float str -1
-		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 21
-		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
-		free as byte-ptr! ibuf
-		bigdecimal/free* big
-
 	--test-- "ROUND-CEIL-5"
-		str: "-10000000000000000000.5"
+		str: "99999999999999999999.9"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
-		--assert ilen = 21
-		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
 	--test-- "ROUND-CEIL-6"
-		str: "-10000000000000000000.8"
+		str: "-10000000000000000000.0"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 21
@@ -1014,6 +1158,51 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-CEIL-7"
+		str: "-10000000000000000000.2"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-8"
+		str: "-10000000000000000000.5"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-9"
+		str: "-10000000000000000000.8"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-10"
+		str: "-99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-99999999999999999999" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-11"
+		str: "100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-12"
 		str: "100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1022,7 +1211,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-8"
+	--test-- "ROUND-CEIL-13"
 		str: "100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1031,7 +1220,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-9"
+	--test-- "ROUND-CEIL-14"
 		str: "100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1040,7 +1229,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-10"
+	--test-- "ROUND-CEIL-15"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-16"
+		str: "-100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-17"
 		str: "-100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1049,7 +1256,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-11"
+	--test-- "ROUND-CEIL-18"
 		str: "-100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1058,12 +1265,21 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-CEIL-12"
+	--test-- "ROUND-CEIL-19"
 		str: "-100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 7
 		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-CEIL-20"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E21" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
@@ -1073,7 +1289,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 	bigdecimal/set-rounding-mode ROUND-FLOOR
 
 	--test-- "ROUND-FLOOR-1"
-		str: "10000000000000000000.2"
+		str: "10000000000000000000.0"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -1082,7 +1298,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-FLOOR-2"
-		str: "10000000000000000000.5"
+		str: "10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -1091,7 +1307,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-FLOOR-3"
-		str: "10000000000000000000.8"
+		str: "10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 20
@@ -1100,6 +1316,33 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		bigdecimal/free* big
 
 	--test-- "ROUND-FLOOR-4"
+		str: "10000000000000000000.8"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-5"
+		str: "99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "99999999999999999999" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-6"
+		str: "-10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-7"
 		str: "-10000000000000000000.2"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1108,7 +1351,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-5"
+	--test-- "ROUND-FLOOR-8"
 		str: "-10000000000000000000.5"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1117,7 +1360,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-6"
+	--test-- "ROUND-FLOOR-9"
 		str: "-10000000000000000000.8"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1126,7 +1369,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-7"
+	--test-- "ROUND-FLOOR-10"
+		str: "-99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-11"
+		str: "100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-12"
 		str: "100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1135,7 +1396,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-8"
+	--test-- "ROUND-FLOOR-13"
 		str: "100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1144,7 +1405,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-9"
+	--test-- "ROUND-FLOOR-14"
 		str: "100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1153,7 +1414,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-10"
+	--test-- "ROUND-FLOOR-15"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 24
+		--assert 0 = compare-memory as byte-ptr! "9.9999999999999999999E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-16"
+		str: "-100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-17"
 		str: "-100000000000000000002"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1162,7 +1441,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-11"
+	--test-- "ROUND-FLOOR-18"
 		str: "-100000000000000000005"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
@@ -1171,12 +1450,21 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
-	--test-- "ROUND-FLOOR-12"
+	--test-- "ROUND-FLOOR-19"
 		str: "-100000000000000000008"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 25
 		--assert 0 = compare-memory as byte-ptr! "-1.0000000000000000001E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-FLOOR-20"
+		str: "-999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E21" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
 
