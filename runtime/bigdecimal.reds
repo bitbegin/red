@@ -300,6 +300,20 @@ bigdecimal: context [
 			if free? [free* big]
 			return load-nan
 		]
+		if ilen > prec [
+			bigint/free* bint
+			p: as byte-ptr! ibuf + prec
+			p/1: null-byte
+			bint: bigint/load-str as c-string! ibuf prec 10
+			ret: alloc*
+			ret/bint: bint
+			ret/expo: big/expo + big/dlen - prec + ilen - prec
+			ret/prec: big/prec
+			ret/dlen: prec
+			ret/digit: as byte-ptr! ibuf
+			if free? [free* big]
+			return ret
+		]
 		ret: alloc*
 		ret/bint: bint
 		ret/expo: big/expo + big/dlen - prec
