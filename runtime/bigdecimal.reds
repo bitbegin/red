@@ -186,109 +186,111 @@ bigdecimal: context [
 		last: p/1
 		tail: p/2
 		bint: bigint/load-str as c-string! big/digit prec 10
-		switch rounding-mode [
-			ROUND-UP			[
-				either bigint/positive?* bint [
-					bint: bigint/add-uint bint 1 true
-				][
-					bint: bigint/sub-uint bint 1 true
-				]
-			]
-			ROUND-DOWN			[]
-			ROUND-CEIL			[
-				if bigint/positive?* bint [
-					bint: bigint/add-uint bint 1 true
-				]
-			]
-			ROUND-FLOOR			[
-				if bigint/negative?* bint [
-					bint: bigint/sub-uint bint 1 true
-				]
-			]
-			ROUND-HALF-UP		[
-				if tail >= #"5" [
+		if tail <> #"0" [
+			switch rounding-mode [
+				ROUND-UP			[
 					either bigint/positive?* bint [
 						bint: bigint/add-uint bint 1 true
 					][
 						bint: bigint/sub-uint bint 1 true
 					]
 				]
-			]
-			ROUND-HALF-DOWN		[
-				if tail > #"5" [
-					either bigint/positive?* bint [
+				ROUND-DOWN			[]
+				ROUND-CEIL			[
+					if bigint/positive?* bint [
 						bint: bigint/add-uint bint 1 true
-					][
+					]
+				]
+				ROUND-FLOOR			[
+					if bigint/negative?* bint [
 						bint: bigint/sub-uint bint 1 true
 					]
 				]
-			]
-			ROUND-HALF-EVEN		[
-				if any [
-					tail > #"5"
-					all [
-						tail = #"5"
-						any [
-							last = #"1" last = #"3" last = #"5" last = #"7" last = #"9"
-						]
-					]
-				][
-					either bigint/positive?* bint [
-						bint: bigint/add-uint bint 1 true
-					][
-						bint: bigint/sub-uint bint 1 true
-					]
-				]
-			]
-			ROUND-HALF-ODD		[
-				if any [
-					tail > #"5"
-					all [
-						tail = #"5"
-						any [
-							last = #"0" last = #"2" last = #"4" last = #"6" last = #"8"
-						]
-					]
-				][
-					either bigint/positive?* bint [
-						bint: bigint/add-uint bint 1 true
-					][
-						bint: bigint/sub-uint bint 1 true
-					]
-				]
-			]
-			ROUND-HALF-CEIL		[
-				case [
-					tail > #"5" [
+				ROUND-HALF-UP		[
+					if tail >= #"5" [
 						either bigint/positive?* bint [
 							bint: bigint/add-uint bint 1 true
 						][
 							bint: bigint/sub-uint bint 1 true
 						]
 					]
-					tail = #"5" [
-						if bigint/positive?* bint [
-							bint: bigint/add-uint bint 1 true
-						]
-					]
-					true []
 				]
-			]
-			ROUND-HALF-FLOOR	[
-				case [
-					tail > #"5" [
+				ROUND-HALF-DOWN		[
+					if tail > #"5" [
 						either bigint/positive?* bint [
 							bint: bigint/add-uint bint 1 true
 						][
 							bint: bigint/sub-uint bint 1 true
 						]
 					]
-					tail = #"5" [
-						if bigint/negative?* bint [
+				]
+				ROUND-HALF-EVEN		[
+					if any [
+						tail > #"5"
+						all [
+							tail = #"5"
+							any [
+								last = #"1" last = #"3" last = #"5" last = #"7" last = #"9"
+							]
+						]
+					][
+						either bigint/positive?* bint [
+							bint: bigint/add-uint bint 1 true
+						][
 							bint: bigint/sub-uint bint 1 true
 						]
 					]
-					true []
+				]
+				ROUND-HALF-ODD		[
+					if any [
+						tail > #"5"
+						all [
+							tail = #"5"
+							any [
+								last = #"0" last = #"2" last = #"4" last = #"6" last = #"8"
+							]
+						]
+					][
+						either bigint/positive?* bint [
+							bint: bigint/add-uint bint 1 true
+						][
+							bint: bigint/sub-uint bint 1 true
+						]
+					]
+				]
+				ROUND-HALF-CEIL		[
+					case [
+						tail > #"5" [
+							either bigint/positive?* bint [
+								bint: bigint/add-uint bint 1 true
+							][
+								bint: bigint/sub-uint bint 1 true
+							]
+						]
+						tail = #"5" [
+							if bigint/positive?* bint [
+								bint: bigint/add-uint bint 1 true
+							]
+						]
+						true []
+					]
+				]
+				ROUND-HALF-FLOOR	[
+					case [
+						tail > #"5" [
+							either bigint/positive?* bint [
+								bint: bigint/add-uint bint 1 true
+							][
+								bint: bigint/sub-uint bint 1 true
+							]
+						]
+						tail = #"5" [
+							if bigint/negative?* bint [
+								bint: bigint/sub-uint bint 1 true
+							]
+						]
+						true []
+					]
 				]
 			]
 		]
