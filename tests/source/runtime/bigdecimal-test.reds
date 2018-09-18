@@ -2018,8 +2018,191 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		str: "-999999999999999999999"
 		big: bigdecimal/load-float str -1
 		--assert true = bigdecimal/form big :ibuf :ilen
-		print-line ["ilen: " ilen]
-		print-line ["ibuf: " as c-string! ibuf]
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+===end-group===
+
+===start-group=== "ROUND-HALF-FLOOR test"
+	bigdecimal/set-rounding-mode ROUND-HALF-FLOOR
+
+	--test-- "ROUND-HALF-FLOOR-1"
+		str: "10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-2"
+		str: "10000000000000000000.2"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-3"
+		str: "10000000000000000000.5"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-4"
+		str: "10000000000000000000.8"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 20
+		--assert 0 = compare-memory as byte-ptr! "10000000000000000001" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-5"
+		str: "99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-6"
+		str: "-10000000000000000000.0"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-7"
+		str: "-10000000000000000000.2"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000000" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-8"
+		str: "-10000000000000000000.5"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000001" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-9"
+		str: "-10000000000000000000.8"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 21
+		--assert 0 = compare-memory as byte-ptr! "-10000000000000000001" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-10"
+		str: "-99999999999999999999.9"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-11"
+		str: "100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-12"
+		str: "100000000000000000002"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-13"
+		str: "100000000000000000005"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-14"
+		str: "100000000000000000008"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 24
+		--assert 0 = compare-memory as byte-ptr! "1.0000000000000000001E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-15"
+		str: "999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 6
+		--assert 0 = compare-memory as byte-ptr! "1.0E21" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-16"
+		str: "-100000000000000000000"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-17"
+		str: "-100000000000000000002"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 7
+		--assert 0 = compare-memory as byte-ptr! "-1.0E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-18"
+		str: "-100000000000000000005"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 25
+		--assert 0 = compare-memory as byte-ptr! "-1.0000000000000000001E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-19"
+		str: "-100000000000000000008"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
+		--assert ilen = 25
+		--assert 0 = compare-memory as byte-ptr! "-1.0000000000000000001E20" as byte-ptr! ibuf ilen
+		free as byte-ptr! ibuf
+		bigdecimal/free* big
+
+	--test-- "ROUND-HALF-FLOOR-20"
+		str: "-999999999999999999999"
+		big: bigdecimal/load-float str -1
+		--assert true = bigdecimal/form big :ibuf :ilen
 		--assert ilen = 7
 		--assert 0 = compare-memory as byte-ptr! "-1.0E21" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
