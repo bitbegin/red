@@ -579,16 +579,6 @@ bigdecimal: context [
 		if false = bigint/form big 10 :ibuf :ilen [
 			return load-nan
 		]
-		if ilen > prec [
-			bint: bigint/load-str as c-string! ibuf prec 10
-			ret: alloc*
-			ret/bint: bint
-			ret/expo: expo + ilen - prec
-			ret/prec: prec
-			ret/dlen: prec
-			ret/digit: as byte-ptr! ibuf
-			return ret
-		]
 		bint: bigint/copy* big big/used
 		ret: alloc*
 		ret/bint: bint
@@ -596,6 +586,7 @@ bigdecimal: context [
 		ret/prec: prec
 		ret/dlen: ilen
 		ret/digit: as byte-ptr! ibuf
+		ret: round ret true
 		ret
 	]
 
@@ -908,6 +899,98 @@ bigdecimal: context [
 		return true
 	]
 
+	expo-bint: func [
+		expo				[integer!]
+		return:				[bigint!]
+		/local
+			bint			[bigint!]
+			bint2			[bigint!]
+			nexpo			[integer!]
+	][
+		if expo < 10 [
+			switch expo [
+				0	[return bigint/load-int 1]
+				1	[return bigint/load-int 10]
+				2	[return bigint/load-int 100]
+				3	[return bigint/load-int 1000]
+				4	[return bigint/load-int 10000]
+				5	[return bigint/load-int 100000]
+				6	[return bigint/load-int 1000000]
+				7	[return bigint/load-int 10000000]
+				8	[return bigint/load-int 100000000]
+				9	[return bigint/load-int 1000000000]
+			]
+			return bigint/load-int 0
+		]
+		nexpo: expo - 9
+		bint: bigint/load-int 1000000000
+		bint2: expo-bint nexpo
+		bint: bigint/mul bint bint2 true
+		bigint/free* bint2
+		bint
+	]
+
+	absolute-add: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		return:				[bigdecimal!]
+		/local
+			prec			[integer!]
+			bint			[bigint!]
+			big				[bigdecimal!]
+			emax			[bigdecimal!]
+			emin			[bigdecimal!]
+			size			[integer!]
+			buf				[byte-ptr!]
+			pos				[integer!]
+			bexp			[bigint!]
+			bint2			[bigint!]
+	][
+		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
+		if big1/expo = big2/expo [
+			bint: bigint/absolute-add big1/bint big2/bint
+			big: load-bigint bint big1/expo prec
+			bigint/free* bint
+			return big
+		]
+
+		either big1/expo > big2/expo [
+			emax: big1
+			emin: big2
+		][
+			emin: big1
+			emax: big2
+		]
+
+		if (emax/expo - emin/expo) >= prec [
+			size: emax/dlen + 2
+			buf: allocate size
+			copy-memory buf emax/digit emax/dlen
+			pos: emax/dlen + 1
+			buf/pos: #"1"
+			pos: pos + 1
+			buf/pos: null-byte
+			bint: bigint/load-str as c-string! buf -1 10
+			if bint = null [
+				free buf
+				return load-nan
+			]
+			big: load-bigint bint emax/expo - 1 prec
+			free buf
+			bigint/free* bint
+			return big
+		]
+
+		bexp: expo-bint emax/expo - emin/expo
+		bint: bigint/mul emax/bint bexp false
+		bint2: bigint/absolute-add bint emin/bint
+		big: load-bigint bint2 emin/expo prec
+		bigint/free* bexp
+		bigint/free* bint
+		bigint/free* bint2
+		big
+	]
+
 	zero?*: func [
 		big					[bigdecimal!]
 		return:				[logic!]
@@ -940,3 +1023,26 @@ bigdecimal: context [
 	]
 
 ]
+
+
+str: "1.23456E100"
+big: bigdecimal/load-float str -1
+str: "1.23456E90"
+big2: bigdecimal/load-float str -1
+big3: bigdecimal/absolute-add big big2
+;bigdecimal/dump big3
+bigdecimal/free* big
+bigdecimal/free* big2
+bigdecimal/free* big3
+
+str: "1.23456E100"
+big: bigdecimal/load-float str -1
+str: "1.23456E80"
+big2: bigdecimal/load-float str -1
+big3: bigdecimal/absolute-add big big2
+bigdecimal/dump big
+bigdecimal/dump big2
+bigdecimal/dump big3
+bigdecimal/free* big
+bigdecimal/free* big2
+bigdecimal/free* big3
