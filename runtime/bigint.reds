@@ -231,8 +231,8 @@ bigint: context [
 		if b1used > b2used [return 1]
 		if b2used > b1used [return -1]
 
-		p1: as int-ptr! (big1 + 1) + b1used - 1
-		p2: as int-ptr! (big2 + 1) + b2used - 1
+		p1: (as int-ptr! (big1 + 1)) + b1used - 1
+		p2: (as int-ptr! (big2 + 1)) + b2used - 1
 		loop b1used [
 			if uint-less p2/1 p1/1 [return 1]
 			if uint-less p1/1 p2/1 [return -1]
