@@ -2008,8 +2008,8 @@ bigint: context [
 				]
 				print-line ["size: " big/size " used: " bused " sign: " bsign]
 				p: as int-ptr! (big + 1)
-				p: p + big/used - 1
-				loop big/used [
+				p: p + bused - 1
+				loop bused [
 					prin-hex-chars ((p/1 >>> 24) and FFh) 2
 					prin-hex-chars ((p/1 >>> 16) and FFh) 2
 					prin-hex-chars ((p/1 >>> 8) and FFh) 2
