@@ -791,7 +791,11 @@ bigint: context [
 				if b2sign = -1 [big/used: 0 - big/used]
 			]
 		][
-			big: absolute-add big1 big2
+			either (absolute-compare big1 big2) >= 0 [
+				big: absolute-add big1 big2
+			][
+				big: absolute-add big2 big1
+			]
 			if b1sign = -1 [big/used: 0 - big/used]
 		]
 		if free? [free* big1]
@@ -836,7 +840,11 @@ bigint: context [
 				if b1sign = 1 [big/used: 0 - big/used]
 			]
 		][
-			big: absolute-add big1 big2
+			either (absolute-compare big1 big2) >= 0 [
+				big: absolute-add big1 big2
+			][
+				big: absolute-add big2 big1
+			]
 			if b1sign = -1 [big/used: 0 - big/used]
 		]
 		if free? [free* big1]
