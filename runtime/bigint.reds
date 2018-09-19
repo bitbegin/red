@@ -485,6 +485,62 @@ bigint: context [
 	;	]
 	;]
 
+	add-overflow?: func [
+		a1					[integer!]
+		a2					[integer!]
+		res					[integer!]
+		return:				[logic!]
+		/local
+			s1				[integer!]
+			s2				[integer!]
+	][
+		s1: either a1 >= 0 [1][-1]
+		s2: either a2 >= 0 [1][-1]
+		if all [s1 < 0 s2 < 0][return true]
+		if all [s1 <> s2 res >= 0][return true]
+		false
+	]
+
+	uint-mul: func [
+		u1					[integer!]
+		u2					[integer!]
+		hr					[int-ptr!]
+		lr					[int-ptr!]
+		/local
+			h1				[integer!]
+			l1				[integer!]
+			h2				[integer!]
+			l2				[integer!]
+			hx				[integer!]
+			lx				[integer!]
+			c				[integer!]
+			l1l2			[integer!]
+			h1l2			[integer!]
+			h2l1			[integer!]
+			h1h2			[integer!]
+			temp			[integer!]
+			sum1			[integer!]
+	][
+		h1: u1 >>> 16
+		l1: u1 and FFFFh
+		h2: u2 >>> 16
+		l2: u2 and FFFFh
+		l1l2: l1 * l2
+		h1l2: h1 * l2
+		h2l1: h2 * l1
+		h1h2: h1 * h2
+		c: 0
+		temp: h1l2 << 16
+		sum1: l1l2 + temp
+		if add-overflow? l1l2 temp sum1 [c: c + 1]
+		temp: h2l1 << 16
+		lx: sum1 + temp
+		if add-overflow? sum1 temp lx [c: c + 1]
+		hx: h1h2 + (h1l2 >>> 16) + (h2l1 >>> 16) + c
+		hr/value: hx
+		lr/value: lx
+	]
+
 	set-int: func [
 		big					[bigint!]
 		int					[integer!]
