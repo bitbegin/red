@@ -1032,16 +1032,13 @@ bigint: context [
 		]
 	]
 
-	mul: func [
+	absolute-mul: func [
 		big1				[bigint!]
 		big2				[bigint!]
-		free?				[logic!]
 		return:				[bigint!]
 		/local
 			b1used			[integer!]
-			b1sign			[integer!]
 			b2used			[integer!]
-			b2sign			[integer!]
 			p1				[int-ptr!]
 			p2				[int-ptr!]
 			big				[bigint!]
@@ -1050,25 +1047,11 @@ bigint: context [
 			len				[integer!]
 	][
 		if any [zero?* big1 zero?* big2][
-			if free? [free* big1]
 			return load-int 0
 		]
 
-		either big1/used >= 0 [
-			b1sign: 1
-			b1used: big1/used
-		][
-			b1sign: -1
-			b1used: 0 - big1/used
-		]
-		either big2/used >= 0 [
-			b2sign: 1
-			b2used: big2/used
-		][
-			b2sign: -1
-			b2used: 0 - big2/used
-		]
-
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
 		p1: as int-ptr! (big1 + 1)
 		p2: as int-ptr! (big2 + 1)
 
@@ -1085,8 +1068,35 @@ bigint: context [
 			b2used: b2used - 1
 		]
 
-		if b1sign <> b2sign [big/used: 0 - big/used]
 		shrink big
+		big
+	]
+
+	mul: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			big				[bigint!]
+	][
+		if any [zero?* big1 zero?* big2][
+			if free? [free* big1]
+			return load-int 0
+		]
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+
+		either (absolute-compare big1 big2) >= 0 [
+			big: absolute-mul big1 big2
+		][
+			big: absolute-mul big2 big1
+		]
+		if b1sign <> b2sign [big/used: 0 - big/used]
+
 		if free? [free* big1]
 		big
 	]
