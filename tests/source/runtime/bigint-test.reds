@@ -278,7 +278,7 @@ big2: as bigint! 0
 		str: "-112233445566778899AABBCCDDEEFF"
 		big: bigint/load-str str -1 16
 		big2: bigint/load-bin bin2 size? bin2
-		bigint/set-negative big2
+		big2/used: 0 - big2/used
 		--assert 0 = bigint/compare big big2
 		bigint/free* big
 		bigint/free* big2
