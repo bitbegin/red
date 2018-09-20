@@ -39,6 +39,29 @@ bigdecimal: context [
 	rounding-mode: ROUND-HALF-UP
 	unit-max: default-prec / 4
 
+
+	#define DEC_MULADDC_INIT [
+		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
+		b0: b and FFFFh
+		b1: b >>> 16
+	]
+	#define DEC_MULADDC_CORE [
+		s0: s/1 and FFFFh
+		s1: s/1 >>> 16			s: s + 1
+		rx: s0 * b1 			r0: s0 * b0
+		ry: s1 * b0 			r1: s1 * b1
+		r1: r1 + (rx >>> 16)
+		r1: r1 + (ry >>> 16)
+		rx: rx << 16 			ry: ry << 16
+		r0: r0 + rx 			r1: r1 + as integer! (bigint/uint-less r0 rx)
+		r0: r0 + ry 			r1: r1 + as integer! (bigint/uint-less r0 ry)
+		r0: r0 + c 				r1: r1 + as integer! (bigint/uint-less r0 c)
+		r0: r0 + d/1			r1: r1 + as integer! (bigint/uint-less r0 d/1)
+		c: bigint/long-divide r1 r0 DECIMAL-BASE d
+		d: d + 1
+	]
+	#define DEC_MULADDC_STOP []
+
 	set-default-prec: func [precise [integer!]][
 		default-prec: either precise >= 2 [precise][2]
 		unit-max: unit-size? default-prec
@@ -796,6 +819,235 @@ bigdecimal: context [
 		ret
 	]
 
+	mul-hlp: func [
+		i					[integer!]
+		s					[int-ptr!]
+		d					[int-ptr!]
+		b					[integer!]
+		/local
+			c				[integer!]
+			t				[integer!]
+			s0				[integer!]
+			s1				[integer!]
+			b0				[integer!]
+			b1				[integer!]
+			r0				[integer!]
+			r1				[integer!]
+			rx				[integer!]
+			ry				[integer!]
+	][
+		c: 0
+		t: 0
+
+		while [i >= 16][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			MULADDC_STOP
+			i: i - 16
+		]
+
+		while [i >= 8][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_STOP
+			i: i - 8
+		]
+
+		while [i > 0][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE
+			DEC_MULADDC_STOP
+			i: i - 1
+		]
+
+		t: t + 1
+
+		until [
+			d/1: d/1 + c
+			c: 0
+			unless bigint/uint-less d/1 DECIMAL-BASE [
+				c: 1
+				d/1: d/1 - DECIMAL-BASE
+			]
+			d: d + 1
+			c = 0
+		]
+	]
+
+	absolute-mul: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		return:				[bigdecimal!]
+		/local
+			b1used			[integer!]
+			b2used			[integer!]
+			p1				[int-ptr!]
+			p2				[int-ptr!]
+			big				[bigdecimal!]
+			p				[int-ptr!]
+			pt				[int-ptr!]
+			len				[integer!]
+	][
+		if any [zero?* big1 zero?* big2][
+			return load-int 0
+		]
+
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
+		p1: as int-ptr! (big1 + 1)
+		p2: as int-ptr! (big2 + 1)
+
+		len: b1used + b2used + 1
+		big: alloc* len
+		big/used: len
+		p: as int-ptr! (big + 1)
+
+		b1used: b1used + 1
+		while [b2used > 0]
+		[
+			pt: p2 + b2used - 1
+			mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
+			b2used: b2used - 1
+		]
+
+		shrink big
+		big
+	]
+
+	mul: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			big				[bigdecimal!]
+	][
+		if any [zero?* big1 zero?* big2][
+			if free? [free* big1]
+			return load-int 0
+		]
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+
+		either (absolute-compare big1 big2) >= 0 [
+			big: absolute-mul big1 big2
+		][
+			big: absolute-mul big2 big1
+		]
+		if b1sign <> b2sign [big/used: 0 - big/used]
+
+		if free? [free* big1]
+		big
+	]
+
+	mul-int: func [
+		big1				[bigdecimal!]
+		int					[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			big				[bigdecimal!]
+			ret				[bigdecimal!]
+	][
+		if any [big1/used = 0 int = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+
+		big: load-int int
+		ret: mul big1 big free?
+		free* big
+		ret
+	]
+
+	mul-uint: func [
+		big1				[bigdecimal!]
+		uint				[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			big				[bigdecimal!]
+			ret				[bigdecimal!]
+	][
+		if any [zero?* big1 uint = 0][
+			if free? [free* big1]
+			return load-int 0
+		]
+
+		big: load-uint uint
+		ret: mul big1 big free?
+		free* big
+		ret
+	]
+
+	form-unit: func [
+		value				[integer!]
+		pad8?				[logic!]
+		return:				[c-string!]
+		/local
+			s				[c-string!]
+			r				[c-string!]
+			m				[c-string!]
+			rem				[integer!]
+			t				[integer!]
+			i				[integer!]
+			rsize			[integer!]
+			j				[integer!]
+			p				[byte-ptr!]
+	][
+		s: "0000000000"
+		r: "0000000000"
+		m: "0123456789"
+
+		if pad8? [copy-memory as byte-ptr! s as byte-ptr! "00000000" 9]
+
+		i: 1
+		rem: value
+		until [
+			t: (rem % 10) + 1
+			s/i: m/t
+			rem: rem / 10
+
+			i: i + 1
+			any [
+				rem = 0
+				all [pad8? i > 8]
+			]
+		]
+		either pad8? [
+			rsize: 8
+		][
+			rsize: i - 1
+			s/i: null-byte
+		]
+
+		j: 1
+		p: as byte-ptr! s + rsize - 1
+		loop rsize [
+			r/j: p/1
+
+			p: p - 1
+			j: j + 1
+		]
+		r/j: null-byte
+		r
+	]
+
 	#if debug? = yes [
 		dump: func [
 			big				[bigdecimal!]
@@ -803,6 +1055,7 @@ bigdecimal: context [
 				bused		[integer!]
 				bsign		[integer!]
 				p			[int-ptr!]
+				pad8?		[logic!]
 		][
 			print-line [lf "===============dump bigdecimal!==============="]
 			either big = null [
@@ -818,11 +1071,10 @@ bigdecimal: context [
 				print-line ["size: " big/size " used: " bused " sign: " bsign " expo: " big/expo " prec: " big/prec]
 				p: as int-ptr! (big + 1)
 				p: p + bused - 1
+				pad8?: false
 				loop bused [
-					prin-hex-chars ((p/1 >>> 24) and FFh) 2
-					prin-hex-chars ((p/1 >>> 16) and FFh) 2
-					prin-hex-chars ((p/1 >>> 8) and FFh) 2
-					prin-hex-chars (p/1 and FFh) 2
+					print form-unit p/1 pad8?
+					unless pad8? [pad8?: true]
 					print " "
 					p: p - 1
 				]
@@ -832,20 +1084,3 @@ bigdecimal: context [
 	]
 
 ]
-
-big: bigdecimal/load-int -900000000
-bigdecimal/dump big
-
-big2: bigdecimal/load-uint 900000000
-bigdecimal/dump big2
-
-
-big3: bigdecimal/add big big2 false
-bigdecimal/dump big3
-
-big4: bigdecimal/sub big big2 false
-bigdecimal/dump big4
-
-bigdecimal/free* big
-bigdecimal/free* big2
-bigdecimal/free* big3
