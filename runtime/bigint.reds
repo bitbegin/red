@@ -1226,12 +1226,13 @@ bigint: context [
 		return true
 	]
 
+	;-- only support u1 < d
 	long-divide: func [
 		u1					[integer!]
 		u0					[integer!]
 		d					[integer!]
-		ret					[int-ptr!]
-		return:				[logic!]
+		r					[int-ptr!]
+		return:				[integer!]
 		/local
 			radix			[integer!]
 			hmask			[integer!]
@@ -1250,13 +1251,9 @@ bigint: context [
 		radix: 1 << biLH
 		hmask: radix - 1
 
-		if d = 0 [
-			return false
-		]
-
-		if not uint-less u1 d [
-			ret/value: -1
-			return true
+		if any [d = 0 not uint-less u1 d] [
+			if r <> null [r/value: -1]
+			return -1
 		]
 
 		s: count-leading-zero d
@@ -1276,9 +1273,7 @@ bigint: context [
 
 		q1: 0
 		rt: 0
-		if false = uint-div u1 d1 :q1 :rt [
-			return false
-		]
+		uint-div u1 d1 :q1 :rt
 		r0: u1 - (d1 * q1)
 
 		while [
@@ -1296,9 +1291,7 @@ bigint: context [
 		rAX: (u1 * radix) + (u0_msw - (q1 * d))
 		q0: 0
 		rt: 0
-		if false = uint-div rAX d1 :q0 :rt [
-			return false
-		]
+		uint-div rAX d1 :q0 :rt
 		r0: rAX - (q0 * d1)
 
 		while [
@@ -1313,8 +1306,11 @@ bigint: context [
 			unless uint-less r0 radix [break]
 		]
 
-		ret/value: q1 * radix + q0
-		return true
+		if r <> null [
+			r/value: (rAX * radix + u0_lsw - (q0 * d)) >>> s
+		]
+
+		return q1 * radix + q0
 	]
 
 	;-- A = Q * B + R
@@ -1424,14 +1420,7 @@ bigint: context [
 				pz/tmp: -1
 			][
 				tmp2: i - 1
-				if false = long-divide px/i px/tmp2 py/t pz + tmp - 1 [
-					free* X
-					free* Y
-					free* Z
-					free* T1
-					free* T2
-					return false
-				]
+				pz/tmp: long-divide px/i px/tmp2 py/t null
 			]
 
 			pz/tmp: pz/tmp + 1

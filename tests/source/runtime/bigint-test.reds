@@ -530,6 +530,45 @@ big2: as bigint! 0
 
 ===end-group===
 
+===start-group=== "long-divide tests"
+	--test-- "long-divide-test-1"
+		r: 0
+		q: bigint/long-divide 0 0 0 :r
+		--assert q = -1
+		--assert r = -1
+
+	--test-- "long-divide-test-2"
+		r: 0
+		q: bigint/long-divide 1 1 0 :r
+		--assert q = -1
+		--assert r = -1
+
+	--test-- "long-divide-test-3"
+		r: 0
+		q: bigint/long-divide 1 1 1 :r
+		--assert q = -1
+		--assert r = -1
+
+	--test-- "long-divide-test-4"
+		r: 0
+		q: bigint/long-divide 0 10000 3 :r
+		--assert q = 3333
+		--assert r = 1
+
+	--test-- "long-divide-test-5"
+		r: 0
+		q: bigint/long-divide 0 1000000000 3 :r
+		--assert q = 333333333
+		--assert r = 1
+
+	--test-- "long-divide-test-6"
+		r: 0
+		q: bigint/long-divide 002386F2h 6FC10000h 100000000 :r
+		--assert q = 100000000
+		--assert r = 0
+
+===end-group===
+
 ===start-group=== "mul tests"
 	--test-- "mul-test-1"
 		str:  "02"
