@@ -57,6 +57,7 @@ bigint: context [
 
 		size: len * 4 + size? bigint!
 		p: allocate size
+		if p = null [return null]
 		set-memory p null-byte size
 		big: as bigint! p
 		big/size: len
@@ -73,7 +74,6 @@ bigint: context [
 		return:				[bigint!]
 		/local
 			bused			[integer!]
-			size			[integer!]
 			ret				[bigint!]
 			pb				[byte-ptr!]
 			pr				[byte-ptr!]
@@ -81,10 +81,9 @@ bigint: context [
 		bused: either big/used >= 0 [big/used][0 - big/used]
 		if any [big = null bused = 0] [return null]
 
-		size: bused + 1
-		ret: alloc* size
+		ret: alloc* bused
 		if ret = null [return null]
-		ret/size: size
+		ret/size: bused
 		ret/used: big/used
 		pr: as byte-ptr! (ret + 1)
 		pb: as byte-ptr! (big + 1)
