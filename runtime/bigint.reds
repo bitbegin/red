@@ -484,22 +484,6 @@ bigint: context [
 	;	]
 	;]
 
-	add-overflow?: func [
-		a1					[integer!]
-		a2					[integer!]
-		res					[integer!]
-		return:				[logic!]
-		/local
-			s1				[integer!]
-			s2				[integer!]
-	][
-		s1: either a1 >= 0 [1][-1]
-		s2: either a2 >= 0 [1][-1]
-		if all [s1 < 0 s2 < 0][return true]
-		if all [s1 <> s2 res >= 0][return true]
-		false
-	]
-
 	uint-mul: func [
 		u1					[integer!]
 		u2					[integer!]
@@ -518,7 +502,6 @@ bigint: context [
 			h2l1			[integer!]
 			h1h2			[integer!]
 			temp			[integer!]
-			sum1			[integer!]
 	][
 		h1: u1 >>> 16
 		l1: u1 and FFFFh
@@ -528,13 +511,12 @@ bigint: context [
 		h1l2: h1 * l2
 		h2l1: h2 * l1
 		h1h2: h1 * h2
-		c: 0
 		temp: h1l2 << 16
-		sum1: l1l2 + temp
-		if add-overflow? l1l2 temp sum1 [c: c + 1]
+		lx: l1l2 + temp
+		c: as integer! uint-less lx temp
 		temp: h2l1 << 16
-		lx: sum1 + temp
-		if add-overflow? sum1 temp lx [c: c + 1]
+		lx: lx + temp
+		c: c + as integer! uint-less lx temp
 		hx: h1h2 + (h1l2 >>> 16) + (h2l1 >>> 16) + c
 		hr/value: hx
 		lr/value: lx
@@ -798,7 +780,7 @@ bigint: context [
 		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
 		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
 
-		if b1used < b2used [return absolute-sub big2 big1]
+		if b1used < b2used [return null]
 
 		big: copy* big1
 		big/used: b1used

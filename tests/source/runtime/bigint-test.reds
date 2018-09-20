@@ -422,6 +422,114 @@ big2: as bigint! 0
 
 ===end-group===
 
+===start-group=== "uint-mul tests"
+	--test-- "uint-mul-test-1"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 0 0 :rh :rl
+		--assert rh = 0
+		--assert rl = 0
+
+	--test-- "uint-mul-test-2"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 0 1 :rh :rl
+		--assert rh = 0
+		--assert rl = 0
+
+	--test-- "uint-mul-test-3"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 1 0 :rh :rl
+		--assert rh = 0
+		--assert rl = 0
+
+	--test-- "uint-mul-test-4"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 1 1 :rh :rl
+		--assert rh = 0
+		--assert rl = 1
+
+	--test-- "uint-mul-test-5"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 10 10 :rh :rl
+		--assert rh = 0
+		--assert rl = 100
+
+	--test-- "uint-mul-test-6"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 100 100 :rh :rl
+		--assert rh = 0
+		--assert rl = 10000
+
+	--test-- "uint-mul-test-7"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 100 100 :rh :rl
+		--assert rh = 0
+		--assert rl = 10000
+
+	--test-- "uint-mul-test-8"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 1000 1000 :rh :rl
+		--assert rh = 0
+		--assert rl = 1000000
+
+	--test-- "uint-mul-test-9"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 10000 10000 :rh :rl
+		--assert rh = 0
+		--assert rl = 100000000
+
+	--test-- "uint-mul-test-10"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 100000 100000 :rh :rl
+		--assert rh = 2
+		--assert rl = 540BE400h
+
+	--test-- "uint-mul-test-11"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 1000000 1000000 :rh :rl
+		--assert rh = E8h
+		--assert rl = D4A51000h
+
+	--test-- "uint-mul-test-12"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 10000000 10000000 :rh :rl
+		--assert rh = 5AF3h
+		--assert rl = 107A4000h
+
+	--test-- "uint-mul-test-13"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 100000000 100000000 :rh :rl
+		--assert rh = 002386F2h
+		--assert rl = 6FC10000h
+
+	--test-- "uint-mul-test-14"
+		rh: 0
+		rl: 0
+		bigint/uint-mul 1000000000 1000000000 :rh :rl
+		--assert rh = 0DE0B6B3h
+		--assert rl = A7640000h
+
+	--test-- "uint-mul-test-15"
+		rh: 0
+		rl: 0
+		bigint/uint-mul FFFFFFFFh FFFFFFFFh :rh :rl
+		--assert rh = FFFFFFFEh
+		--assert rl = 1
+
+===end-group===
+
 ===start-group=== "mul tests"
 	--test-- "mul-test-1"
 		str:  "02"
