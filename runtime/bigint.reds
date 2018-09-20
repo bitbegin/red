@@ -162,7 +162,7 @@ bigint: context [
 		/local
 			big				[bigint!]
 	][
-		big: alloc* 2
+		big: alloc* 1
 		if big = null [return null]
 		from-int big int
 		big
@@ -174,7 +174,7 @@ bigint: context [
 		/local
 			big				[bigint!]
 	][
-		big: alloc* 2
+		big: alloc* 1
 		if big = null [return null]
 		from-uint big uint
 		big
@@ -190,7 +190,7 @@ bigint: context [
 	][
 		if uH = 0 [return load-uint uL]
 
-		big: alloc* 3
+		big: alloc* 2
 		if big = null [return null]
 		pb: as int-ptr! (big + 1)
 		pb/1: uL
