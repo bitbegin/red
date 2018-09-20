@@ -10,7 +10,11 @@ Red/System [
 bigint!: alias struct! [
 	size		[integer!]				;-- size in integer!
 	used		[integer!]				;-- used length in integer!
+	expo		[integer!]
+	prec		[integer!]
 ]
+
+#define DECIMAL-BASE			100000000
 
 bigint: context [
 
@@ -40,19 +44,42 @@ bigint: context [
 	]
 	#define MULADDC_STOP []
 
+	#define DEC_MULADDC_INIT [
+		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
+		b0: b and FFFFh
+		b1: b >>> 16
+	]
+	#define DEC_MULADDC_CORE [
+		s0: s/1 and FFFFh
+		s1: s/1 >>> 16			s: s + 1
+		rx: s0 * b1 			r0: s0 * b0
+		ry: s1 * b0 			r1: s1 * b1
+		r1: r1 + (rx >>> 16)
+		r1: r1 + (ry >>> 16)
+		rx: rx << 16 			ry: ry << 16
+		r0: r0 + rx 			r1: r1 + as integer! (uint-less r0 rx)
+		r0: r0 + ry 			r1: r1 + as integer! (uint-less r0 ry)
+		r0: r0 + c 				r1: r1 + as integer! (uint-less r0 c)
+		r0: r0 + d/1			r1: r1 + as integer! (uint-less r0 d/1)
+		c: long-divide r1 r0 DECIMAL-BASE d
+		d: d + 1
+	]
+	#define DEC_MULADDC_STOP []
+
 	set-max-size: func [size [integer!]][
 		if size > 0 [BN_MAX_LIMB: size]
 	]
 
-	alloc*: func [
-		len					[integer!]			;-- size in integer!
+	alloc-limit: func [
+		len					[integer!]
+		imax				[integer!]
 		return:				[bigint!]
 		/local
 			size			[integer!]
 			p				[byte-ptr!]
 			big				[bigint!]
 	][
-		if len > BN_MAX_LIMB [return null]
+		if len > imax [return null]
 		if len <= 0 [return null]
 
 		size: len * 4 + size? bigint!
@@ -61,8 +88,14 @@ bigint: context [
 		set-memory p null-byte size
 		big: as bigint! p
 		big/size: len
-		big/used: 0
 		big
+	]
+
+	alloc*: func [
+		len					[integer!]			;-- size in integer!
+		return:				[bigint!]
+	][
+		alloc-limit len BN_MAX_LIMB
 	]
 
 	free*: func [big [bigint!]][
@@ -85,6 +118,8 @@ bigint: context [
 		if ret = null [return null]
 		ret/size: bused
 		ret/used: big/used
+		ret/expo: big/expo
+		ret/prec: big/prec
 		pr: as byte-ptr! (ret + 1)
 		pb: as byte-ptr! (big + 1)
 		copy-memory pr pb bused * 4
@@ -121,6 +156,8 @@ bigint: context [
 		if ret = null [return null]
 		ret/size: nsize
 		ret/used: either bsign > 0 [size][0 - size]
+		ret/expo: big/expo
+		ret/prec: big/prec
 		cp-size: either size > bused [bused][size]
 		pr: as byte-ptr! (ret + 1)
 		pb: as byte-ptr! (big + 1)
@@ -694,7 +731,66 @@ bigint: context [
 		ret
 	]
 
-	absolute-add: func [
+	dec-absolute-add: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+		/local
+			b1used			[integer!]
+			b2used			[integer!]
+			big				[bigint!]
+			p				[int-ptr!]
+			p2				[int-ptr!]
+			i				[integer!]
+			c				[integer!]
+			tmp				[integer!]
+	][
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
+		p2: as int-ptr! (big2 + 1)
+
+		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
+		big/used: b1used
+		p: as int-ptr! (big + 1)
+
+
+		c: 0
+		i: 0
+		loop b2used [
+			tmp: p2/1
+			p/1: p/1 + c
+			c: 0
+			unless bigint/uint-less p/1 DECIMAL-BASE [
+				c: 1
+				p/1: p/1 - DECIMAL-BASE
+			]
+			p/1: p/1 + tmp
+			unless bigint/uint-less p/1 DECIMAL-BASE [
+				c: c + 1
+				p/1: p/1 - DECIMAL-BASE
+			]
+			p: p + 1
+			p2: p2 + 1
+			i: i + 1
+		]
+
+		while [c > 0][
+			p/1: p/1 + c
+			c: 0
+			unless bigint/uint-less p/1 DECIMAL-BASE [
+				c: 1
+				p/1: p/1 - DECIMAL-BASE
+			]
+			i: i + 1
+			p: p + 1
+		]
+		if big/used < i [
+			big/used: i
+		]
+		big
+	]
+
+	bin-absolute-add: func [
 		big1				[bigint!]
 		big2				[bigint!]
 		return:				[bigint!]
@@ -741,6 +837,53 @@ bigint: context [
 		big
 	]
 
+	absolute-add: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+	][
+		if any [big1/prec = 0 big2/prec = 0][
+			return bin-absolute-add big1 big2
+		]
+		dec-absolute-add big1 big2
+	]
+
+	dec-sub-hlp: func [
+		n					[integer!]
+		s					[int-ptr!]
+		d					[int-ptr!]
+		/local
+			c				[integer!]
+			z				[integer!]
+	][
+		c: 0
+		loop n [
+			z: 0
+			if bigint/uint-less d/1 c [
+				z: 1
+				d/1: DECIMAL-BASE - c + d/1
+			]
+			c: z
+			if bigint/uint-less d/1 s/1 [
+				c: c + 1
+				d/1: d/1 + DECIMAL-BASE
+			]
+			d/1: d/1 - s/1
+			s: s + 1
+			d: d + 1
+		]
+
+		while [c <> 0][
+			z: 0
+			if bigint/uint-less d/1 c [
+				z: 1
+				d/1: DECIMAL-BASE - c + d/1
+			]
+			c: z
+			d: d + 1
+		]
+	]
+
 	sub-hlp: func [
 		n					[integer!]
 		s					[int-ptr!]
@@ -785,7 +928,11 @@ bigint: context [
 		big: copy* big1
 		big/used: b1used
 
-		sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
+		either any [big1/prec = 0 big2/prec = 0][
+			sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
+		][
+			dec-sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
+		]
 
 		shrink big
 		big
@@ -1020,6 +1167,73 @@ bigint: context [
 		ret
 	]
 
+	dec-mul-hlp: func [
+		i					[integer!]
+		s					[int-ptr!]
+		d					[int-ptr!]
+		b					[integer!]
+		/local
+			c				[integer!]
+			t				[integer!]
+			s0				[integer!]
+			s1				[integer!]
+			b0				[integer!]
+			b1				[integer!]
+			r0				[integer!]
+			r1				[integer!]
+			rx				[integer!]
+			ry				[integer!]
+	][
+		c: 0
+		t: 0
+
+		while [i >= 16][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			MULADDC_STOP
+			i: i - 16
+		]
+
+		while [i >= 8][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_CORE	DEC_MULADDC_CORE
+			DEC_MULADDC_STOP
+			i: i - 8
+		]
+
+		while [i > 0][
+			DEC_MULADDC_INIT
+			DEC_MULADDC_CORE
+			DEC_MULADDC_STOP
+			i: i - 1
+		]
+
+		t: t + 1
+
+		until [
+			d/1: d/1 + c
+			c: 0
+			unless bigint/uint-less d/1 DECIMAL-BASE [
+				c: 1
+				d/1: d/1 - DECIMAL-BASE
+			]
+			d: d + 1
+			c = 0
+		]
+	]
+
 	mul-hlp: func [
 		i					[integer!]
 		s					[int-ptr!]
@@ -1115,7 +1329,11 @@ bigint: context [
 		while [b2used > 0]
 		[
 			pt: p2 + b2used - 1
-			mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
+			either any [big1/prec = 0 big2/prec = 0][
+				mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
+			][
+				dec-mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
+			]
 			b2used: b2used - 1
 		]
 

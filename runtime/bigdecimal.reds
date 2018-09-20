@@ -10,10 +10,10 @@ Red/System [
 #include %bigint.reds
 
 bigdecimal!: alias struct! [
-	size		[integer!]
+	size		[integer!]				;-- size in integer!
+	used		[integer!]				;-- used length in integer!
 	expo		[integer!]
 	prec		[integer!]
-	used		[integer!]
 ]
 
 #enum ROUNDING! [
@@ -30,7 +30,6 @@ bigdecimal!: alias struct! [
 ]
 
 bigdecimal: context [
-	#define DECIMAL-BASE			100000000
 	#define DECIMAL-BASE-LEN		8
 
 	default-prec: 20
@@ -38,29 +37,6 @@ bigdecimal: context [
 	exp-max:  1000000000
 	rounding-mode: ROUND-HALF-UP
 	unit-max: default-prec / 4
-
-
-	#define DEC_MULADDC_INIT [
-		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
-		b0: b and FFFFh
-		b1: b >>> 16
-	]
-	#define DEC_MULADDC_CORE [
-		s0: s/1 and FFFFh
-		s1: s/1 >>> 16			s: s + 1
-		rx: s0 * b1 			r0: s0 * b0
-		ry: s1 * b0 			r1: s1 * b1
-		r1: r1 + (rx >>> 16)
-		r1: r1 + (ry >>> 16)
-		rx: rx << 16 			ry: ry << 16
-		r0: r0 + rx 			r1: r1 + as integer! (bigint/uint-less r0 rx)
-		r0: r0 + ry 			r1: r1 + as integer! (bigint/uint-less r0 ry)
-		r0: r0 + c 				r1: r1 + as integer! (bigint/uint-less r0 c)
-		r0: r0 + d/1			r1: r1 + as integer! (bigint/uint-less r0 d/1)
-		c: bigint/long-divide r1 r0 DECIMAL-BASE d
-		d: d + 1
-	]
-	#define DEC_MULADDC_STOP []
 
 	set-default-prec: func [precise [integer!]][
 		default-prec: either precise >= 2 [precise][2]
@@ -97,19 +73,12 @@ bigdecimal: context [
 		/local
 			size			[integer!]
 			p				[byte-ptr!]
-			big				[bigdecimal!]
+			big				[bigint!]
 	][
-		if len > (2 * unit-max) [return null]
-		if len <= 0 [return null]
-
-		size: len * 4 + size? bigdecimal!
-		p: allocate size
-		if p = null [return null]
-		set-memory p null-byte size
-		big: as bigdecimal! p
-		big/size: len
+		big: bigint/alloc-limit len 2 * unit-max
+		if big = null [return null]
 		big/prec: default-prec
-		big
+		as bigdecimal! big
 	]
 
 	free*: func [big [bigdecimal!]][
@@ -119,64 +88,16 @@ bigdecimal: context [
 	copy*: func [
 		big					[bigdecimal!]
 		return:				[bigdecimal!]
-		/local
-			bused			[integer!]
-			ret				[bigdecimal!]
-			pb				[byte-ptr!]
-			pr				[byte-ptr!]
 	][
-		bused: either big/used >= 0 [big/used][0 - big/used]
-		if any [big = null bused = 0] [return null]
-
-		ret: alloc* bused
-		if ret = null [return null]
-		ret/size: bused
-		ret/expo: big/expo
-		ret/prec: big/prec
-		ret/used: big/used
-		pr: as byte-ptr! (ret + 1)
-		pb: as byte-ptr! (big + 1)
-		copy-memory pr pb bused * 4
-		ret
+		as bigdecimal! bigint/copy* as bigint! big
 	]
 
 	expand*: func [
 		big					[bigdecimal!]
 		size				[integer!]			;-- expand size in integer!
 		return:				[bigdecimal!]
-		/local
-			bsize			[integer!]
-			bsign			[integer!]
-			bused			[integer!]
-			nsize			[integer!]
-			ret				[bigdecimal!]
-			cp-size			[integer!]
-			pb				[byte-ptr!]
-			pr				[byte-ptr!]
 	][
-		if big = null [return null]
-		if size < 0 [return null]
-
-		bsize: big/size
-		either big/used >= 0 [
-			bsign: 1
-			bused: big/used
-		][
-			bsign: -1
-			bused: 0 - big/used
-		]
-		nsize: either size > bsize [size][bsize]
-		ret: alloc* nsize
-		if ret = null [return null]
-		ret/size: nsize
-		ret/expo: big/expo
-		ret/prec: big/prec
-		ret/used: either bsign > 0 [size][0 - size]
-		cp-size: either size > bused [bused][size]
-		pr: as byte-ptr! (ret + 1)
-		pb: as byte-ptr! (big + 1)
-		copy-memory pr pb cp-size * 4
-		ret
+		as bigdecimal! bigint/expand* as bigint! big size
 	]
 
 	load-nan: func [
@@ -282,34 +203,8 @@ bigdecimal: context [
 
 	shrink: func [
 		big					[bigdecimal!]
-		/local
-			bsign			[integer!]
-			bused			[integer!]
-			pb				[int-ptr!]
-			nused			[integer!]
 	][
-		either big/used >= 0 [
-			bsign: 1
-			bused: big/used
-		][
-			bsign: -1
-			bused: 0 - big/used
-		]
-		if bused = 0 [exit]
-
-		pb: as int-ptr! (big + 1)
-		pb: pb + bused - 1
-		nused: bused
-		loop bused [
-			either pb/1 = 0 [
-				nused: nused - 1
-			][
-				break
-			]
-			pb: pb - 1
-		]
-		if nused = 0 [nused: 1]
-		big/used: either bsign > 0 [nused][0 - nused]
+		bigint/shrink as bigint! big
 	]
 
 	zero?*: func [
@@ -319,251 +214,85 @@ bigdecimal: context [
 			bused			[integer!]
 			pb				[int-ptr!]
 	][
-		bused: either big/used >= 0 [big/used][0 - big/used]
-		if bused = 0 [return true]
-		pb: as int-ptr! (big + 1)
-		if all [bused = 1 pb/1 = 0][return true]
-		false
+		bigint/zero?* as bigint! big
 	]
 
 	absolute-compare: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[integer!]
-		/local
-			b1used			[integer!]
-			b2used			[integer!]
-			p1				[int-ptr!]
-			p2				[int-ptr!]
 	][
-		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
-		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
-		if all [b1used = 0 b2used = 0][return 0]
-
-		if b1used > b2used [return 1]
-		if b2used > b1used [return -1]
-
-		p1: (as int-ptr! (big1 + 1)) + b1used - 1
-		p2: (as int-ptr! (big2 + 1)) + b2used - 1
-		loop b1used [
-			if bigint/uint-less p2/1 p1/1 [return 1]
-			if bigint/uint-less p1/1 p2/1 [return -1]
-			p1: p1 - 1
-			p2: p2 - 1
-		]
-		return 0
+		bigint/absolute-compare as bigint! big1 as bigint! big2
 	]
 
 	compare: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[integer!]
-		/local
-			b1sign			[integer!]
-			b2sign			[integer!]
 	][
-		b1sign: either big1/used >= 0 [1][-1]
-		b2sign: either big2/used >= 0 [1][-1]
-
-		if all [zero?* big1 zero?* big2][return 0]
-		if zero?* big1 [return either b2sign = 1 [-1][1]]
-		if zero?* big2 [return either b1sign = 1 [1][-1]]
-
-		if all [b1sign = 1 b2sign = -1][return 1]
-		if all [b2sign = 1 b1sign = -1][return -1]
-
-		if b1sign = 1 [
-			return absolute-compare big1 big2
-		]
-		absolute-compare big2 big1
+		bigint/compare as bigint! big1 as bigint! big2
 	]
 
 	negative*: func [
 		big					[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			ret				[bigdecimal!]
 	][
-		ret: copy* big
-		ret/used: 0 - ret/used
-		if free? [free* big]
-		ret
+		as bigdecimal! bigint/negative* as bigint! big free?
 	]
 
 	negative?*: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 	][
-		if zero?* big [return false]
-		if big/used < 0 [return true]
-		false
+		bigint/negative?* as bigint! big
 	]
 
 	positive*: func [
 		big					[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			ret				[bigdecimal!]
 	][
-		ret: copy* big
-		if ret/used < 0 [ret/used: 0 - ret/used]
-		if free? [free* big]
-		ret
+		as bigdecimal! bigint/positive* as bigint! big free?
 	]
 
 	positive?*: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 	][
-		if zero?* big [return false]
-		if big/used > 0 [return true]
-		false
+		bigint/positive?* as bigint! big
 	]
 
 	absolute*: func [
 		big					[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			ret				[bigdecimal!]
 	][
-		ret: copy* big
-		if ret/used < 0 [ret/used: 0 - ret/used]
-		if free? [free* big]
-		ret
+		as bigdecimal! bigint/absolute* as bigint! big free?
 	]
 
 	compare-int: func [
 		big1				[bigdecimal!]
 		int					[integer!]
 		return:				[integer!]
-		/local
-			big				[bigdecimal!]
-			ret				[integer!]
 	][
-		if all [zero?* big1 int = 0][return 0]
-		if zero?* big1 [return either int > 0 [-1][1]]
-		if int = 0 [return either big1/used >= 0 [1][-1]]
-
-		big: load-int int
-		ret: compare big1 big
-		free* big
-		ret
+		bigint/compare-int as bigint! big1 int
 	]
 
 	compare-uint: func [
 		big1				[bigdecimal!]
 		uint				[integer!]
 		return:				[integer!]
-		/local
-			big				[bigdecimal!]
-			ret				[integer!]
 	][
-		if all [zero?* big1 uint = 0][return 0]
-		if zero?* big1 [return -1]
-		if uint = 0 [return either big1/used >= 0 [1][-1]]
-
-		big: load-uint uint
-		ret: compare big1 big
-		free* big
-		ret
+		bigint/compare-uint as bigint! big1 uint
 	]
 
 	absolute-add: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[bigdecimal!]
-		/local
-			b1used			[integer!]
-			b2used			[integer!]
-			big				[bigdecimal!]
-			p				[int-ptr!]
-			p2				[int-ptr!]
-			i				[integer!]
-			c				[integer!]
-			tmp				[integer!]
 	][
-		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
-		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
-		p2: as int-ptr! (big2 + 1)
-
-		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
-		big/used: b1used
-		p: as int-ptr! (big + 1)
-
-
-		c: 0
-		i: 0
-		loop b2used [
-			tmp: p2/1
-			p/1: p/1 + c
-			c: 0
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			p/1: p/1 + tmp
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: c + 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			p: p + 1
-			p2: p2 + 1
-			i: i + 1
-		]
-
-		while [c > 0][
-			p/1: p/1 + c
-			c: 0
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			i: i + 1
-			p: p + 1
-		]
-		if big/used < i [
-			big/used: i
-		]
-		big
-	]
-
-	sub-hlp: func [
-		n					[integer!]
-		s					[int-ptr!]
-		d					[int-ptr!]
-		/local
-			c				[integer!]
-			z				[integer!]
-	][
-		c: 0
-		loop n [
-			z: 0
-			if bigint/uint-less d/1 c [
-				z: 1
-				d/1: DECIMAL-BASE - c + d/1
-			]
-			c: z
-			if bigint/uint-less d/1 s/1 [
-				c: c + 1
-				d/1: d/1 + DECIMAL-BASE
-			]
-			d/1: d/1 - s/1
-			s: s + 1
-			d: d + 1
-		]
-
-		while [c <> 0][
-			z: 0
-			if bigint/uint-less d/1 c [
-				z: 1
-				d/1: DECIMAL-BASE - c + d/1
-			]
-			c: z
-			d: d + 1
-		]
+		as bigdecimal! bigint/absolute-add as bigint! big1 as bigint! big2
 	]
 
 	;-- big1 must large than big2
@@ -571,23 +300,8 @@ bigdecimal: context [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[bigdecimal!]
-		/local
-			b1used			[integer!]
-			b2used			[integer!]
-			big				[bigdecimal!]
 	][
-		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
-		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
-
-		if b1used < b2used [return null]
-
-		big: copy* big1
-		big/used: b1used
-
-		sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
-
-		shrink big
-		big
+		as bigdecimal! bigint/absolute-sub as bigint! big1 as bigint! big2
 	]
 
 	add: func [
@@ -595,54 +309,8 @@ bigdecimal: context [
 		big2				[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			b1sign			[integer!]
-			b2sign			[integer!]
-			big				[bigdecimal!]
-			p				[int-ptr!]
 	][
-		if all [zero?* big1 zero?* big2][
-			if free? [free* big1]
-			return load-int 0
-		]
-		if zero?* big1 [
-			big: copy* big2
-			if free? [free* big1]
-			return big
-		]
-		if zero?* big2 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		b1sign: either big1/used >= 0 [1][-1]
-		b2sign: either big2/used >= 0 [1][-1]
-
-		either b1sign <> b2sign [
-			either (absolute-compare big1 big2) >= 0 [
-				big: absolute-sub big1 big2
-				if b1sign = -1 [big/used: 0 - big/used]
-			][
-				big: absolute-sub big2 big1
-				if b2sign = -1 [big/used: 0 - big/used]
-			]
-		][
-			either (absolute-compare big1 big2) >= 0 [
-				big: absolute-add big1 big2
-			][
-				big: absolute-add big2 big1
-			]
-			if b1sign = -1 [big/used: 0 - big/used]
-		]
-		if big/used = -1 [
-			p: as int-ptr! (big + 1)
-			if p/1 = 0 [
-				big/used: 1
-			]
-		]
-		if free? [free* big1]
-		big
+		as bigdecimal! bigint/add as bigint! big1 as bigint! big2 free?
 	]
 
 	sub: func [
@@ -650,55 +318,8 @@ bigdecimal: context [
 		big2				[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			b1sign			[integer!]
-			b2sign			[integer!]
-			big				[bigdecimal!]
-			p				[int-ptr!]
 	][
-		if all [zero?* big1 zero?* big2][
-			if free? [free* big1]
-			return load-int 0
-		]
-		if zero?* big1 [
-			big: copy* big2
-			big/used: 0 - big/used
-			if free? [free* big1]
-			return big
-		]
-		if zero?* big2 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		b1sign: either big1/used >= 0 [1][-1]
-		b2sign: either big2/used >= 0 [1][-1]
-
-		either b1sign = b2sign [
-			either (absolute-compare big1 big2) >= 0 [
-				big: absolute-sub big1 big2
-				if b1sign = -1 [big/used: 0 - big/used]
-			][
-				big: absolute-sub big2 big1
-				if b1sign = 1 [big/used: 0 - big/used]
-			]
-		][
-			either (absolute-compare big1 big2) >= 0 [
-				big: absolute-add big1 big2
-			][
-				big: absolute-add big2 big1
-			]
-			if b1sign = -1 [big/used: 0 - big/used]
-		]
-		if big/used = -1 [
-			p: as int-ptr! (big + 1)
-			if p/1 = 0 [
-				big/used: 1
-			]
-		]
-		if free? [free* big1]
-		big
+		as bigdecimal! bigint/sub as bigint! big1 as bigint! big2 free?
 	]
 
 	add-int: func [
@@ -706,28 +327,8 @@ bigdecimal: context [
 		int					[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
 	][
-		if all [zero?* big1 int = 0][
-			if free? [free* big1]
-			return load-int 0
-		]
-		if zero?* big1 [
-			if free? [free* big1]
-			return load-int int
-		]
-		if int = 0 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		big: load-int int
-		ret: add big1 big free?
-		free* big
-		ret
+		as bigdecimal! bigint/add-int as bigint! big1 int free?
 	]
 
 	add-uint: func [
@@ -735,28 +336,8 @@ bigdecimal: context [
 		uint				[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
 	][
-		if all [zero?* big1 uint = 0][
-			if free? [free* big1]
-			return load-uint 0
-		]
-		if zero?* big1 [
-			if free? [free* big1]
-			return load-uint uint
-		]
-		if uint = 0 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		big: load-uint uint
-		ret: add big1 big free?
-		free* big
-		ret
+		as bigdecimal! bigint/add-uint as bigint! big1 uint free?
 	]
 
 	sub-int: func [
@@ -764,28 +345,8 @@ bigdecimal: context [
 		int					[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
 	][
-		if all [zero?* big1 int = 0][
-			if free? [free* big1]
-			return load-int 0
-		]
-		if zero?* big1 [
-			if free? [free* big1]
-			return load-int 0 - int
-		]
-		if int = 0 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		big: load-int int
-		ret: sub big1 big free?
-		free* big
-		ret
+		as bigdecimal! bigint/sub-int as bigint! big1 int free?
 	]
 
 	sub-uint: func [
@@ -793,137 +354,16 @@ bigdecimal: context [
 		uint				[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
 	][
-		if all [zero?* big1 uint = 0][
-			if free? [free* big1]
-			return load-uint 0
-		]
-		if zero?* big1 [
-			big: load-uint uint
-			big/used: 0 - big/used
-			if free? [free* big1]
-			return big
-		]
-		if uint = 0 [
-			big: copy* big1
-			if free? [free* big1]
-			return big
-		]
-
-		big: load-uint uint
-		ret: sub big1 big free?
-		free* big
-		ret
-	]
-
-	mul-hlp: func [
-		i					[integer!]
-		s					[int-ptr!]
-		d					[int-ptr!]
-		b					[integer!]
-		/local
-			c				[integer!]
-			t				[integer!]
-			s0				[integer!]
-			s1				[integer!]
-			b0				[integer!]
-			b1				[integer!]
-			r0				[integer!]
-			r1				[integer!]
-			rx				[integer!]
-			ry				[integer!]
-	][
-		c: 0
-		t: 0
-
-		while [i >= 16][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			MULADDC_STOP
-			i: i - 16
-		]
-
-		while [i >= 8][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_STOP
-			i: i - 8
-		]
-
-		while [i > 0][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE
-			DEC_MULADDC_STOP
-			i: i - 1
-		]
-
-		t: t + 1
-
-		until [
-			d/1: d/1 + c
-			c: 0
-			unless bigint/uint-less d/1 DECIMAL-BASE [
-				c: 1
-				d/1: d/1 - DECIMAL-BASE
-			]
-			d: d + 1
-			c = 0
-		]
+		as bigdecimal! bigint/sub-uint as bigint! big1 uint free?
 	]
 
 	absolute-mul: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[bigdecimal!]
-		/local
-			b1used			[integer!]
-			b2used			[integer!]
-			p1				[int-ptr!]
-			p2				[int-ptr!]
-			big				[bigdecimal!]
-			p				[int-ptr!]
-			pt				[int-ptr!]
-			len				[integer!]
 	][
-		if any [zero?* big1 zero?* big2][
-			return load-int 0
-		]
-
-		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
-		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
-		p1: as int-ptr! (big1 + 1)
-		p2: as int-ptr! (big2 + 1)
-
-		len: b1used + b2used + 1
-		big: alloc* len
-		big/used: len
-		p: as int-ptr! (big + 1)
-
-		b1used: b1used + 1
-		while [b2used > 0]
-		[
-			pt: p2 + b2used - 1
-			mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
-			b2used: b2used - 1
-		]
-
-		shrink big
-		big
+		as bigdecimal! bigint/absolute-mul as bigint! big1 as bigint! big2
 	]
 
 	mul: func [
@@ -931,28 +371,8 @@ bigdecimal: context [
 		big2				[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			b1sign			[integer!]
-			b2sign			[integer!]
-			big				[bigdecimal!]
 	][
-		if any [zero?* big1 zero?* big2][
-			if free? [free* big1]
-			return load-int 0
-		]
-
-		b1sign: either big1/used >= 0 [1][-1]
-		b2sign: either big2/used >= 0 [1][-1]
-
-		either (absolute-compare big1 big2) >= 0 [
-			big: absolute-mul big1 big2
-		][
-			big: absolute-mul big2 big1
-		]
-		if b1sign <> b2sign [big/used: 0 - big/used]
-
-		if free? [free* big1]
-		big
+		as bigdecimal! bigint/mul as bigint! big1 as bigint! big2 free?
 	]
 
 	mul-int: func [
@@ -960,19 +380,8 @@ bigdecimal: context [
 		int					[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
 	][
-		if any [big1/used = 0 int = 0][
-			if free? [free* big1]
-			return load-int 0
-		]
-
-		big: load-int int
-		ret: mul big1 big free?
-		free* big
-		ret
+		as bigdecimal! bigint/mul-int as bigint! big1 int free?
 	]
 
 	mul-uint: func [
@@ -984,15 +393,7 @@ bigdecimal: context [
 			big				[bigdecimal!]
 			ret				[bigdecimal!]
 	][
-		if any [zero?* big1 uint = 0][
-			if free? [free* big1]
-			return load-int 0
-		]
-
-		big: load-uint uint
-		ret: mul big1 big free?
-		free* big
-		ret
+		as bigdecimal! bigint/mul-uint as bigint! big1 uint free?
 	]
 
 	form-unit: func [
