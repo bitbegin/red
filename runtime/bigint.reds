@@ -800,6 +800,7 @@ bigint: context [
 			b1sign			[integer!]
 			b2sign			[integer!]
 			big				[bigint!]
+			p				[int-ptr!]
 	][
 		if all [zero?* big1 zero?* big2][
 			if free? [free* big1]
@@ -835,6 +836,12 @@ bigint: context [
 			]
 			if b1sign = -1 [big/used: 0 - big/used]
 		]
+		if big/used = -1 [
+			p: as int-ptr! (big + 1)
+			if p/1 = 0 [
+				big/used: 1
+			]
+		]
 		if free? [free* big1]
 		big
 	]
@@ -848,6 +855,7 @@ bigint: context [
 			b1sign			[integer!]
 			b2sign			[integer!]
 			big				[bigint!]
+			p				[int-ptr!]
 	][
 		if all [zero?* big1 zero?* big2][
 			if free? [free* big1]
@@ -883,6 +891,12 @@ bigint: context [
 				big: absolute-add big2 big1
 			]
 			if b1sign = -1 [big/used: 0 - big/used]
+		]
+		if big/used = -1 [
+			p: as int-ptr! (big + 1)
+			if p/1 = 0 [
+				big/used: 1
+			]
 		]
 		if free? [free* big1]
 		big
