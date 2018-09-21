@@ -1458,7 +1458,6 @@ bigint: context [
 			d1				[integer!]
 			q0				[integer!]
 			q1				[integer!]
-			rt				[integer!]
 			rAX				[integer!]
 			r0				[integer!]
 			u0_msw			[integer!]
@@ -1490,9 +1489,8 @@ bigint: context [
 		u0_lsw: u0 and hmask
 
 		q1: 0
-		rt: 0
-		uint-div u1 d1 :q1 :rt
-		r0: u1 - (d1 * q1)
+		r0: 0
+		uint-div u1 d1 :q1 :r0
 
 		while [
 			any [
@@ -1508,9 +1506,8 @@ bigint: context [
 
 		rAX: (u1 * radix) + (u0_msw - (q1 * d))
 		q0: 0
-		rt: 0
-		uint-div rAX d1 :q0 :rt
-		r0: rAX - (q0 * d1)
+		r0: 0
+		uint-div rAX d1 :q0 :r0
 
 		while [
 			any [
