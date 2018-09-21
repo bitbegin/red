@@ -530,6 +530,114 @@ big2: as bigint! 0
 
 ===end-group===
 
+===start-group=== "uint-div tests"
+	--test-- "uint-div-test-1"
+		q: 0
+		r: 0
+		bigint/uint-div 0 1 :q :r
+		--assert q = 0
+		--assert r = 0
+
+	--test-- "uint-div-test-2"
+		q: 0
+		r: 0
+		bigint/uint-div 1 1 :q :r
+		--assert q = 1
+		--assert r = 0
+
+	--test-- "uint-div-test-3"
+		q: 0
+		r: 0
+		bigint/uint-div 7FFFFFFFh 00000001h :q :r
+		--assert q = 7FFFFFFFh
+		--assert r = 0
+
+	--test-- "uint-div-test-4"
+		q: 0
+		r: 0
+		bigint/uint-div 7FFFFFFFh 00000010h :q :r
+		--assert q = 07FFFFFFh
+		--assert r = 0Fh
+
+	--test-- "uint-div-test-5"
+		q: 0
+		r: 0
+		bigint/uint-div 7FFFFFFFh 00000100h :q :r
+		--assert q = 007FFFFFh
+		--assert r = 00FFh
+
+	--test-- "uint-div-test-6"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00000001h :q :r
+		--assert q = FFFFFFFFh
+		--assert r = 0
+
+	--test-- "uint-div-test-7"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00000010h :q :r
+		--assert q = 0FFFFFFFh
+		--assert r = 0Fh
+
+	--test-- "uint-div-test-8"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00000100h :q :r
+		--assert q = 00FFFFFFh
+		--assert r = 00FFh
+
+	--test-- "uint-div-test-9"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00001000h :q :r
+		--assert q = 000FFFFFh
+		--assert r = 0FFFh
+
+	--test-- "uint-div-test-10"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00010000h :q :r
+		--assert q = 0000FFFFh
+		--assert r = FFFFh
+
+	--test-- "uint-div-test-11"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 00100000h :q :r
+		--assert q = 00000FFFh
+		--assert r = 000FFFFFh
+
+	--test-- "uint-div-test-12"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 01000000h :q :r
+		--assert q = 000000FFh
+		--assert r = 00FFFFFFh
+
+	--test-- "uint-div-test-13"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 10000000h :q :r
+		--assert q = 0000000Fh
+		--assert r = 0FFFFFFFh
+
+	--test-- "uint-div-test-14"
+		q: 0
+		r: 0
+		bigint/uint-div FFFFFFFFh 80000000h :q :r
+		--assert q = 1
+		--assert r = 7FFFFFFFh
+
+	--test-- "uint-div-test-15"
+		q: 0
+		r: 0
+		bigint/uint-div 80000000h FFFFh :q :r
+		--assert q = 8000h
+		--assert r = 8000h
+
+===end-group===
+
 ===start-group=== "long-divide tests"
 	--test-- "long-divide-test-1"
 		r: 0

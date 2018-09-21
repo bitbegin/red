@@ -1417,26 +1417,68 @@ bigint: context [
 		r					[int-ptr!]
 		return:				[logic!]
 		/local
+			ah				[integer!]
+			al				[integer!]
+			bh				[integer!]
+			bl				[integer!]
+			qh				[integer!]
+			ql				[integer!]
+			rh				[integer!]
+			rl				[integer!]
+			a2				[integer!]
 			i				[integer!]
 	][
 		if b = 0 [
 			return false
 		]
 
-		if all [a > 0 b > 0][
-			q/value: a / b
-			r/value: a % b
-			return true
-		]
-
-		;-- all [a > 0 b < 0] or [a < b < 0]
+		;-- [a > 0 b < 0] or [b > a > 0] or [a < b < 0]
 		if uint-less a b [
 			q/value: 0
 			r/value: a
 			return true
 		]
 
-		;-- only need to process [b < a < 0] and [a < 0 b > 0]
+		;-- [a > 0 b > 0]
+		if all [a > 0 b > 0][
+			q/value: a / b
+			r/value: a % b
+			return true
+		]
+
+		;-- [a < 0 b > 0]
+		if all [a < 0 b > 0][
+			ah: a >>> 16
+			al: a and FFFFh
+			bh: b >>> 16
+			bl: b and FFFFh
+			either bh = 0 [
+				if ah >= bl [
+					qh: ah / bl
+					rh: ah % bl
+					a2: (rh << 16) or al
+					ql: a2 / bl
+					q/value: (qh << 16) or ql
+					r/value: a2 % bl
+					return true
+				]
+				ql: 8000h
+				a2: a - (b * ql)
+			][
+				ql: ah / bh / 2
+				a2: a - (b * ql)
+			]
+			while [a2 < 0][
+				a2: a2 - b
+				ql: ql + 1
+			]
+			ql: ql + (a2 / b)
+			q/value: ql
+			r/value: a2 % b
+			return true
+		]
+
+		;-- [b < a < 0]
 		i: 0
 		until [
 			a: a - b
