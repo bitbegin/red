@@ -1644,7 +1644,7 @@ bigint: context [
 			pz/tmp: pz/tmp + 1
 			until [
 				pz/tmp: pz/tmp - 1
-				set-int T1 0
+				;set-int T1 0
 				pt1: as int-ptr! (T1 + 1)
 				pt1/1: either t < 2 [
 					0
@@ -1657,7 +1657,7 @@ bigint: context [
 
 				T1: mul-uint T1 pz/tmp true
 
-				set-int T2 0
+				;set-int T2 0
 				pt2: as int-ptr! (T2 + 1)
 				pt2/1: either i < 3 [
 					0
@@ -1677,6 +1677,7 @@ bigint: context [
 				0 >= compare T1 T2
 			]
 
+			free* T1
 			T1: mul-uint Y pz/tmp false
 			T1: left-shift T1 biL * (tmp - 1) true
 			X: sub X T1 true
