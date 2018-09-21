@@ -1575,20 +1575,17 @@ bigint: context [
 	]
 
 	;-- A = Q * B + R
-	div: func [
+	absolute-div: func [
 		A					[bigint!]
 		B					[bigint!]
 		iQ					[int-ptr!]
 		iR					[int-ptr!]
-		free?				[logic!]
 		return:				[logic!]
 		/local
 			Q				[bigint!]
 			R				[bigint!]
 			Aused			[integer!]
-			Asign			[integer!]
 			Bused			[integer!]
-			Bsign			[integer!]
 			X				[bigint!]
 			Y				[bigint!]
 			Z				[bigint!]
@@ -1617,25 +1614,11 @@ bigint: context [
 				R: copy* A
 				iR/value: as integer! R
 			]
-			if free? [free* A]
 			return true
 		]
 
-		either A/used >= 0 [
-			Asign: 1
-			Aused: A/used
-		][
-			Asign: -1
-			Aused: 0 - A/used
-		]
-
-		either B/used >= 0 [
-			Bsign: 1
-			Bused: B/used
-		][
-			Bsign: -1
-			Bused: 0 - B/used
-		]
+		Aused: either A/used >= 0 [A/used][0 - A/used]
+		Bused: either B/used >= 0 [B/used][0 - B/used]
 
 		X: absolute* A false
 		Y: absolute* B false
@@ -1739,7 +1722,6 @@ bigint: context [
 		either iQ <> null [
 			shrink Z
 			Q: Z
-			if Asign <> Bsign [Q/used: 0 - Q/used]
 			iQ/value: as integer! Q
 		][
 			free* Z
@@ -1748,7 +1730,6 @@ bigint: context [
 		either iR <> null [
 			R: right-shift X k true
 			shrink R
-			if Asign = -1 [R/used: 0 - R/used]
 			iR/value: as integer! R
 		][
 			free* X
@@ -1757,6 +1738,38 @@ bigint: context [
 		free* Y
 		free* T1
 		free* T2
+		true
+	]
+
+	;-- A = Q * B + R
+	div: func [
+		A					[bigint!]
+		B					[bigint!]
+		iQ					[int-ptr!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+		/local
+			Q				[bigint!]
+			R				[bigint!]
+			Asign			[integer!]
+			Bsign			[integer!]
+	][
+		if zero?* B [return false]
+		Asign: either A/used >= 0 [1][-1]
+		Bsign: either B/used >= 0 [1][-1]
+
+		if false = absolute-div A B iQ iR [
+			return false
+		]
+		if iQ <> null [
+			Q: as bigint! iQ/value
+			if all [not zero?* Q Asign <> Bsign][Q/used: 0 - Q/used]
+		]
+		if iR <> null [
+			R: as bigint! iR/value
+			if all [not zero?* R Asign = -1] [R/used: 0 - R/used]
+		]
 		if free? [free* A]
 		true
 	]
