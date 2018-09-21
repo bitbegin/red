@@ -1411,36 +1411,40 @@ bigint: context [
 	]
 
 	uint-div: func [
-		u1					[integer!]
-		u0					[integer!]
+		a					[integer!]
+		b					[integer!]
 		q					[int-ptr!]
 		r					[int-ptr!]
 		return:				[logic!]
 		/local
 			i				[integer!]
 	][
-		if u0 = 0 [
+		if b = 0 [
 			return false
 		]
 
-		if uint-less u1 u0 [
-			q/value: 0
-			r/value: u1
+		if all [a > 0 b > 0][
+			q/value: a / b
+			r/value: a % b
 			return true
 		]
 
+		;-- all [a > 0 b < 0] or [a < b < 0]
+		if uint-less a b [
+			q/value: 0
+			r/value: a
+			return true
+		]
+
+		;-- only need to process [b < a < 0] and [a < 0 b > 0]
 		i: 0
-		while [true] [
-			u1: u1 - u0
+		until [
+			a: a - b
 			i: i + 1
-			if uint-less u1 u0 [
-				q/value: i
-				r/value: u1
-				return true
-			]
+			uint-less a b
 		]
 		q/value: i
-		r/value: 0
+		r/value: a
 		return true
 	]
 
