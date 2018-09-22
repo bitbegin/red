@@ -135,69 +135,22 @@ bigdecimal: context [
 		int					[integer!]
 		return:				[bigdecimal!]
 		/local
-			uint			[integer!]
-			sign			[integer!]
-			big				[bigdecimal!]
-			p				[int-ptr!]
-			q				[integer!]
-			r				[integer!]
+			ret				[bigdecimal!]
 	][
-		either int >= 0 [
-			uint: int
-			sign: 1
-		][
-			uint: 0 - int
-			sign: -1
-		]
-		if bigint/uint-less uint DECIMAL-BASE [
-			big: alloc* 1
-			if big = null [return null]
-			big/used: either sign > 0 [1][-1]
-			p: as int-ptr! (big + 1)
-			p/1: uint
-			return big
-		]
-		q: 0 r: 0
-		if false = bigint/uint-div uint DECIMAL-BASE :q :r [
-			return null
-		]
-		big: alloc* 2
-		if big = null [return null]
-		big/used: either sign > 0 [2][-2]
-		p: as int-ptr! (big + 1)
-		p/1: r
-		p/2: q
-		big
+		ret: as bigdecimal! bigint/dec-load-int int
+		ret/prec: default-prec
+		ret
 	]
 
 	load-uint: func [
 		uint				[integer!]
 		return:				[bigdecimal!]
 		/local
-			big				[bigdecimal!]
-			p				[int-ptr!]
-			q				[integer!]
-			r				[integer!]
+			ret				[bigdecimal!]
 	][
-		if bigint/uint-less uint DECIMAL-BASE [
-			big: alloc* 1
-			if big = null [return null]
-			big/used: 1
-			p: as int-ptr! (big + 1)
-			p/1: uint
-			return big
-		]
-		q: 0 r: 0
-		if false = bigint/uint-div uint DECIMAL-BASE :q :r [
-			return null
-		]
-		big: alloc* 2
-		if big = null [return null]
-		big/used: 2
-		p: as int-ptr! (big + 1)
-		p/1: r
-		p/2: q
-		big
+		ret: as bigdecimal! bigint/dec-load-uint uint
+		ret/prec: default-prec
+		ret
 	]
 
 	shrink: func [
@@ -411,6 +364,39 @@ bigdecimal: context [
 			ret				[bigdecimal!]
 	][
 		as bigdecimal! bigint/mul-uint as bigint! big1 uint free?
+	]
+
+	div: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		iQ					[int-ptr!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/div as bigint! big1 as bigint! big2 iQ iR free?
+	]
+
+	div-int: func [
+		big1				[bigdecimal!]
+		int					[integer!]
+		iQ					[int-ptr!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/div-int as bigint! big1 int iQ iR free?
+	]
+
+	div-uint: func [
+		big1				[bigdecimal!]
+		uint				[integer!]
+		iQ					[int-ptr!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/div-uint as bigint! big1 uint iQ iR free?
 	]
 
 	#if debug? = yes [
