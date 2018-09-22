@@ -15,6 +15,7 @@ bigint!: alias struct! [
 ]
 
 #define DECIMAL-BASE			100000000
+#define DECIMAL-BASE-LEN		8
 
 bigint: context [
 
@@ -433,14 +434,70 @@ bigint: context [
 		ret
 	]
 
-	byte-len?: func [
+	form-decimal: func [
+		value				[integer!]
+		pad8?				[logic!]
+		return:				[c-string!]
+		/local
+			s				[c-string!]
+			r				[c-string!]
+			m				[c-string!]
+			rem				[integer!]
+			t				[integer!]
+			i				[integer!]
+			rsize			[integer!]
+			j				[integer!]
+			p				[byte-ptr!]
+	][
+		s: "0000000000"
+		r: "0000000000"
+		m: "0123456789"
+
+		if pad8? [copy-memory as byte-ptr! s as byte-ptr! "00000000" 9]
+
+		i: 1
+		rem: value
+		until [
+			t: (rem % 10) + 1
+			s/i: m/t
+			rem: rem / 10
+
+			i: i + 1
+			any [
+				rem = 0
+				all [pad8? i > 8]
+			]
+		]
+		either pad8? [
+			rsize: 8
+		][
+			rsize: i - 1
+			s/i: null-byte
+		]
+
+		j: 1
+		p: as byte-ptr! s + rsize - 1
+		loop rsize [
+			r/j: p/1
+
+			p: p - 1
+			j: j + 1
+		]
+		r/j: null-byte
+		r
+	]
+
+	digit-len?: func [
 		big					[bigint!]
 		return:				[integer!]
 		/local
+			bused			[integer!]
 			ret				[integer!]
 	][
-		ret: bit-len? big
-		ret: (ret + 7) >>> 3
+		bused: either big/used >= 0 [big/used][0 - big/used]
+		if bused = 0 [return 0]
+
+		ret: (bused - 1) * 8 + length? form-decimal bused yes
 		ret
 	]
 
@@ -559,15 +616,6 @@ bigint: context [
 		lr/value: lx
 	]
 
-	set-int: func [
-		big					[bigint!]
-		int					[integer!]
-	][
-		set-memory as byte-ptr! (big + 1) null-byte big/size * 4
-
-		from-int big int
-	]
-
 	left-shift: func [
 		big					[bigint!]
 		count				[integer!]
@@ -582,9 +630,10 @@ bigint: context [
 			r1				[integer!]
 			size			[integer!]
 			pr				[int-ptr!]
-			rused			[integer!]
+			pb				[int-ptr!]
 			p1				[int-ptr!]
 			p2				[int-ptr!]
+			temp			[integer!]
 			ret				[bigint!]
 	][
 		bused: either big/used >= 0 [big/used][0 - big/used]
@@ -608,36 +657,27 @@ bigint: context [
 			size: bused
 		]
 
-		ret: expand* big size
+		ret: alloc* size
+		ret/used: either big/used >= 0 [size][0 - size]
+		ret/expo: big/expo
+		ret/prec: big/prec
 		pr: as int-ptr! (ret + 1)
-		rused: either ret/used >= 0 [ret/used][0 - ret/used]
+		pb: as int-ptr! (big + 1)
 
-		if v0 > 0 [
-			i: rused
-			while [i > v0][
-				p1: pr + i - 1
-				p2: pr + i - v0 - 1
-				p1/1: p2/1
-				i: i - 1
-			]
-
-			while [i > 0][
-				p1: pr + i - 1
-				p1/1: 0
-				i: i - 1
-			]
-		]
-
-		if t1 > 0 [
+		either t1 > 0 [
 			i: v0
-			while [i < rused][
+			while [i < size][
 				p1: pr + i
-				r1: p1/1 >>> (biL - t1)
-				p1/1: p1/1 << t1
+				p2: pb + i - v0
+				temp: either (i - v0) >= bused [0][p2/1]
+				r1: temp >>> (biL - t1)
+				p1/1: temp << t1
 				p1/1: p1/1 or r0
 				r0: r1
 				i: i + 1
 			]
+		][
+			copy-memory as byte-ptr! (pr + v0) as byte-ptr! pb bused * 4
 		]
 
 		if any [
@@ -663,7 +703,7 @@ bigint: context [
 			r0				[integer!]
 			r1				[integer!]
 			pr				[int-ptr!]
-			rused			[integer!]
+			pb				[int-ptr!]
 			p1				[int-ptr!]
 			p2				[int-ptr!]
 			ret				[bigint!]
@@ -689,36 +729,26 @@ bigint: context [
 			return load-int 0
 		]
 
-		ret: copy* big
+		ret: alloc* bused
+		ret/used: big/used
+		ret/expo: big/expo
+		ret/prec: big/prec
 		pr: as int-ptr! (ret + 1)
-		rused: either ret/used >= 0 [ret/used][0 - ret/used]
+		pb: as int-ptr! (big + 1)
 
-		if v0 > 0 [
-			i: 0
-			while [i < (rused - v0)][
-				p1: pr + i
-				p2: pr + i + v0
-				p1/1: p2/1
-				i: i + 1
-			]
-
-			while [i < rused][
-				p1: pr + i
-				p1/1: 0
-				i: i + 1
-			]
-		]
-
-		if v1 > 0 [
-			i: rused
+		either v1 > 0 [
+			i: bused - v0
 			while [i > 0][
 				p1: pr + i - 1
-				r1: p1/1 << (biL - v1)
-				p1/1: p1/1 >>> v1
+				p2: pb + i - 1 + v0
+				r1: p2/1 << (biL - v1)
+				p1/1: p2/1 >>> v1
 				p1/1: p1/1 or r0
 				r0: r1
 				i: i - 1
 			]
+		][
+			copy-memory as byte-ptr! pr as byte-ptr! (pb + v0) (bused - v0) * 4
 		]
 
 		if any [
@@ -1670,7 +1700,6 @@ bigint: context [
 			pz/tmp: pz/tmp + 1
 			until [
 				pz/tmp: pz/tmp - 1
-				;set-int T1 0
 				pt1: as int-ptr! (T1 + 1)
 				pt1/1: either t < 2 [
 					0
@@ -1680,10 +1709,7 @@ bigint: context [
 				]
 				pt1/2: py/t
 				T1/used: 2
-
 				T1: mul-uint T1 pz/tmp true
-
-				;set-int T2 0
 				pt2: as int-ptr! (T2 + 1)
 				pt2/1: either i < 3 [
 					0
