@@ -679,7 +679,10 @@ bigint: context [
 		bused: either big/used >= 0 [big/used][0 - big/used]
 		if bused = 0 [
 			if free? [free* big]
-			return load-int 0
+			ret: load-int 0
+			ret/expo: big/expo
+			ret/prec: big/prec
+			return ret
 		]
 
 		r0: 0
@@ -832,7 +835,91 @@ bigint: context [
 		]
 	]
 
-	right-shift: func [
+	dec-right-shift: func [
+		big					[bigint!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			bused			[integer!]
+			i				[integer!]
+			v0				[integer!]
+			v1				[integer!]
+			r0				[integer!]
+			r1				[integer!]
+			pr				[int-ptr!]
+			pb				[int-ptr!]
+			p1				[int-ptr!]
+			p2				[int-ptr!]
+			ev1				[integer!]
+			ev2				[integer!]
+			q				[integer!]
+			r				[integer!]
+			ret				[bigint!]
+	][
+		bused: either big/used >= 0 [big/used][0 - big/used]
+		if big/used = 0 [
+			if free? [free* big]
+			ret: load-int 0
+			ret/expo: big/expo
+			ret/prec: big/prec
+			return ret
+		]
+
+		r0: 0
+		v0: count / DECIMAL-BASE-LEN
+		v1: count and (DECIMAL-BASE-LEN - 1)
+
+		if any [
+			v0 > bused
+			all [
+				v0 = bused
+				v1 > 0
+			]
+		][
+			if free? [free* big]
+			ret: load-int 0
+			ret/expo: big/expo
+			ret/prec: big/prec
+			return ret
+		]
+
+		ret: alloc* bused
+		ret/used: big/used
+		ret/expo: big/expo
+		ret/prec: big/prec
+		pr: as int-ptr! (ret + 1)
+		pb: as int-ptr! (big + 1)
+
+		either v1 > 0 [
+			ev1: dec-exp v1
+			ev2: dec-exp (8 - v1)
+			i: bused - v0
+			while [i > 0][
+				p1: pr + i - 1
+				p2: pb + i - 1 + v0
+				p1/1: r0 * ev2
+				q: 0 r: 0
+				uint-div p2/1 ev1 :q :r
+				p1/1: p1/1 + q
+				r0: r
+				i: i - 1
+			]
+		][
+			copy-memory as byte-ptr! pr as byte-ptr! (pb + v0) (bused - v0) * 4
+		]
+
+		if any [
+			v0 > 0
+			v1 > 0
+		][
+			shrink ret
+		]
+		if free? [free* big]
+		ret
+	]
+
+	bin-right-shift: func [
 		big					[bigint!]
 		count				[integer!]
 		free?				[logic!]
@@ -901,6 +988,23 @@ bigint: context [
 		]
 		if free? [free* big]
 		ret
+	]
+
+	right-shift: func [
+		big					[bigint!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+	][
+		either big = null [
+			return null
+		][
+			either big/prec = 0 [
+				return bin-right-shift big count free?
+			][
+				return dec-right-shift big count free?
+			]
+		]
 	]
 
 	dec-absolute-add: func [

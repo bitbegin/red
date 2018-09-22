@@ -215,6 +215,15 @@ bigdecimal: context [
 		as bigdecimal! bigint/left-shift big count free?
 	]
 
+	right-shift: func [
+		big					[bigdecimal!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		as bigdecimal! bigint/right-shift big count free?
+	]
+
 	zero?*: func [
 		big					[bigdecimal!]
 		return:				[logic!]
