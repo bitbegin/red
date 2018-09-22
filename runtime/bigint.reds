@@ -487,17 +487,35 @@ bigint: context [
 		r
 	]
 
+	base10-len?: func [
+		uint				[integer!]
+		return:				[integer!]
+	][
+		if bigint/uint-less uint 10 [return 1]
+		if bigint/uint-less uint 100 [return 2]
+		if bigint/uint-less uint 1000 [return 3]
+		if bigint/uint-less uint 10000 [return 4]
+		if bigint/uint-less uint 100000 [return 5]
+		if bigint/uint-less uint 1000000 [return 6]
+		if bigint/uint-less uint 10000000 [return 7]
+		if bigint/uint-less uint 100000000 [return 8]
+		if bigint/uint-less uint 1000000000 [return 9]
+		10
+	]
+
 	digit-len?: func [
 		big					[bigint!]
 		return:				[integer!]
 		/local
 			bused			[integer!]
+			p				[int-ptr!]
 			ret				[integer!]
 	][
 		bused: either big/used >= 0 [big/used][0 - big/used]
 		if bused = 0 [return 0]
 
-		ret: (bused - 1) * 8 + length? form-decimal bused yes
+		p: as int-ptr! (big + 1)
+		ret: (bused - 1) * DECIMAL-BASE-LEN + base10-len? p/bused
 		ret
 	]
 
@@ -616,7 +634,114 @@ bigint: context [
 		lr/value: lx
 	]
 
-	left-shift: func [
+	dec-exp: func [
+		expo				[integer!]
+		return:				[integer!]
+	][
+		switch expo [
+			0				[1]
+			1				[10]
+			2				[100]
+			3				[1000]
+			4				[10000]
+			5				[100000]
+			6				[1000000]
+			7				[10000000]
+			8				[100000000]
+			default			[0]
+		]
+	]
+
+	dec-left-shift: func [
+		big					[bigint!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			bused			[integer!]
+			i				[integer!]
+			v0				[integer!]
+			t1				[integer!]
+			r0				[integer!]
+			r1				[integer!]
+			size			[integer!]
+			pr				[int-ptr!]
+			pb				[int-ptr!]
+			p1				[int-ptr!]
+			p2				[int-ptr!]
+			temp			[integer!]
+			mh				[integer!]
+			ml				[integer!]
+			q				[integer!]
+			r				[integer!]
+			ret				[bigint!]
+	][
+		bused: either big/used >= 0 [big/used][0 - big/used]
+		if bused = 0 [
+			if free? [free* big]
+			return load-int 0
+		]
+
+		r0: 0
+		v0: count / DECIMAL-BASE-LEN
+		t1: count and (DECIMAL-BASE-LEN - 1)
+		i: digit-len? big
+		i: i + count
+
+		either (bused * DECIMAL-BASE-LEN) < i [
+			size: i / DECIMAL-BASE-LEN
+			if i % DECIMAL-BASE-LEN <> 0 [
+				size: size + 1
+			]
+		][
+			size: bused
+		]
+
+		ret: alloc* size
+		ret/used: either big/used >= 0 [size][0 - size]
+		ret/expo: big/expo
+		ret/prec: big/prec
+		pr: as int-ptr! (ret + 1)
+		pb: as int-ptr! (big + 1)
+
+		either t1 > 0 [
+			i: v0
+			while [i < size][
+				p1: pr + i
+				p2: pb + i - v0
+				temp: either (i - v0) >= bused [0][p2/1]
+				mh: 0 ml: 0
+				uint-mul temp dec-exp t1 :mh :ml
+				either mh = 0 [
+					q: 0 r: 0
+					uint-div ml DECIMAL-BASE :q :r
+				][
+					r: 0
+					q: long-divide mh ml DECIMAL-BASE :r
+				]
+				p1/1: r + r0
+				if p1/1 >= DECIMAL-BASE [
+					q: q + 1
+					p1/1: p1/1 - DECIMAL-BASE
+				]
+				r0: q
+				i: i + 1
+			]
+		][
+			copy-memory as byte-ptr! (pr + v0) as byte-ptr! pb bused * 4
+		]
+
+		if any [
+			v0 > 0
+			t1 > 0
+		][
+			shrink ret
+		]
+		if free? [free* big]
+		ret
+	]
+
+	bin-left-shift: func [
 		big					[bigint!]
 		count				[integer!]
 		free?				[logic!]
@@ -688,6 +813,23 @@ bigint: context [
 		]
 		if free? [free* big]
 		ret
+	]
+
+	left-shift: func [
+		big					[bigint!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+	][
+		either big = null [
+			return null
+		][
+			either big/prec = 0 [
+				return bin-left-shift big count free?
+			][
+				return dec-left-shift big count free?
+			]
+		]
 	]
 
 	right-shift: func [
@@ -781,6 +923,8 @@ bigint: context [
 
 		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
 		big/used: b1used
+		big/expo: big1/expo
+		big/prec: big1/prec
 		p: as int-ptr! (big + 1)
 
 
@@ -840,6 +984,8 @@ bigint: context [
 
 		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
 		big/used: b1used
+		big/expo: big1/expo
+		big/prec: big1/prec
 		p: as int-ptr! (big + 1)
 
 		c: 0
@@ -957,6 +1103,8 @@ bigint: context [
 
 		big: copy* big1
 		big/used: b1used
+		big/expo: big1/expo
+		big/prec: big1/prec
 
 		either any [big1/prec = 0 big2/prec = 0][
 			sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
@@ -1353,6 +1501,8 @@ bigint: context [
 		len: b1used + b2used + 1
 		big: alloc* len
 		big/used: len
+		big/expo: big1/expo
+		big/prec: big1/prec
 		p: as int-ptr! (big + 1)
 
 		b1used: b1used + 1
@@ -1638,6 +1788,8 @@ bigint: context [
 		if 0 > absolute-compare A B [
 			if iQ <> null [
 				Q: load-int 0
+				Q/expo: A/expo
+				Q/prec: A/prec
 				iQ/value: as integer! Q
 			]
 			if iR <> null [
@@ -1748,6 +1900,8 @@ bigint: context [
 		either iQ <> null [
 			shrink Z
 			Q: Z
+			Q/expo: A/expo
+			Q/prec: A/prec
 			iQ/value: as integer! Q
 		][
 			free* Z
@@ -1755,6 +1909,8 @@ bigint: context [
 
 		either iR <> null [
 			R: right-shift X k true
+			R/expo: A/expo
+			R/prec: A/prec
 			shrink R
 			iR/value: as integer! R
 		][
@@ -2347,7 +2503,39 @@ bigint: context [
 	]
 
 	#if debug? = yes [
-		dump: func [
+		dec-dump: func [
+			big				[bigint!]
+			/local
+				bused		[integer!]
+				bsign		[integer!]
+				p			[int-ptr!]
+				pad8?		[logic!]
+		][
+			print-line [lf "===============dump bigdecimal!==============="]
+			either big = null [
+				print-line "null"
+			][
+				either big/used >= 0 [
+					bsign: 1
+					bused: big/used
+				][
+					bsign: -1
+					bused: 0 - big/used
+				]
+				print-line ["size: " big/size " used: " bused " sign: " bsign " expo: " big/expo " prec: " big/prec]
+				p: as int-ptr! (big + 1)
+				p: p + bused - 1
+				pad8?: false
+				loop bused [
+					print form-decimal p/1 pad8?
+					unless pad8? [pad8?: true]
+					print " "
+					p: p - 1
+				]
+			]
+			print-line [lf "=============dump bigdecimal! end============="]
+		]
+		bin-dump: func [
 			big				[bigint!]
 			/local
 				bused		[integer!]
@@ -2378,6 +2566,19 @@ bigint: context [
 				]
 			]
 			print-line [lf "-------------dump bigint! end-------------"]
+		]
+		dump: func [
+			big				[bigint!]
+		][
+			either big = null [
+				print-line "null"
+			][
+				either big/prec = 0 [
+					bin-dump big
+				][
+					dec-dump big
+				]
+			]
 		]
 	]
 

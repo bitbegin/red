@@ -30,7 +30,6 @@ bigdecimal!: alias struct! [
 ]
 
 bigdecimal: context [
-	#define DECIMAL-BASE-LEN		8
 
 	default-prec: 20
 	exp-min: -1000000000
@@ -205,6 +204,15 @@ bigdecimal: context [
 		big					[bigdecimal!]
 	][
 		bigint/shrink as bigint! big
+	]
+
+	left-shift: func [
+		big					[bigdecimal!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		as bigdecimal! bigint/left-shift big count free?
 	]
 
 	zero?*: func [
@@ -396,91 +404,11 @@ bigdecimal: context [
 		as bigdecimal! bigint/mul-uint as bigint! big1 uint free?
 	]
 
-	form-unit: func [
-		value				[integer!]
-		pad8?				[logic!]
-		return:				[c-string!]
-		/local
-			s				[c-string!]
-			r				[c-string!]
-			m				[c-string!]
-			rem				[integer!]
-			t				[integer!]
-			i				[integer!]
-			rsize			[integer!]
-			j				[integer!]
-			p				[byte-ptr!]
-	][
-		s: "0000000000"
-		r: "0000000000"
-		m: "0123456789"
-
-		if pad8? [copy-memory as byte-ptr! s as byte-ptr! "00000000" 9]
-
-		i: 1
-		rem: value
-		until [
-			t: (rem % 10) + 1
-			s/i: m/t
-			rem: rem / 10
-
-			i: i + 1
-			any [
-				rem = 0
-				all [pad8? i > 8]
-			]
-		]
-		either pad8? [
-			rsize: 8
-		][
-			rsize: i - 1
-			s/i: null-byte
-		]
-
-		j: 1
-		p: as byte-ptr! s + rsize - 1
-		loop rsize [
-			r/j: p/1
-
-			p: p - 1
-			j: j + 1
-		]
-		r/j: null-byte
-		r
-	]
-
 	#if debug? = yes [
 		dump: func [
 			big				[bigdecimal!]
-			/local
-				bused		[integer!]
-				bsign		[integer!]
-				p			[int-ptr!]
-				pad8?		[logic!]
 		][
-			print-line [lf "===============dump bigdecimal!==============="]
-			either big = null [
-				print-line "null"
-			][
-				either big/used >= 0 [
-					bsign: 1
-					bused: big/used
-				][
-					bsign: -1
-					bused: 0 - big/used
-				]
-				print-line ["size: " big/size " used: " bused " sign: " bsign " expo: " big/expo " prec: " big/prec]
-				p: as int-ptr! (big + 1)
-				p: p + bused - 1
-				pad8?: false
-				loop bused [
-					print form-unit p/1 pad8?
-					unless pad8? [pad8?: true]
-					print " "
-					p: p - 1
-				]
-			]
-			print-line [lf "=============dump bigdecimal! end============="]
+			bigint/dump as bigint! big
 		]
 	]
 
