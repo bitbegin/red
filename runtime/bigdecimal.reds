@@ -16,19 +16,6 @@ bigdecimal!: alias struct! [
 	prec		[integer!]
 ]
 
-#enum ROUNDING! [
-	ROUND-UP							;Rounds away from zero
-	ROUND-DOWN							;Rounds towards zero
-	ROUND-CEIL							;Rounds towards Infinity
-	ROUND-FLOOR							;Rounds towards -Infinity
-	ROUND-HALF-UP						;Rounds towards nearest neighbour. If equidistant, rounds away from zero
-	ROUND-HALF-DOWN						;Rounds towards nearest neighbour. If equidistant, rounds towards zero
-	ROUND-HALF-EVEN						;Rounds towards nearest neighbour. If equidistant, rounds towards even neighbour
-	ROUND-HALF-ODD						;Rounds towards nearest neighbour. If equidistant, rounds towards odd neighbour
-	ROUND-HALF-CEIL						;Rounds towards nearest neighbour. If equidistant, rounds towards Infinity
-	ROUND-HALF-FLOOR					;Rounds towards nearest neighbour. If equidistant, rounds towards -Infinity
-]
-
 bigdecimal: context [
 
 	default-prec: 20
@@ -397,6 +384,36 @@ bigdecimal: context [
 		return:				[logic!]
 	][
 		bigint/div-uint as bigint! big1 uint iQ iR free?
+	]
+
+	modulo: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/modulo as bigint! big1 as bigint! big2 iR free?
+	]
+
+	modulo-int: func [
+		big1				[bigdecimal!]
+		int					[integer!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/modulo-int as bigint! big1 int iR free?
+	]
+
+	modulo-uint: func [
+		big1				[bigdecimal!]
+		uint				[integer!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		bigint/modulo-uint as bigint! big1 uint iR free?
 	]
 
 	#if debug? = yes [

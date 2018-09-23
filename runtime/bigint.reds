@@ -14,10 +14,25 @@ bigint!: alias struct! [
 	prec		[integer!]
 ]
 
-#define DECIMAL-BASE			100000000
-#define DECIMAL-BASE-LEN		8
+#enum ROUNDING! [
+	ROUND-UP							;Rounds away from zero
+	ROUND-DOWN							;Rounds towards zero
+	ROUND-CEIL							;Rounds towards Infinity
+	ROUND-FLOOR							;Rounds towards -Infinity
+	ROUND-HALF-UP						;Rounds towards nearest neighbour. If equidistant, rounds away from zero
+	ROUND-HALF-DOWN						;Rounds towards nearest neighbour. If equidistant, rounds towards zero
+	ROUND-HALF-EVEN						;Rounds towards nearest neighbour. If equidistant, rounds towards even neighbour
+	ROUND-HALF-ODD						;Rounds towards nearest neighbour. If equidistant, rounds towards odd neighbour
+	ROUND-HALF-CEIL						;Rounds towards nearest neighbour. If equidistant, rounds towards Infinity
+	ROUND-HALF-FLOOR					;Rounds towards nearest neighbour. If equidistant, rounds towards -Infinity
+]
+
+#define DECIMAL-BASE					100000000
+#define DECIMAL-BASE-LEN				8
 
 bigint: context [
+
+	rounding-mode: ROUND-HALF-UP
 
 	ciL:				4				;-- bigint! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
@@ -2426,155 +2441,187 @@ bigint: context [
 		free?				[logic!]
 		return:				[logic!]
 		/local
+			iQ2				[integer!]
 			iR2				[integer!]
-			R				[bigint!]
+			Q2				[bigint!]
+			R2				[bigint!]
+			R3				[bigint!]
+			iC				[integer!]
+			C				[bigint!]
+			pc				[int-ptr!]
+			pq				[int-ptr!]
+			qused			[integer!]
+			qeven?			[logic!]
 			BT				[bigint!]
 	][
 		if zero?* B [
 			return false
 		]
 
+		iQ2: 0
 		iR2: 0
-		if false = div A B null :iR2 false [
+		if false = div A B :iQ2 :iR2 false [
 			return false
 		]
-		R: as bigint! iR2
+		Q2: as bigint! iQ2
+		R2: as bigint! iR2
 
-		if 0 > compare-int R 0 [
-			BT: add B R false
-			free* R
-			R: BT
+		if zero?* R2 [
+			free* Q2
+			iR/value: as integer! R2
+			if free? [free* A]
+			return true
 		]
 
-		if 0 <= compare R B [
-			BT: sub B R false
-			free* R
-			R: BT
+		R3: mul-int R2 10 false
+		iC: 0
+		absolute-div R3 B :iC null
+		C: as bigint! iC
+		pc: as int-ptr! (C + 1)
+		pq: as int-ptr! (Q2 + 1)
+		qused: either Q2/used >= 0 [Q2/used][0 - Q2/used]
+		qeven?: either (pq/qused and 1) = 1 [false][true]
+		switch rounding-mode [
+			ROUND-UP			[
+				either positive?* Q2 [
+					R2: sub R2 B true
+				][
+					R2: add R2 B true
+				]
+			]
+			ROUND-DOWN			[]
+			ROUND-CEIL			[
+				if positive?* Q2 [
+					R2: sub R2 B true
+				]
+			]
+			ROUND-FLOOR			[
+				if negative?* Q2 [
+					R2: add R2 B true
+				]
+			]
+			ROUND-HALF-UP		[
+				if pc/1 >= 5 [
+					either positive?* Q2 [
+						R2: sub R2 B true
+					][
+						R2: add R2 B true
+					]
+				]
+			]
+			ROUND-HALF-DOWN		[
+				if pc/1 > 5 [
+					either positive?* Q2 [
+						R2: sub R2 B true
+					][
+						R2: add R2 B true
+					]
+				]
+			]
+			ROUND-HALF-EVEN		[
+				if any [
+					pc/1 > 5
+					all [
+						pc/1 = 5
+						not qeven?
+					]
+				][
+					either positive?* Q2 [
+						R2: sub R2 B true
+					][
+						R2: add R2 B true
+					]
+				]
+			]
+			ROUND-HALF-ODD		[
+				if any [
+					pc/1 > 5
+					all [
+						pc/1 = 5
+						qeven?
+					]
+				][
+					either positive?* Q2 [
+						R2: sub R2 B true
+					][
+						R2: add R2 B true
+					]
+				]
+			]
+			ROUND-HALF-CEIL		[
+				case [
+					pc/1 > 5 [
+						either positive?* Q2 [
+							R2: sub R2 B true
+						][
+							R2: add R2 B true
+						]
+					]
+					pc/1 = 5 [
+						if positive?* Q2 [
+							R2: sub R2 B true
+						]
+					]
+					true []
+				]
+			]
+			ROUND-HALF-FLOOR	[
+				case [
+					pc/1 > 5 [
+						either positive?* Q2 [
+							R2: sub R2 B true
+						][
+							R2: add R2 B true
+						]
+					]
+					pc/1 = 5 [
+						if negative?* Q2 [
+							R2: add R2 B true
+						]
+					]
+					true []
+				]
+			]
 		]
 
-		iR/value: as integer! R
+		free* Q2
+		free* R3
+		free* C
+		iR/value: as integer! R2
 		if free? [free* A]
 		true
 	]
 
 	modulo-int: func [
 		A					[bigint!]
-		b					[integer!]
+		int					[integer!]
 		iR					[int-ptr!]
 		free?				[logic!]
 		return:				[logic!]
 		/local
-			p				[int-ptr!]
-			Aused			[integer!]
-			Asign			[integer!]
-			x				[integer!]
-			y				[integer!]
-			z				[integer!]
-			rt				[integer!]
+			big				[bigint!]
+			ret				[logic!]
 	][
-		if b = 0 [
-			return false
-		]
-
-		if b = 1 [
-			iR/value: 0
-			if free? [free* A]
-			return true
-		]
-
-		p: as int-ptr! (A + 1)
-		if b = 2 [
-			iR/value: p/1 and 1
-			if free? [free* A]
-			return true
-		]
-
-		either A/used >= 0 [
-			Asign: 1
-			Aused: A/used
-		][
-			Asign: -1
-			Aused: 0 - A/used
-		]
-
-		y: 0
-		p: p + Aused - 1
-		loop Aused [
-			x: p/1
-			y: (y << biLH) or (x >>> biLH)
-			z: 0
-			rt: 0
-			if false = uint-div y b :z :rt [
-				iR/value: -1
-				if free? [free* A]
-				return true
-			]
-			y: y - (z * b)
-
-			x: x << biLH
-			y: (y << biLH) or (x >>> biLH)
-			z: 0
-			rt: 0
-			if false = uint-div y b :z :rt [
-				iR/value: -1
-				if free? [free* A]
-				return true
-			]
-			y: y - (z * b)
-
-			p: p - 1
-		]
-
-		if all [
-			Asign < 0
-			y <> 0
-		][
-			y: b - y
-		]
-		iR/value: y
-		if free? [free* A]
-		return true
+		big: either A/prec = 0 [load-int int][dec-load-int int]
+		ret: modulo A big iR free?
+		free* big
+		ret
 	]
 
-	;-- behave like rebol
-	mod: func [
+	modulo-uint: func [
 		A					[bigint!]
-		B					[bigint!]
+		uint				[integer!]
 		iR					[int-ptr!]
 		free?				[logic!]
 		return:				[logic!]
 		/local
-			iR2				[integer!]
-			R				[bigint!]
-			T1				[bigint!]
+			big				[bigint!]
+			ret				[logic!]
 	][
-		if zero?* B [
-			return false
-		]
-
-		iR2: 0
-		if false = div A B null :iR2 false [
-			return false
-		]
-		R: as bigint! iR2
-
-		if 0 > compare-int R 0 [
-			R: add R B true
-		]
-
-		T1: add R R false
-		T1: sub T1 B true
-		if all [
-			0 = compare R B
-			positive?* T1
-		][
-			R: sub R B true
-		]
-
-		free* T1
-		iR/value: as integer! R
-		if free? [free* A]
-		true
+		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
+		ret: modulo A big iR free?
+		free* big
+		ret
 	]
 
 	load-bin: func [
