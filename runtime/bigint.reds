@@ -635,7 +635,7 @@ bigint: context [
 			]
 			pb: pb - 1
 		]
-		if nused = 0 [nused: 1]
+		if nused = 0 [nused: 1 bsign: 1]
 		big/used: either bsign > 0 [nused][0 - nused]
 	]
 
