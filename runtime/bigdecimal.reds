@@ -416,6 +416,308 @@ bigdecimal: context [
 		bigint/modulo-uint as bigint! big1 uint iR free?
 	]
 
+	;-- count same char from buffer tail
+	count-char-from-tail: func [
+		str					[byte-ptr!]
+		slen				[integer!]
+		chr					[byte!]
+		return:				[integer!]
+		/local
+			p				[byte-ptr!]
+			cnt				[integer!]
+	][
+		p: str + slen - 1
+		cnt: 0
+		loop slen [
+			either p/1 = chr [cnt: cnt + 1 p: p - 1][break]
+		]
+		cnt
+	]
+
+	;-- count same char from buffer head
+	count-char-from-head: func [
+		str					[byte-ptr!]
+		slen				[integer!]
+		chr					[byte!]
+		return:				[integer!]
+		/local
+			p				[byte-ptr!]
+			cnt				[integer!]
+	][
+		p: str
+		cnt: 0
+		loop slen [
+			either p/1 = chr [cnt: cnt + 1 p: p + 1][break]
+		]
+		cnt
+	]
+
+	str-to-uint: func [
+		str					[c-string!]
+		slen				[integer!]
+		uint				[int-ptr!]
+		return:				[logic!]
+		/local
+			len				[integer!]
+			ret				[integer!]
+			temp			[byte!]
+	][
+		len: DECIMAL-BASE-LEN
+		if slen > 0 [
+			len: either len < slen [len][slen]
+		]
+
+		ret: 0
+		loop len [
+			temp: str/1
+			if any [temp > #"9" temp < #"0"][return false]
+			temp: temp - #"0"
+			ret: ret * 10 + temp
+			str: str + 1
+		]
+		if uint <> null [
+			uint/value: ret
+		]
+		true
+	]
+
+	load-str: func [
+		str					[c-string!]
+		slen				[integer!]
+		return:				[bigdecimal!]
+		/local
+			len				[integer!]
+			sign			[integer!]
+			blen			[integer!]
+			tlen			[integer!]
+			ret				[bigdecimal!]
+			p				[int-ptr!]
+			size			[integer!]
+	][
+		len: length? str
+		if slen > 0 [
+			len: either len < slen [len][slen]
+		]
+
+		case [
+			str/1 = #"+" [sign: 1 str: str + 1 len: len - 1]
+			str/1 = #"-" [sign: -1 str: str + 1 len: len - 1]
+			true []
+		]
+
+		if len = 0 [return load-int 0]
+
+		blen: len / DECIMAL-BASE-LEN
+		tlen: len % DECIMAL-BASE-LEN
+		if tlen <> 0 [blen: blen + 1]
+		ret: alloc* blen
+		ret/used: either sign > 0 [blen][0 - blen]
+		p: as int-ptr! (ret + 1)
+		p: p + blen - 1
+
+		if tlen <> 0[
+			if false = str-to-uint str tlen p [free* ret return load-nan]
+			p: p - 1
+			str: str + tlen
+			len: len - tlen
+		]
+
+		while [len > 0][
+			if false = str-to-uint str DECIMAL-BASE-LEN p [free* ret return load-nan]
+			p: p - 1
+			str: str + DECIMAL-BASE-LEN
+			len: len - DECIMAL-BASE-LEN
+		]
+		shrink ret
+		ret
+	]
+
+	load-float: func [
+		str					[c-string!]
+		slen				[integer!]
+		return:				[bigdecimal!]
+		/local
+			len				[integer!]
+			bak				[c-string!]
+			pos				[integer!]
+			dot?			[logic!]
+			dotp			[integer!]
+			exp?			[logic!]
+			sign			[integer!]
+			exp				[integer!]
+			expp			[integer!]
+			esign			[integer!]
+			intLen			[integer!]
+			ptLen			[integer!]
+			zcnt			[integer!]
+			int-head-zero	[integer!]
+			point-head-zero	[integer!]
+			total			[integer!]
+			temp			[integer!]
+			buffer			[byte-ptr!]
+			ibuf			[integer!]
+			ilen			[integer!]
+			big				[bigdecimal!]
+	][
+		len: length? str
+		if slen > 0 [
+			len: either len < slen [len][slen]
+		]
+
+		if all [
+			len = 6
+			0 = compare-memory as byte-ptr! str as byte-ptr! "1.#INF" 6
+		][
+			return load-inf 1
+		]
+
+		if all [
+			len = 7
+			0 = compare-memory as byte-ptr! str as byte-ptr! "-1.#INF" 7
+		][
+			return load-inf -1
+		]
+
+		if all [
+			len = 6
+			0 = compare-memory as byte-ptr! str as byte-ptr! "1.#NaN" 6
+		][
+			return load-nan
+		]
+
+		bak: str
+		pos: 1
+		dot?: false
+		exp?: false
+		sign: 0
+		case [
+			str/1 = #"-" [sign: -1 pos: pos + 1 str: str + 1]
+			str/1 = #"+" [sign: 1 pos: pos + 1 str: str + 1]
+			true []
+		]
+		until [
+			case [
+				str/1 = #"." [
+					either dot? [
+						return load-nan
+					][
+						dot?: true
+						dotp: pos
+					]
+				]
+				any [str/1 = #"e" str/1 = #"E"][
+					either exp? [
+						return load-nan
+					][
+						exp?: true
+					]
+					expp: pos
+					exp: 0
+					esign: 1
+					pos: pos + 1
+					str: str + 1
+					if pos > len [return load-nan]
+					case [
+						str/1 = #"-" [esign: -1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+						str/1 = #"+" [esign: 1 pos: pos + 1 str: str + 1 if pos > len [return load-nan]]
+						true []
+					]
+
+					while [pos <= len] [
+						if any [str/1 < #"0" str/1 > #"9"][return load-nan]
+						exp: exp * 10 + as integer! (str/1 - #"0")
+						pos: pos + 1
+						str: str + 1
+					]
+				]
+				any [str/1 < #"0" str/1 > #"9"][return load-nan]
+				true []
+			]
+			pos: pos + 1
+			str: str + 1
+			pos > len
+		]
+
+		int-head-zero: 0
+		point-head-zero: 0
+		either exp? [
+			either dot? [
+				intLen: dotp - 1
+				ptLen: expp - dotp - 1
+				zcnt: count-char-from-tail as byte-ptr! bak + dotp ptLen #"0"
+				ptLen: ptLen - zcnt
+				if intLen <= 0 [
+					point-head-zero: count-char-from-head as byte-ptr! bak + dotp ptLen #"0"
+				]
+			][
+				intLen: expp - 1
+				ptLen: 0
+			]
+		][
+			either dot? [
+				intLen: dotp - 1
+				ptLen: len - dotp
+				zcnt: count-char-from-tail as byte-ptr! bak + dotp ptLen #"0"
+				;print-line ["dotp: " dotp " zcnt: " zcnt " ptLen: " ptLen]
+				ptLen: ptLen - zcnt
+				if intLen <= 0 [
+					point-head-zero: count-char-from-head as byte-ptr! bak + dotp ptLen #"0"
+				]
+			][
+				intLen: len
+				ptLen: 0
+			]
+			exp: 0
+		]
+		if any [
+			all [
+				sign = 0
+				intLen > 1
+			]
+			all [
+				sign <> 0
+				intLen > 2
+			]
+		][
+			int-head-zero: count-char-from-head as byte-ptr! bak intLen #"0"
+		]
+
+		;print-line ["esign: " esign " exp: " exp " intLen: " intLen " ptLen: " ptLen]
+		;print-line ["int-head-zero: " int-head-zero " point-head-zero: " point-head-zero]
+		if esign = -1 [
+			exp: 0 - exp
+		]
+		exp: exp - ptLen
+		total: (intLen - int-head-zero) + (ptLen - point-head-zero)
+
+		temp: total - 1 + exp
+		if sign <> 0 [
+			temp: temp - 1
+		]
+		if any [
+			temp < exp-min
+			temp > exp-max
+		][
+			if sign = -1 [return load-inf -1]
+			return load-inf 1
+		]
+
+		buffer: allocate total
+		if (intLen - int-head-zero) > 0 [
+			copy-memory buffer as byte-ptr! bak + int-head-zero intLen - int-head-zero
+		]
+		if all [dot? (ptLen - point-head-zero) > 0] [
+			copy-memory buffer + (intLen - int-head-zero) as byte-ptr! bak + dotp + point-head-zero ptLen - point-head-zero
+		]
+
+		big: load-str as c-string! buffer total
+		big/expo: exp
+
+		free buffer
+		;big: round big true
+		big
+	]
+
 	#if debug? = yes [
 		dump: func [
 			big				[bigdecimal!]
