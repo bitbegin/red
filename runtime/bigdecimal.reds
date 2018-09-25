@@ -221,9 +221,15 @@ bigdecimal: context [
 		big					[bigdecimal!]
 		return:				[logic!]
 		/local
-			bused			[integer!]
-			pb				[int-ptr!]
+			expo			[integer!]
 	][
+		expo: big/expo
+		if any [
+			expo = 7FFFFFFFh
+			expo = 80000000h
+		][
+			return false
+		]
 		bigint/zero?* as bigint! big
 	]
 
@@ -469,6 +475,20 @@ bigdecimal: context [
 		bigint/modulo-uint as bigint! big1 uint iR free?
 	]
 
+	digit-at: func [
+		uint				[integer!]
+		index				[integer!]
+		return:				[integer!]
+		/local
+			ret				[integer!]
+	][
+		ret: uint % bigint/dec-exp index + 1
+		if index > 0 [
+			ret: ret / bigint/dec-exp index
+		]
+		ret
+	]
+
 	round: func [
 		big					[bigdecimal!]
 		free?				[logic!]
@@ -494,18 +514,21 @@ bigdecimal: context [
 			bsign: -1
 		]
 		slen: bigint/digit-len? as bigint! big
-		if slen <= bprec [return big]
+		if slen <= bprec [
+			ret: shrink-exp big free?
+			return ret
+		]
 		pos: (slen - bprec) / DECIMAL-BASE-LEN
 		offset: (slen - bprec) % DECIMAL-BASE-LEN
 		p: as int-ptr! (big + 1)
 		p: p + pos
 		either offset = 0 [
-			tail: p/1 % 10
+			tail: digit-at p/1 0
 			p: p - 1
-			c: p/1 % (DECIMAL-BASE / 10)
+			c: digit-at p/1 7
 		][
-			tail: p/1 % bigint/dec-exp offset + 1
-			c: p/1 % bigint/dec-exp offset
+			tail: digit-at p/1 offset
+			c: digit-at p/1 offset - 1
 		]
 
 		ret: right-shift big slen - bprec free?
@@ -874,7 +897,7 @@ bigdecimal: context [
 			exp: 0
 		]
 		int-tail-zero: 0
-		if ptLen <= 0 [
+		if all [intLen > 1 ptLen <= 0] [
 			int-tail-zero: count-char-from-tail as byte-ptr! bak intLen #"0"
 		]
 		if any [
@@ -891,7 +914,7 @@ bigdecimal: context [
 		]
 
 		;print-line ["esign: " esign " exp: " exp " intLen: " intLen " ptLen: " ptLen]
-		;print-line ["int-head-zero: " int-head-zero " point-head-zero: " point-head-zero]
+		;print-line ["int-head-zero: " int-head-zero " point-head-zero: " point-head-zero " int-tail-zero: " int-tail-zero]
 		if esign = -1 [
 			exp: 0 - exp
 		]
@@ -915,6 +938,7 @@ bigdecimal: context [
 		]
 
 		buffer: allocate total
+		set-memory buffer null-byte total
 		if (intLen - int-head-zero - int-tail-zero) > 0 [
 			copy-memory buffer as byte-ptr! bak + int-head-zero intLen - int-head-zero - int-tail-zero
 		]
@@ -924,7 +948,6 @@ bigdecimal: context [
 
 		big: load-str as c-string! buffer total
 		big/expo: exp
-		if sign < 0 [big/used: 0 - big/used]
 
 		free buffer
 		big: round big true
@@ -1026,7 +1049,6 @@ bigdecimal: context [
 				pb: pb - 1
 			]
 
-			pos: pos + dlen
 			p/pos: null-byte
 		][
 			; x..x . y..y null
@@ -1108,7 +1130,7 @@ bigdecimal: context [
 		pb: as int-ptr! (big + 1)
 		pb: pb + bused - 1
 		pad8?: false
-
+		point: 0
 		either expo >= 0 [
 			eLen: dlen - 1 + expo
 			eStr: bigint/form-decimal eLen false
@@ -1137,7 +1159,7 @@ bigdecimal: context [
 
 		size: size + 1			;-- for one point at least
 		if bsign = -1 [size: size + 1]
-		;print-line ["point: " point " ilen: " ilen " eLen: " eLen " eStr: " eStr " eSLen: " eSLen " eSign: " eSign " size: " size]
+		; print-line ["point: " point " dlen: " dlen " eLen: " eLen " eStr: " eStr " eSLen: " eSLen " eSign: " eSign " size: " size]
 
 		pt: allocate dlen + 1
 		pos2: 1
@@ -1174,6 +1196,7 @@ bigdecimal: context [
 		p/pos: #"E"
 		pos: pos + 1
 		if eSign = -1 [p/pos: #"-" pos: pos + 1]
+		eStr: bigint/form-decimal eLen false
 		copy-memory p + pos - 1 as byte-ptr! eStr eSLen
 		pos: pos + eSLen
 		p/pos: null-byte
@@ -1216,7 +1239,7 @@ bigdecimal: context [
 		dlen: bigint/digit-len? big
 
 		if expo = 7FFFFFFFh [
-			if zero?* big [
+			if bigint/zero?* as bigint! big [
 				if bsign = 1 [
 					buf: allocate 7
 					copy-memory buf as byte-ptr! "1.#INF" 7
@@ -1247,14 +1270,16 @@ bigdecimal: context [
 		pb: pb + bused - 1
 		pad8?: false
 
-		if any [
-			expo = 0
-			zero?* big
-		][
+		if expo = 0 [
 			size: dlen + 1
+			if bsign < 0 [size: size + 1]
 			buf: allocate size
 			buf/size: null-byte
 			pos: 1
+			if bsign < 0 [
+				buf/pos: #"-"
+				pos: pos + 1
+			]
 			loop bused [
 				int-s: bigint/form-decimal pb/1 pad8?
 				s-len: length? int-s
@@ -1263,10 +1288,9 @@ bigdecimal: context [
 				pos: pos + s-len
 				pb: pb - 1
 			]
-			pos: dlen + 1
 			buf/pos: null-byte
 			obuf/value: as integer! buf
-			olen/value: dlen
+			olen/value: size - 1
 			return true
 		]
 
