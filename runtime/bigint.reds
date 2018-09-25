@@ -2434,11 +2434,12 @@ bigint: context [
 		ret
 	]
 
-	modulo: func [
+	modulo*: func [
 		A					[bigint!]
 		B					[bigint!]
 		iR					[int-ptr!]
 		free?				[logic!]
+		mode				[ROUNDING!]
 		return:				[logic!]
 		/local
 			iQ2				[integer!]
@@ -2481,7 +2482,7 @@ bigint: context [
 		pq: as int-ptr! (Q2 + 1)
 		qused: either Q2/used >= 0 [Q2/used][0 - Q2/used]
 		qeven?: either (pq/qused and 1) = 1 [false][true]
-		switch rounding-mode [
+		switch mode [
 			ROUND-UP			[
 				either positive?* Q2 [
 					R2: sub R2 B true
@@ -2592,20 +2593,58 @@ bigint: context [
 		true
 	]
 
-	modulo-int: func [
+	modulo-int*: func [
 		A					[bigint!]
 		int					[integer!]
 		iR					[int-ptr!]
 		free?				[logic!]
+		mode				[ROUNDING!]
 		return:				[logic!]
 		/local
 			big				[bigint!]
 			ret				[logic!]
 	][
 		big: either A/prec = 0 [load-int int][dec-load-int int]
-		ret: modulo A big iR free?
+		ret: modulo A big iR free? mode
 		free* big
 		ret
+	]
+
+	modulo-uint*: func [
+		A					[bigint!]
+		uint				[integer!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		mode				[ROUNDING!]
+		return:				[logic!]
+		/local
+			big				[bigint!]
+			ret				[logic!]
+	][
+		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
+		ret: modulo A big iR free? mode
+		free* big
+		ret
+	]
+
+	modulo: func [
+		A					[bigint!]
+		B					[bigint!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		modulo* A B iR free? rounding-mode
+	]
+
+	modulo-int: func [
+		A					[bigint!]
+		int					[integer!]
+		iR					[int-ptr!]
+		free?				[logic!]
+		return:				[logic!]
+	][
+		modulo-int* A int iR free? rounding-mode
 	]
 
 	modulo-uint: func [
@@ -2614,17 +2653,11 @@ bigint: context [
 		iR					[int-ptr!]
 		free?				[logic!]
 		return:				[logic!]
-		/local
-			big				[bigint!]
-			ret				[logic!]
 	][
-		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
-		ret: modulo A big iR free?
-		free* big
-		ret
+		modulo-uint* A uint iR free? rounding-mode
 	]
 
-	modulo-int*: func [
+	modulo-int-s: func [
 		A					[bigint!]
 		b					[integer!]
 		iR					[int-ptr!]
@@ -2971,7 +3004,7 @@ bigint: context [
 		if any [radix < 2 radix > 16] [return false]
 
 		ret: 0
-		if false = modulo-int* big radix :ret false [return false]
+		if false = modulo-int-s big radix :ret false [return false]
 		iQ: 0
 		if false = div-int big radix :iQ null false [return false]
 		Q: as bigint! iQ

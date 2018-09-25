@@ -452,7 +452,7 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[logic!]
 	][
-		bigint/modulo as bigint! big1 as bigint! big2 iR free?
+		bigint/modulo* as bigint! big1 as bigint! big2 iR free? rounding-mode
 	]
 
 	modulo-int: func [
@@ -462,7 +462,7 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[logic!]
 	][
-		bigint/modulo-int as bigint! big1 int iR free?
+		bigint/modulo-int* as bigint! big1 int iR free? rounding-mode
 	]
 
 	modulo-uint: func [
@@ -472,7 +472,7 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[logic!]
 	][
-		bigint/modulo-uint as bigint! big1 uint iR free?
+		bigint/modulo-uint* as bigint! big1 uint iR free? rounding-mode
 	]
 
 	digit-at: func [
