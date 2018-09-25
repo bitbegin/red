@@ -146,6 +146,59 @@ bigdecimal: context [
 		bigint/shrink as bigint! big
 	]
 
+	count-zero: func [
+		uint				[integer!]
+		return:				[integer!]
+		/local
+			len				[integer!]
+			temp			[integer!]
+			ret				[integer!]
+	][
+		if uint = 0 [return DECIMAL-BASE-LEN]
+		len: bigint/base10-len? uint
+		temp: uint
+		ret: 0
+		loop len [
+			if (temp % 10) <> 0 [break]
+			ret: ret + 1
+			temp: temp / 10
+		]
+		ret
+	]
+
+	shrink-exp: func [
+		big					[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			bused			[integer!]
+			p				[int-ptr!]
+			cnt				[integer!]
+			sum				[integer!]
+			expo			[integer!]
+			ret				[bigdecimal!]
+	][
+		if zero?* big [
+			ret: copy* big
+			ret/expo: 0
+			if free? [free* big]
+			return ret
+		]
+		bused: either big/used >= 0 [big/used][0 - big/used]
+		p: as int-ptr! (big + 1)
+		sum: 0
+		loop bused [
+			cnt: count-zero p/1
+			sum: sum + cnt
+			p: p + 1
+			if cnt <> DECIMAL-BASE-LEN [break]
+		]
+
+		ret: right-shift big sum free?
+		ret/expo: ret/expo + sum
+		ret
+	]
+
 	left-shift: func [
 		big					[bigdecimal!]
 		count				[integer!]
@@ -414,6 +467,157 @@ bigdecimal: context [
 		return:				[logic!]
 	][
 		bigint/modulo-uint as bigint! big1 uint iR free?
+	]
+
+	round: func [
+		big					[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			bprec			[integer!]
+			bused			[integer!]
+			bsign			[integer!]
+			slen			[integer!]
+			p				[int-ptr!]
+			pos				[integer!]
+			offset			[integer!]
+			tail			[integer!]
+			c				[integer!]
+			ret				[bigdecimal!]
+	][
+		bprec: big/prec
+		either big/used >= 0 [
+			bused: big/used
+			bsign: 1
+		][
+			bused: 0 - big/used
+			bsign: -1
+		]
+		slen: bigint/digit-len? as bigint! big
+		if slen <= bprec [return big]
+		pos: (slen - bprec) / DECIMAL-BASE-LEN
+		offset: (slen - bprec) % DECIMAL-BASE-LEN
+		p: as int-ptr! (big + 1)
+		p: p + pos
+		either offset = 0 [
+			tail: p/1 % 10
+			p: p - 1
+			c: p/1 % (DECIMAL-BASE / 10)
+		][
+			tail: p/1 % bigint/dec-exp offset + 1
+			c: p/1 % bigint/dec-exp offset
+		]
+
+		ret: right-shift big slen - bprec free?
+		switch rounding-mode [
+			ROUND-UP			[
+				either bsign > 0 [
+					ret: add-uint ret 1 true
+				][
+					ret: sub-uint ret 1 true
+				]
+			]
+			ROUND-DOWN			[]
+			ROUND-CEIL			[
+				if bsign > 0 [
+					ret: add-uint ret 1 true
+				]
+			]
+			ROUND-FLOOR			[
+				if bsign < 0 [
+					ret: sub-uint ret 1 true
+				]
+			]
+			ROUND-HALF-UP		[
+				if c >= 5 [
+					either bsign > 0 [
+						ret: add-uint ret 1 true
+					][
+						ret: sub-uint ret 1 true
+					]
+				]
+			]
+			ROUND-HALF-DOWN		[
+				if c > 5 [
+					either bsign > 0 [
+						ret: add-uint ret 1 true
+					][
+						ret: sub-uint ret 1 true
+					]
+				]
+			]
+			ROUND-HALF-EVEN		[
+				if any [
+					c > 5
+					all [
+						c = 5
+						any [
+							tail = 1 tail = 3 tail = 5 tail = 7 tail = 9
+						]
+					]
+				][
+					either bsign > 0 [
+						ret: add-uint ret 1 true
+					][
+						ret: sub-uint ret 1 true
+					]
+				]
+			]
+			ROUND-HALF-ODD		[
+				if any [
+					c > 5
+					all [
+						c = 5
+						any [
+							tail = 0 tail = 2 tail = 4 tail = 6 tail = 8
+						]
+					]
+				][
+					either bsign > 0 [
+						ret: add-uint ret 1 true
+					][
+						ret: sub-uint ret 1 true
+					]
+				]
+			]
+			ROUND-HALF-CEIL		[
+				case [
+					c > 5 [
+						either bsign > 0 [
+							ret: add-uint ret 1 true
+						][
+							ret: sub-uint ret 1 true
+						]
+					]
+					c = 5 [
+						if bsign > 0 [
+							ret: add-uint ret 1 true
+						]
+					]
+					true []
+				]
+			]
+			ROUND-HALF-FLOOR	[
+				case [
+					c > 5 [
+						either bsign > 0 [
+							ret: add-uint ret 1 true
+						][
+							ret: sub-uint ret 1 true
+						]
+					]
+					c = 5 [
+						if bsign < 0 [
+							ret: sub-uint ret 1 true
+						]
+					]
+					true []
+				]
+			]
+		]
+		ret/expo: ret/expo + (slen - bprec)
+		ret: shrink-exp ret true
+		ret
 	]
 
 	;-- count same char from buffer tail
@@ -723,7 +927,7 @@ bigdecimal: context [
 		if sign < 0 [big/used: 0 - big/used]
 
 		free buffer
-		;big: round big true
+		big: round big true
 		big
 	]
 
