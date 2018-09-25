@@ -146,6 +146,7 @@ bigdecimal: context [
 		bigint/shrink as bigint! big
 	]
 
+	;-- count decimal zero from tail
 	count-zero: func [
 		uint				[integer!]
 		return:				[integer!]
@@ -171,14 +172,24 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
+			expo			[integer!]
 			bused			[integer!]
 			p				[int-ptr!]
 			cnt				[integer!]
 			sum				[integer!]
-			expo			[integer!]
 			ret				[bigdecimal!]
 	][
-		if zero?* big [
+		expo: big/expo
+		if any [
+			expo = 7FFFFFFFh
+			expo = 80000000h
+		][
+			ret: copy* big
+			if free? [free* big]
+			return ret
+		]
+
+		if zero?*-exp big [
 			ret: copy* big
 			ret/expo: 0
 			if free? [free* big]
@@ -218,6 +229,13 @@ bigdecimal: context [
 	]
 
 	zero?*: func [
+		big					[bigdecimal!]
+		return:				[logic!]
+	][
+		bigint/zero?* as bigint! big
+	]
+
+	zero?*-exp: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 		/local
@@ -1239,7 +1257,7 @@ bigdecimal: context [
 		dlen: bigint/digit-len? big
 
 		if expo = 7FFFFFFFh [
-			if bigint/zero?* as bigint! big [
+			if zero?* big [
 				if bsign = 1 [
 					buf: allocate 7
 					copy-memory buf as byte-ptr! "1.#INF" 7
@@ -1319,6 +1337,63 @@ bigdecimal: context [
 		obuf/value: nbuf
 		olen/value: nlen
 		return true
+	]
+
+	;-- functions for exp decimal!
+
+
+	absolute-add-exp: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		return:				[bigdecimal!]
+		/local
+			prec			[integer!]
+			emax			[bigdecimal!]
+			emin			[bigdecimal!]
+			max-expo		[integer!]
+			min-expo		[integer!]
+			bt1				[bigdecimal!]
+			bt2				[bigdecimal!]
+			temp			[integer!]
+			ret				[bigdecimal!]
+	][
+		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
+		if big1/expo = big2/expo [
+			return absolute-add big1 big2
+		]
+
+		either big1/expo > big2/expo [
+			emax: big1
+			emin: big2
+		][
+			emin: big1
+			emax: big2
+		]
+		max-expo: emax/expo
+		min-expo: emin/expo
+
+		if (max-expo - min-expo) >= prec [
+			temp: max-expo - prec + 1
+			bt1: left-shift emax temp false
+			bt1/expo: emax/expo - temp
+			bt2: load-uint 1
+			bt2/expo: bt1/expo
+			ret: absolute-add bt1 bt2
+			ret: round ret true
+			ret: shrink-exp ret true
+			free* bt1
+			free* bt2
+			return ret
+		]
+
+		temp: max-expo - min-expo
+		bt1: left-shift emax temp false
+		bt1/expo: emax/expo - temp
+		ret: absolute-add bt1 emin
+		ret: shrink-exp ret true
+
+		free* bt1
+		ret
 	]
 
 	#if debug? = yes [
