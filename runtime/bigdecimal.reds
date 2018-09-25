@@ -1133,8 +1133,8 @@ bigdecimal: context [
 		point: 0
 		either expo >= 0 [
 			eLen: dlen - 1 + expo
-			eStr: bigint/form-decimal eLen false
-			eSLen: length? eStr
+			;eStr: bigint/form-decimal eLen false
+			eSLen: bigint/base10-len? eLen
 			eSign: 1
 			; x . y..y E e..e null
 			size: dlen + 1 + 1 + eSLen + 1
@@ -1142,15 +1142,15 @@ bigdecimal: context [
 			point: 0 - expo
 			either point >= dlen [
 				eLen: point - dlen + 1
-				eStr: bigint/form-decimal eLen false
-				eSLen: length? eStr
+				;eStr: bigint/form-decimal eLen false
+				eSLen: bigint/base10-len? eLen
 				eSign: -1
 				; 0 . x..x E - e..e null
 				size: 2 + dlen + 1 + 1 + eSLen + 1
 			][
 				eLen: dlen - point - 1
-				eStr: bigint/form-decimal eLen false
-				eSLen: length? eStr
+				;eStr: bigint/form-decimal eLen false
+				eSLen: bigint/base10-len? eLen
 				eSign: 1
 				; x . y..y E e..e null
 				size: dlen + 1 + 1 + eSLen + 1
