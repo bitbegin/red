@@ -931,6 +931,372 @@ bigdecimal: context [
 		big
 	]
 
+	point-form: func [
+		big					[bigdecimal!]
+		obuf				[int-ptr!]
+		olen				[int-ptr!]
+		/local
+			bsign			[integer!]
+			bused			[integer!]
+			expo			[integer!]
+			dlen			[integer!]
+			size			[integer!]
+			p				[byte-ptr!]
+			pt				[byte-ptr!]
+			pb				[int-ptr!]
+			pad8?			[logic!]
+			int-s			[c-string!]
+			s-len			[integer!]
+			pos				[integer!]
+			pos2			[integer!]
+			point			[integer!]
+			zpad			[integer!]
+	][
+		either big/used >= 0 [
+			bsign: 1
+			bused: big/used
+		][
+			bsign: -1
+			bused: 0 - big/used
+		]
+		expo: big/expo
+		dlen: bigint/digit-len? big
+		pb: as int-ptr! (big + 1)
+		pb: pb + bused - 1
+		pad8?: false
+
+		if expo >= 0 [
+			; x..x 0..0 null
+			size: expo + 1 + dlen
+			if bsign < 0 [size: size + 1]
+			p: allocate size
+
+			pos: 1
+			if bsign < 0 [
+				p/pos: #"-"
+				pos: pos + 1
+			]
+
+			loop bused [
+				int-s: bigint/form-decimal pb/1 pad8?
+				s-len: length? int-s
+				copy-memory p + pos - 1 as byte-ptr! int-s s-len
+				unless pad8? [pad8?: true]
+				pos: pos + s-len
+				pb: pb - 1
+			]
+
+			loop expo [
+				p/pos: #"0"
+				pos: pos + 1
+			]
+			p/pos: null-byte
+			p/size: null-byte
+			obuf/value: as integer! p
+			olen/value: pos - 1
+			exit
+		]
+
+		point: 0 - expo
+		either point >= dlen [
+			; 0. x..x null
+			size: point + 2 + 1
+			if bsign < 0 [size: size + 1]
+			p: allocate size
+
+			pos: 1
+			if bsign < 0 [
+				p/pos: #"-"
+				pos: pos + 1
+			]
+			p/pos: #"0"
+			pos: pos + 1
+			p/pos: #"."
+			pos: pos + 1
+			zpad: point - dlen
+			set-memory p + pos - 1 #"0" zpad
+			pos: pos + zpad
+
+			loop bused [
+				int-s: bigint/form-decimal pb/1 pad8?
+				s-len: length? int-s
+				copy-memory p + pos - 1 as byte-ptr! int-s s-len
+				unless pad8? [pad8?: true]
+				pos: pos + s-len
+				pb: pb - 1
+			]
+
+			pos: pos + dlen
+			p/pos: null-byte
+		][
+			; x..x . y..y null
+			size: dlen + 1 + 1
+			if bsign < 0 [size: size + 1]
+			p: allocate size
+
+			pos: 1
+			if bsign < 0 [
+				p/pos: #"-"
+				pos: pos + 1
+			]
+
+			pt: allocate dlen + 1
+			pos2: 1
+
+			loop bused [
+				int-s: bigint/form-decimal pb/1 pad8?
+				s-len: length? int-s
+				copy-memory pt + pos2 - 1 as byte-ptr! int-s s-len
+				unless pad8? [pad8?: true]
+				pos2: pos2 + s-len
+				pb: pb - 1
+			]
+			pos2: dlen + 1
+			pt/pos2: null-byte
+
+			copy-memory p + pos - 1 pt dlen - point
+			pos: pos + dlen - point
+
+			p/pos: #"."
+			pos: pos + 1
+			copy-memory p + pos - 1 pt + dlen - point point
+			pos: pos + point
+			p/pos: null-byte
+			free pt
+		]
+
+		p/size: null-byte
+		obuf/value: as integer! p
+		olen/value: pos - 1
+	]
+
+	exp-form: func [
+		big					[bigdecimal!]
+		obuf				[int-ptr!]
+		olen				[int-ptr!]
+		/local
+			bsign			[integer!]
+			bused			[integer!]
+			expo			[integer!]
+			dlen			[integer!]
+			sign			[integer!]
+			eLen			[integer!]
+			eSign			[integer!]
+			eStr			[c-string!]
+			eSLen			[integer!]
+			size			[integer!]
+			point			[integer!]
+			pi				[int-ptr!]
+			p				[byte-ptr!]
+			pos				[integer!]
+			pb				[int-ptr!]
+			pad8?			[logic!]
+			int-s			[c-string!]
+			s-len			[integer!]
+			pt				[byte-ptr!]
+			pos2			[integer!]
+	][
+		either big/used >= 0 [
+			bsign: 1
+			bused: big/used
+		][
+			bsign: -1
+			bused: 0 - big/used
+		]
+		expo: big/expo
+		dlen: bigint/digit-len? big
+		pb: as int-ptr! (big + 1)
+		pb: pb + bused - 1
+		pad8?: false
+
+		either expo >= 0 [
+			eLen: dlen - 1 + expo
+			eStr: bigint/form-decimal eLen false
+			eSLen: length? eStr
+			eSign: 1
+			; x . y..y E e..e null
+			size: dlen + 1 + 1 + eSLen + 1
+		][
+			point: 0 - expo
+			either point >= dlen [
+				eLen: point - dlen + 1
+				eStr: bigint/form-decimal eLen false
+				eSLen: length? eStr
+				eSign: -1
+				; 0 . x..x E - e..e null
+				size: 2 + dlen + 1 + 1 + eSLen + 1
+			][
+				eLen: dlen - point - 1
+				eStr: bigint/form-decimal eLen false
+				eSLen: length? eStr
+				eSign: 1
+				; x . y..y E e..e null
+				size: dlen + 1 + 1 + eSLen + 1
+			]
+		]
+
+		size: size + 1			;-- for one point at least
+		if bsign = -1 [size: size + 1]
+		;print-line ["point: " point " ilen: " ilen " eLen: " eLen " eStr: " eStr " eSLen: " eSLen " eSign: " eSign " size: " size]
+
+		pt: allocate dlen + 1
+		pos2: 1
+
+		loop bused [
+			int-s: bigint/form-decimal pb/1 pad8?
+			s-len: length? int-s
+			copy-memory pt + pos2 - 1 as byte-ptr! int-s s-len
+			unless pad8? [pad8?: true]
+			pos2: pos2 + s-len
+			pb: pb - 1
+		]
+		pos2: dlen + 1
+		pt/pos2: null-byte
+
+		p: allocate size
+
+		pos: 1
+		if bsign = -1 [
+			p/pos: #"-"
+			pos: pos + 1
+		]
+		p/pos: pt/1
+		pos: pos + 1
+		p/pos: #"."
+		pos: pos + 1
+		either 0 = (dlen - 1) [
+			p/pos: #"0"
+			pos: pos + 1
+		][
+			copy-memory p + pos - 1 pt + 1 dlen - 1
+			pos: pos + dlen - 1
+		]
+		p/pos: #"E"
+		pos: pos + 1
+		if eSign = -1 [p/pos: #"-" pos: pos + 1]
+		copy-memory p + pos - 1 as byte-ptr! eStr eSLen
+		pos: pos + eSLen
+		p/pos: null-byte
+		p/size: null-byte
+
+		free pt
+		obuf/value: as integer! p
+		olen/value: pos - 1
+	]
+
+	form: func [
+		big					[bigdecimal!]
+		obuf				[int-ptr!]
+		olen				[int-ptr!]
+		return:				[logic!]
+		/local
+			bsign			[integer!]
+			bused			[integer!]
+			expo			[integer!]
+			dlen			[integer!]
+			pb				[int-ptr!]
+			pad8?			[logic!]
+			int-s			[c-string!]
+			s-len			[integer!]
+			pos				[integer!]
+			buf				[byte-ptr!]
+			size			[integer!]
+			exp?			[logic!]
+			nbuf			[integer!]
+			nlen			[integer!]
+	][
+		either big/used >= 0 [
+			bsign: 1
+			bused: big/used
+		][
+			bsign: -1
+			bused: 0 - big/used
+		]
+		expo: big/expo
+		dlen: bigint/digit-len? big
+
+		if expo = 7FFFFFFFh [
+			if zero?* big [
+				if bsign = 1 [
+					buf: allocate 7
+					copy-memory buf as byte-ptr! "1.#INF" 7
+					obuf/value: as integer! buf
+					olen/value: 6
+					return true
+				]
+				buf: allocate 8
+				copy-memory buf as byte-ptr! "-1.#INF" 8
+				obuf/value: as integer! buf
+				olen/value: 7
+				return true
+			]
+		]
+
+		if any [
+			expo = 7FFFFFFFh
+			expo = 80000000h
+		][
+			buf: allocate 7
+			copy-memory buf as byte-ptr! "1.#NaN" 7
+			obuf/value: as integer! buf
+			olen/value: 6
+			return true
+		]
+
+		pb: as int-ptr! (big + 1)
+		pb: pb + bused - 1
+		pad8?: false
+
+		if any [
+			expo = 0
+			zero?* big
+		][
+			size: dlen + 1
+			buf: allocate size
+			buf/size: null-byte
+			pos: 1
+			loop bused [
+				int-s: bigint/form-decimal pb/1 pad8?
+				s-len: length? int-s
+				copy-memory buf + pos - 1 as byte-ptr! int-s s-len
+				unless pad8? [pad8?: true]
+				pos: pos + s-len
+				pb: pb - 1
+			]
+			pos: dlen + 1
+			buf/pos: null-byte
+			obuf/value: as integer! buf
+			olen/value: dlen
+			return true
+		]
+
+		exp?: false
+		if any [
+			all [
+				big/expo > 0
+				(big/expo + dlen) > big/prec
+			]
+			all [
+				big/expo < 0
+				big/expo <= (0 - big/prec)
+			]
+		][
+			exp?: true
+		]
+
+		nbuf: 0
+		nlen: 0
+		either exp? [
+			exp-form big :nbuf :nlen
+		][
+			point-form big :nbuf :nlen
+		]
+
+		obuf/value: nbuf
+		olen/value: nlen
+		return true
+	]
+
 	#if debug? = yes [
 		dump: func [
 			big				[bigdecimal!]
