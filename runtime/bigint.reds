@@ -1227,14 +1227,18 @@ bigint: context [
 		c: 0
 		loop n [
 			z: 0
-			if bigint/uint-less d/1 c [
+			either bigint/uint-less d/1 c [
 				z: 1
 				d/1: DECIMAL-BASE - c + d/1
+			][
+				d/1: d/1 - c
 			]
 			c: z
-			if bigint/uint-less d/1 s/1 [
+			either bigint/uint-less d/1 s/1 [
 				c: c + 1
 				d/1: d/1 + DECIMAL-BASE
+			][
+				d/1: d/1 - c
 			]
 			d/1: d/1 - s/1
 			s: s + 1
@@ -1243,9 +1247,11 @@ bigint: context [
 
 		while [c <> 0][
 			z: 0
-			if bigint/uint-less d/1 c [
+			either bigint/uint-less d/1 c [
 				z: 1
 				d/1: DECIMAL-BASE - c + d/1
+			][
+				d/1: d/1 - c
 			]
 			c: z
 			d: d + 1

@@ -1368,9 +1368,10 @@ bigdecimal: context [
 		ret
 	]
 
-	absolute-add-exp: func [
+	add-exp: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
+		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
 			prec			[integer!]
@@ -1385,7 +1386,10 @@ bigdecimal: context [
 	][
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
 		if big1/expo = big2/expo [
-			return absolute-add big1 big2
+			ret: add big1 big2 free?
+			ret: round ret true
+			if free? [free* big1]
+			return ret
 		]
 
 		either big1/expo > big2/expo [
@@ -1404,21 +1408,20 @@ bigdecimal: context [
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
 			bt2/expo: bt1/expo
-			ret: absolute-add bt1 bt2
+			if big2/used < 0 [bt2/used: 0 - bt2/used]
+			ret: add bt1 bt2 true
 			ret: round ret true
-			ret: shrink-exp ret true
-			free* bt1
 			free* bt2
+			if free? [free* big1]
 			return ret
 		]
 
 		temp: max-expo - min-expo
 		bt1: left-shift emax temp false
 		bt1/expo: emax/expo - temp
-		ret: absolute-add bt1 emin
-		ret: shrink-exp ret true
-
-		free* bt1
+		ret: add bt1 emin true
+		ret: round ret true
+		if free? [free* big1]
 		ret
 	]
 
