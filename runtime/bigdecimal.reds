@@ -1340,7 +1340,33 @@ bigdecimal: context [
 	]
 
 	;-- functions for exp decimal!
+	left-shift-exp: func [
+		big					[bigdecimal!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			ret				[bigdecimal!]
+	][
+		ret: copy* big
+		ret/expo: ret/expo + count
+		if free? [free* big]
+		ret
+	]
 
+	right-shift-exp: func [
+		big					[bigdecimal!]
+		count				[integer!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			ret				[bigdecimal!]
+	][
+		ret: copy* big
+		ret/expo: ret/expo - count
+		if free? [free* big]
+		ret
+	]
 
 	absolute-add-exp: func [
 		big1				[bigdecimal!]
