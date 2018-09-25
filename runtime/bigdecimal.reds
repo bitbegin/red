@@ -101,6 +101,17 @@ bigdecimal: context [
 		big
 	]
 
+	nan?: func [
+		big					[bigdecimal!]
+		return:				[logic!]
+		/local
+			p				[int-ptr!]
+	][
+		p: as int-ptr! (big + 1)
+		if all [big/expo = 7FFFFFFFh p/1 <> 0][return true]
+		false
+	]
+
 	load-inf: func [
 		sign				[integer!]
 		return:				[bigdecimal!]
@@ -116,6 +127,17 @@ bigdecimal: context [
 		p: as int-ptr! (big + 1)
 		p/1: 0
 		big
+	]
+
+	inf?: func [
+		big					[bigdecimal!]
+		return:				[logic!]
+		/local
+			p				[int-ptr!]
+	][
+		p: as int-ptr! (big + 1)
+		if all [big/expo = 7FFFFFFFh p/1 = 0][return true]
+		false
 	]
 
 	load-int: func [
@@ -1384,9 +1406,20 @@ bigdecimal: context [
 			temp			[integer!]
 			ret				[bigdecimal!]
 	][
+		if any [nan? big1 nan? big2][
+			ret: load-nan
+			if free? [free* big1]
+			return ret
+		]
+		if any [inf? big1 inf? big2][
+			ret: load-inf either big1/used >= 0 [1][-1]
+			if free? [free* big1]
+			return ret
+		]
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
 		if big1/expo = big2/expo [
 			ret: add big1 big2 free?
+			ret/prec: prec
 			ret: round ret true
 			if free? [free* big1]
 			return ret
@@ -1410,6 +1443,7 @@ bigdecimal: context [
 			bt2/expo: bt1/expo
 			if big2/used < 0 [bt2/used: 0 - bt2/used]
 			ret: add bt1 bt2 true
+			ret/prec: prec
 			ret: round ret true
 			free* bt2
 			if free? [free* big1]
@@ -1420,6 +1454,105 @@ bigdecimal: context [
 		bt1: left-shift emax temp false
 		bt1/expo: emax/expo - temp
 		ret: add bt1 emin true
+		ret/prec: prec
+		ret: round ret true
+		if free? [free* big1]
+		ret
+	]
+
+	sub-exp: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			prec			[integer!]
+			emax			[bigdecimal!]
+			emin			[bigdecimal!]
+			max-expo		[integer!]
+			min-expo		[integer!]
+			bt1				[bigdecimal!]
+			bt2				[bigdecimal!]
+			temp			[integer!]
+			ret				[bigdecimal!]
+	][
+		if any [nan? big1 nan? big2][
+			ret: load-nan
+			if free? [free* big1]
+			return ret
+		]
+		if any [inf? big1 inf? big2][
+			ret: load-inf either big1/used >= 0 [1][-1]
+			if free? [free* big1]
+			return ret
+		]
+		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
+		if big1/expo = big2/expo [
+			ret: sub big1 big2 free?
+			ret/prec: prec
+			ret: round ret true
+			if free? [free* big1]
+			return ret
+		]
+
+		either big1/expo > big2/expo [
+			emax: big1
+			emin: big2
+		][
+			emin: big1
+			emax: big2
+		]
+		max-expo: emax/expo
+		min-expo: emin/expo
+
+		if (max-expo - min-expo) >= prec [
+			temp: max-expo - prec + 1
+			bt1: left-shift emax temp false
+			bt1/expo: emax/expo - temp
+			bt2: load-uint 1
+			bt2/expo: bt1/expo
+			if big2/used < 0 [bt2/used: 0 - bt2/used]
+			ret: sub bt1 bt2 true
+			ret/prec: prec
+			ret: round ret true
+			free* bt2
+			if free? [free* big1]
+			return ret
+		]
+
+		temp: max-expo - min-expo
+		bt1: left-shift emax temp false
+		bt1/expo: emax/expo - temp
+		ret: sub bt1 emin true
+		ret/prec: prec
+		ret: round ret true
+		if free? [free* big1]
+		ret
+	]
+
+	mul-exp: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			prec			[integer!]
+			ret				[bigdecimal!]
+	][
+		if any [nan? big1 nan? big2][
+			ret: load-nan
+			if free? [free* big1]
+			return ret
+		]
+		if any [inf? big1 inf? big2][
+			ret: load-inf either big1/used >= 0 [1][-1]
+			if free? [free* big1]
+			return ret
+		]
+		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
+		ret: mul big1 big2 free?
+		ret/expo: big1/expo + big2/expo
+		ret/prec: prec
 		ret: round ret true
 		if free? [free* big1]
 		ret
