@@ -679,53 +679,53 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		;print-line ["ibuf: " as c-string! ibuf]
 ===end-group===
 
-===start-group=== "zero*?"
-	--test-- "zero*?-1"
+===start-group=== "zero?*-exp"
+	--test-- "zero?*-exp-1"
 		str: "0.0"
 		big: bigdecimal/load-float str -1
-		--assert true = bigdecimal/zero?* big
+		--assert true = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-2"
+	--test-- "zero?*-exp-2"
 		str: "+00000.00000000"
 		big: bigdecimal/load-float str -1
-		--assert true = bigdecimal/zero?* big
+		--assert true = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-3"
+	--test-- "zero?*-exp-3"
 		str: "-00000.00000000"
 		big: bigdecimal/load-float str -1
-		--assert true = bigdecimal/zero?* big
+		--assert true = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-4"
+	--test-- "zero?*-exp-4"
 		str: "1.0"
 		big: bigdecimal/load-float str -1
-		--assert false = bigdecimal/zero?* big
+		--assert false = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-5"
+	--test-- "zero?*-exp-5"
 		str: "0.1"
 		big: bigdecimal/load-float str -1
-		--assert false = bigdecimal/zero?* big
+		--assert false = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-6"
+	--test-- "zero?*-exp-6"
 		str: "1.#INF"
 		big: bigdecimal/load-float str -1
-		--assert false = bigdecimal/zero?* big
+		--assert false = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-7"
+	--test-- "zero?*-exp-7"
 		str: "-1.#INF"
 		big: bigdecimal/load-float str -1
-		--assert false = bigdecimal/zero?* big
+		--assert false = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
-	--test-- "zero*?-8"
+	--test-- "zero?*-exp-8"
 		str: "1.#NaN"
 		big: bigdecimal/load-float str -1
-		--assert false = bigdecimal/zero?* big
+		--assert false = bigdecimal/zero?*-exp big
 		bigdecimal/free* big
 
 ===end-group===
@@ -2937,6 +2937,25 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		--assert 0 = compare-memory as byte-ptr! "-9.9999999999999999999E20" as byte-ptr! ibuf ilen
 		free as byte-ptr! ibuf
 		bigdecimal/free* big
+
+===end-group===
+
+===start-group=== "add-exp test"
+	bigdecimal/set-rounding-mode ROUND-HALF-UP
+
+	--test-- "add-exp-1"
+		str1: "0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/add-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
 
 ===end-group===
 
