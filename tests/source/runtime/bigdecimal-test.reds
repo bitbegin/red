@@ -2940,8 +2940,9 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 
 ===end-group===
 
+bigdecimal/set-rounding-mode ROUND-HALF-UP
+
 ===start-group=== "add-exp test"
-	bigdecimal/set-rounding-mode ROUND-HALF-UP
 
 	--test-- "add-exp-1"
 		str1: "0"
@@ -3186,7 +3187,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		big1: bigdecimal/load-float str1 -1
 		str2: "-1E21"
 		big2: bigdecimal/load-float str2 -1
-		str3: "-1E21"
+		str3: "-999999999999999999990"
 		big3: bigdecimal/load-float str3 -1
 		big4: bigdecimal/add-exp big1 big2 false
 		--assert 0 = bigdecimal/compare-exp big3 big4
@@ -3466,7 +3467,7 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		big1: bigdecimal/load-float str1 -1
 		str2: "1E21"
 		big2: bigdecimal/load-float str2 -1
-		str3: "1E21"
+		str3: "999999999999999999990"
 		big3: bigdecimal/load-float str3 -1
 		big4: bigdecimal/add-exp big1 big2 false
 		--assert 0 = bigdecimal/compare-exp big3 big4
@@ -3497,6 +3498,570 @@ bigdecimal/set-rounding-mode ROUND-DOWN
 		str3: "12345678899999999999"
 		big3: bigdecimal/load-float str3 -1
 		big4: bigdecimal/add-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+===end-group===
+
+===start-group=== "sub-exp test"
+
+	--test-- "sub-exp-1"
+		str1: "0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-2"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-9999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-3"
+		str1: "10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-4"
+		str1: "1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-5"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-99999999999999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-6"
+		str1: "5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-99999999999999999995"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-7"
+		str1: "8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-99999999999999999992"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-8"
+		str1: "9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-999999999999999999990"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-9"
+		str1: "1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-123456789E11"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-10"
+		str1: "1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-12345678899999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-11"
+		str1: "0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-12"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "10000000001"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-13"
+		str1: "10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "20000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-14"
+		str1: "1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "2E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-15"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-16"
+		str1: "5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "10000000000000000001E1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-17"
+		str1: "8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "10000000000000000001E1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-18"
+		str1: "9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-19"
+		str1: "1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "12345678902469135780"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-20"
+		str1: "1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "12345678902469135781"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-21"
+		str1: "-0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-22"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-10000000001"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-23"
+		str1: "-10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-20000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-24"
+		str1: "-1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-2E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-25"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-26"
+		str1: "-5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-10000000000000000001E1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-27"
+		str1: "-8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-10000000000000000001E1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-28"
+		str1: "-9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-29"
+		str1: "-1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-12345678902469135780"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-30"
+		str1: "-1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-12345678902469135781"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-31"
+		str1: "-0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-32"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "9999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-33"
+		str1: "-10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-34"
+		str1: "-1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-35"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "99999999999999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-36"
+		str1: "-5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "99999999999999999995"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-37"
+		str1: "-8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "99999999999999999992"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-38"
+		str1: "-9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "999999999999999999990"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-39"
+		str1: "-1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "123456789E11"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "sub-exp-40"
+		str1: "-1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "12345678899999999999"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/sub-exp big1 big2 false
 		--assert 0 = bigdecimal/compare-exp big3 big4
 		bigdecimal/free* big1
 		bigdecimal/free* big2
