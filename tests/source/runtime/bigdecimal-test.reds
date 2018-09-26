@@ -4070,4 +4070,568 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 
 ===end-group===
 
+===start-group=== "mul-exp test"
+
+	--test-- "mul-exp-1"
+		str1: "0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-2"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "10000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-3"
+		str1: "10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "100000000000000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-4"
+		str1: "1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E40"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-5"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-6"
+		str1: "5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "5E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-7"
+		str1: "8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "8E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-8"
+		str1: "9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "9E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-9"
+		str1: "1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1524157875323883675E10"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-10"
+		str1: "1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "15241578758177108311E9"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-11"
+		str1: "0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-12"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-10000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-13"
+		str1: "10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-100000000000000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-14"
+		str1: "1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E40"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-15"
+		str1: "1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-16"
+		str1: "5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-5E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-17"
+		str1: "8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-8E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-18"
+		str1: "9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-9E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-19"
+		str1: "1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1524157875323883675E10"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-20"
+		str1: "1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-15241578758177108311E9"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-21"
+		str1: "-0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-22"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-10000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-23"
+		str1: "-10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-100000000000000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-24"
+		str1: "-1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E40"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-25"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-26"
+		str1: "-5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-5E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-27"
+		str1: "-8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-8E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-28"
+		str1: "-9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-9E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-29"
+		str1: "-1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-1524157875323883675E10"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-30"
+		str1: "-1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-15241578758177108311E9"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-31"
+		str1: "-0"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1"
+		big2: bigdecimal/load-float str2 -1
+		str3: "0"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-32"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "10000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-33"
+		str1: "-10000000000"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-10000000000"
+		big2: bigdecimal/load-float str2 -1
+		str3: "100000000000000000000"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-34"
+		str1: "-1E20"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E40"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-35"
+		str1: "-1"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-36"
+		str1: "-5"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "5E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-37"
+		str1: "-8"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E20"
+		big2: bigdecimal/load-float str2 -1
+		str3: "8E20"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-38"
+		str1: "-9"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-1E21"
+		big2: bigdecimal/load-float str2 -1
+		str3: "9E21"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-39"
+		str1: "-1234567890.123456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "1524157875323883675E10"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "mul-exp-40"
+		str1: "-1234567890.523456789"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-12345678901234567890"
+		big2: bigdecimal/load-float str2 -1
+		str3: "15241578758177108311E9"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/mul-exp big1 big2 false
+		--assert 0 = bigdecimal/compare-exp big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+===end-group===
+
 ~~~end-file~~~
