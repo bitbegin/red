@@ -2107,7 +2107,9 @@ bigint: context [
 			][
 				tmp2: i - 1
 				mh: 0 ml: 0
-				uint-mul px/i px/tmp2 :mh :ml
+				uint-mul px/i DECIMAL-BASE :mh :ml
+				ml: ml + px/tmp2
+				if uint-less ml px/tmp2 [mh: mh + 1]
 				pz/tmp: long-divide mh ml py/t null
 			]
 
