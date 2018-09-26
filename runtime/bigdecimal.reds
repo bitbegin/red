@@ -1535,8 +1535,8 @@ bigdecimal: context [
 		max-expo: emax/expo
 		min-expo: emin/expo
 
-		if (max-expo - min-expo) >= prec [
-			temp: max-expo - prec + 1
+		if (max-expo - min-expo - bigint/digit-len? emin) >= prec [
+			temp: prec + 1 - bigint/digit-len? emax
 			bt1: left-shift emax temp false
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
@@ -1625,8 +1625,8 @@ bigdecimal: context [
 		max-expo: emax/expo
 		min-expo: emin/expo
 
-		if (max-expo - min-expo) >= prec [
-			temp: max-expo - prec + 1
+		if (max-expo - min-expo - bigint/digit-len? emin) >= prec [
+			temp: prec + 1 - bigint/digit-len? emax
 			bt1: left-shift emax temp false
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
