@@ -101,7 +101,7 @@ bigdecimal: context [
 		big
 	]
 
-	nan?: func [
+	NaN?: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 		/local
@@ -129,7 +129,7 @@ bigdecimal: context [
 		big
 	]
 
-	inf?: func [
+	INF?: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 		/local
@@ -1390,12 +1390,99 @@ bigdecimal: context [
 		ret
 	]
 
+	compare-exp: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		return:				[integer!]
+		/local
+			nan1?			[logic!]
+			nan2?			[logic!]
+			b1sign			[integer!]
+			b2sign			[integer!]
+			b1expo			[integer!]
+			b2expo			[integer!]
+			inf1?			[logic!]
+			inf2?			[logic!]
+			prec			[integer!]
+			emax			[bigdecimal!]
+			emin			[bigdecimal!]
+			max-expo		[integer!]
+			min-expo		[integer!]
+			bt1				[bigdecimal!]
+			temp			[integer!]
+			ret				[integer!]
+	][
+		nan1?: NaN? big1
+		nan2?: NaN? big2
+		if any [nan1? nan2?][
+			if all [nan1? nan2?][return 0]
+			if nan1? [return 1]
+			return -1
+		]
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+		inf1?: INF? big1
+		inf2?: INF? big2
+		if any [inf1? inf2?][
+			if all [inf1? inf2?][
+				if b1sign = b2sign [return 0]
+				return either b1sign > b2sign [1][-1]
+			]
+			if inf1? [
+				return b1sign
+			]
+			return 0 - b2sign
+		]
+
+		b1expo: big1/expo
+		b2expo: big2/expo
+		if b1expo = b2expo [
+			return compare big1 big2
+		]
+
+		if b1sign <> b2sign [
+			return either b1sign > b2sign [1][-1]
+		]
+
+		either b1expo > b2expo [
+			emax: big1
+			emin: big2
+		][
+			emin: big1
+			emax: big2
+		]
+		max-expo: emax/expo
+		min-expo: emin/expo
+
+		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
+		if (max-expo - min-expo) >= prec [
+			return either b1expo > b2expo [b1sign][0 - b1sign]
+		]
+
+		temp: max-expo - min-expo
+		bt1: left-shift emax temp false
+		bt1/expo: emax/expo - temp
+		ret: either b1expo > b2expo [
+			compare bt1 big2
+		][
+			compare big1 bt1
+		]
+		free* bt1
+		ret
+	]
+
 	add-exp: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			b1expo			[integer!]
+			b2expo			[integer!]
+			inf1?			[logic!]
+			inf2?			[logic!]
 			prec			[integer!]
 			emax			[bigdecimal!]
 			emin			[bigdecimal!]
@@ -1406,18 +1493,31 @@ bigdecimal: context [
 			temp			[integer!]
 			ret				[bigdecimal!]
 	][
-		if any [nan? big1 nan? big2][
+		if any [NaN? big1 NaN? big2][
 			ret: load-nan
 			if free? [free* big1]
 			return ret
 		]
-		if any [inf? big1 inf? big2][
-			ret: load-inf either big1/used >= 0 [1][-1]
-			if free? [free* big1]
-			return ret
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+		inf1?: INF? big1
+		inf2?: INF? big2
+		if any [inf1? inf2?][
+			if all [inf1? inf2?][
+				if b1sign = b2sign [return load-inf b1sign]
+				return load-inf 1
+			]
+			if inf1? [
+				return load-inf b1sign
+			]
+			return load-inf b2sign
 		]
+
+		b1expo: big1/expo
+		b2expo: big2/expo
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
-		if big1/expo = big2/expo [
+		if b1expo = b2expo [
 			ret: add big1 big2 free?
 			ret/prec: prec
 			ret: round ret true
@@ -1425,7 +1525,7 @@ bigdecimal: context [
 			return ret
 		]
 
-		either big1/expo > big2/expo [
+		either b1expo > b2expo [
 			emax: big1
 			emin: big2
 		][
@@ -1466,6 +1566,12 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			b1expo			[integer!]
+			b2expo			[integer!]
+			inf1?			[logic!]
+			inf2?			[logic!]
 			prec			[integer!]
 			emax			[bigdecimal!]
 			emin			[bigdecimal!]
@@ -1476,18 +1582,32 @@ bigdecimal: context [
 			temp			[integer!]
 			ret				[bigdecimal!]
 	][
-		if any [nan? big1 nan? big2][
+		if any [NaN? big1 NaN? big2][
 			ret: load-nan
 			if free? [free* big1]
 			return ret
 		]
-		if any [inf? big1 inf? big2][
-			ret: load-inf either big1/used >= 0 [1][-1]
-			if free? [free* big1]
-			return ret
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+		inf1?: INF? big1
+		inf2?: INF? big2
+		if any [inf1? inf2?][
+			if all [inf1? inf2?][
+				if b1sign = b2sign [return load-inf b1sign]
+				return load-inf either b1sign > b2sign [1][-1]
+			]
+			if inf1? [
+				return load-inf b1sign
+			]
+			return load-inf 0 - b2sign
 		]
+
+		b1expo: big1/expo
+		b2expo: big2/expo
+
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
-		if big1/expo = big2/expo [
+		if b1expo = b2expo [
 			ret: sub big1 big2 free?
 			ret/prec: prec
 			ret: round ret true
@@ -1495,7 +1615,7 @@ bigdecimal: context [
 			return ret
 		]
 
-		either big1/expo > big2/expo [
+		either b1expo > b2expo [
 			emax: big1
 			emin: big2
 		][
@@ -1511,10 +1631,15 @@ bigdecimal: context [
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
 			bt2/expo: bt1/expo
-			if big2/used < 0 [bt2/used: 0 - bt2/used]
-			ret: sub bt1 bt2 true
+			if emin/used < 0 [bt2/used: 0 - bt2/used]
+			ret: either b1expo > b2expo [
+				sub bt1 bt2 false
+			][
+				sub bt2 bt1 false
+			]
 			ret/prec: prec
 			ret: round ret true
+			free* bt1
 			free* bt2
 			if free? [free* big1]
 			return ret
@@ -1523,7 +1648,12 @@ bigdecimal: context [
 		temp: max-expo - min-expo
 		bt1: left-shift emax temp false
 		bt1/expo: emax/expo - temp
-		ret: sub bt1 emin true
+		ret: either b1expo > b2expo [
+			sub bt1 emin false
+		][
+			sub emin bt1 false
+		]
+		free* bt1
 		ret/prec: prec
 		ret: round ret true
 		if free? [free* big1]
@@ -1539,12 +1669,12 @@ bigdecimal: context [
 			prec			[integer!]
 			ret				[bigdecimal!]
 	][
-		if any [nan? big1 nan? big2][
+		if any [NaN? big1 NaN? big2][
 			ret: load-nan
 			if free? [free* big1]
 			return ret
 		]
-		if any [inf? big1 inf? big2][
+		if any [INF? big1 INF? big2][
 			ret: load-inf either big1/used >= 0 [1][-1]
 			if free? [free* big1]
 			return ret
