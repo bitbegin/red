@@ -1541,7 +1541,11 @@ bigdecimal: context [
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
 			bt2/expo: bt1/expo
-			if big2/used < 0 [bt2/used: 0 - bt2/used]
+			either b1expo > b2expo [
+				if big2/used < 0 [bt2/used: 0 - bt2/used]
+			][
+				if big1/used < 0 [bt2/used: 0 - bt2/used]
+			]
 			ret: add bt1 bt2 true
 			ret/prec: prec
 			ret: round ret true
