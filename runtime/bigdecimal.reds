@@ -1504,6 +1504,7 @@ bigdecimal: context [
 		inf1?: INF? big1
 		inf2?: INF? big2
 		if any [inf1? inf2?][
+			if free? [free* big1]
 			if all [inf1? inf2?][
 				if b1sign = b2sign [return load-inf b1sign]
 				return load-inf 1
@@ -1597,6 +1598,7 @@ bigdecimal: context [
 		inf1?: INF? big1
 		inf2?: INF? big2
 		if any [inf1? inf2?][
+			if free? [free* big1]
 			if all [inf1? inf2?][
 				if b1sign = b2sign [return load-inf b1sign]
 				return load-inf either b1sign > b2sign [1][-1]
@@ -1670,6 +1672,12 @@ bigdecimal: context [
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			b1expo			[integer!]
+			b2expo			[integer!]
+			inf1?			[logic!]
+			inf2?			[logic!]
 			prec			[integer!]
 			ret				[bigdecimal!]
 	][
@@ -1678,11 +1686,23 @@ bigdecimal: context [
 			if free? [free* big1]
 			return ret
 		]
-		if any [INF? big1 INF? big2][
-			ret: load-inf either big1/used >= 0 [1][-1]
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+		inf1?: INF? big1
+		inf2?: INF? big2
+		if any [inf1? inf2?][
 			if free? [free* big1]
-			return ret
+			if all [inf1? inf2?][
+				if b1sign = b2sign [return load-inf 1]
+				return load-inf -1
+			]
+			if inf1? [
+				return load-inf b1sign
+			]
+			return load-inf b2sign
 		]
+
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
 		ret: mul big1 big2 free?
 		ret/expo: big1/expo + big2/expo
