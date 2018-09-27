@@ -2087,6 +2087,33 @@ bigint: context [
 		]
 		free* Y2
 
+		;-- we can't zoom first unit to (DECIMAL-BASE/2, DECIMAL-BASE) for now
+		;-- So, when X = 0, we should return right now
+		if zero?* X [
+			either iQ <> null [
+				shrink Z
+				Q: Z
+				Q/expo: A/expo
+				Q/prec: A/prec
+				iQ/value: as integer! Q
+			][
+				free* Z
+			]
+
+			if iR <> null [
+				R: dec-load-uint 0
+				R/expo: A/expo
+				R/prec: A/prec
+				iR/value: as integer! R
+			]
+			free* X
+
+			free* Y
+			free* T1
+			free* T2
+			return true
+		]
+
 		px: as int-ptr! (X + 1)
 		py: as int-ptr! (Y + 1)
 		pt1: as int-ptr! (T1 + 1)
