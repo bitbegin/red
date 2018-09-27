@@ -2012,6 +2012,7 @@ bigint: context [
 			Bused			[integer!]
 			X				[bigint!]
 			Y				[bigint!]
+			Y2				[bigint!]
 			Z				[bigint!]
 			T1				[bigint!]
 			T2				[bigint!]
@@ -2075,16 +2076,16 @@ bigint: context [
 
 		n: X/used
 		t: Y/used
-		Y: left-shift Y DECIMAL-BASE-LEN * (n - t) true
+		Y2: left-shift Y DECIMAL-BASE-LEN * (n - t) false
 
 		pz: as int-ptr! (Z + 1)
 
-		while [0 <= compare X Y][
+		while [0 <= compare X Y2][
 			tmp: n - t + 1
 			pz/tmp: pz/tmp + 1
-			X: sub X Y true
+			X: sub X Y2 true
 		]
-		Y: right-shift Y DECIMAL-BASE-LEN * (n - t) true
+		free* Y2
 
 		px: as int-ptr! (X + 1)
 		py: as int-ptr! (Y + 1)
@@ -2192,6 +2193,7 @@ bigint: context [
 			Bused			[integer!]
 			X				[bigint!]
 			Y				[bigint!]
+			Y2				[bigint!]
 			Z				[bigint!]
 			T1				[bigint!]
 			T2				[bigint!]
@@ -2253,16 +2255,16 @@ bigint: context [
 
 		n: X/used
 		t: Y/used
-		Y: left-shift Y biL * (n - t) true
+		Y2: left-shift Y biL * (n - t) false
 
 		pz: as int-ptr! (Z + 1)
 
-		while [0 <= compare X Y][
+		while [0 <= compare X Y2][
 			tmp: n - t + 1
 			pz/tmp: pz/tmp + 1
-			X: sub X Y true
+			X: sub X Y2 true
 		]
-		Y: right-shift Y biL * (n - t) true
+		free* Y2
 
 		px: as int-ptr! (X + 1)
 		py: as int-ptr! (Y + 1)
