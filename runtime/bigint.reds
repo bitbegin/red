@@ -2029,15 +2029,7 @@ bigint: context [
 			mh				[integer!]
 			ml				[integer!]
 	][
-		if zero?* B [
-			if iQ <> null [
-				Q: load-int 0
-				Q/expo: 7FFFFFFFh
-				Q/prec: A/prec
-				iQ/value: as integer! Q
-			]
-			return true
-		]
+		if zero?* B [return false]
 
 		if 0 > absolute-compare A B [
 			if iQ <> null [

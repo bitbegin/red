@@ -1507,7 +1507,7 @@ bigdecimal: context [
 			if free? [free* big1]
 			if all [inf1? inf2?][
 				if b1sign = b2sign [return load-inf b1sign]
-				return load-inf 1
+				return load-nan
 			]
 			if inf1? [
 				return load-inf b1sign
@@ -1600,7 +1600,7 @@ bigdecimal: context [
 		if any [inf1? inf2?][
 			if free? [free* big1]
 			if all [inf1? inf2?][
-				if b1sign = b2sign [return load-inf b1sign]
+				if b1sign = b2sign [return load-nan]
 				return load-inf either b1sign > b2sign [1][-1]
 			]
 			if inf1? [
@@ -1678,6 +1678,8 @@ bigdecimal: context [
 			b2expo			[integer!]
 			inf1?			[logic!]
 			inf2?			[logic!]
+			b1zero?			[logic!]
+			b2zero?			[logic!]
 			prec			[integer!]
 			ret				[bigdecimal!]
 	][
@@ -1691,6 +1693,8 @@ bigdecimal: context [
 		b2sign: either big2/used >= 0 [1][-1]
 		inf1?: INF? big1
 		inf2?: INF? big2
+		b1zero?: zero?*-exp big1
+		b2zero?: zero?*-exp big2
 		if any [inf1? inf2?][
 			if free? [free* big1]
 			if all [inf1? inf2?][
@@ -1698,8 +1702,10 @@ bigdecimal: context [
 				return load-inf -1
 			]
 			if inf1? [
+				if b2zero? [return load-nan]
 				return load-inf b1sign
 			]
+			if b1zero? [return load-nan]
 			return load-inf b2sign
 		]
 
@@ -1745,13 +1751,20 @@ bigdecimal: context [
 		if any [inf1? inf2?][
 			if free? [free* big1]
 			if all [inf1? inf2?][
-				if b1sign = b2sign [return load-inf 1]
-				return load-inf -1
+				return load-nan
 			]
 			if inf1? [
 				return load-inf b1sign
 			]
 			return load-inf b2sign
+		]
+
+		if zero?* big2 [
+			if zero?* big1 [
+				if free? [free* big1]
+				return load-nan
+			]
+			return load-inf b1sign
 		]
 
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
