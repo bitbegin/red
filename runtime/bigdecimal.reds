@@ -162,7 +162,7 @@ bigdecimal: context [
 		ret
 	]
 
-	shrink: func [
+	shrink-raw: func [
 		big					[bigdecimal!]
 	][
 		bigint/shrink as bigint! big
@@ -189,7 +189,7 @@ bigdecimal: context [
 		ret
 	]
 
-	shrink-exp: func [
+	shrink: func [
 		big					[bigdecimal!]
 		free?				[logic!]
 		return:				[bigdecimal!]
@@ -211,7 +211,7 @@ bigdecimal: context [
 			return ret
 		]
 
-		if zero?*-exp big [
+		if zero?* big [
 			ret: copy* big
 			ret/expo: 0
 			if free? [free* big]
@@ -227,12 +227,12 @@ bigdecimal: context [
 			if cnt <> DECIMAL-BASE-LEN [break]
 		]
 
-		ret: right-shift big sum free?
+		ret: right-shift-raw big sum free?
 		ret/expo: ret/expo + sum
 		ret
 	]
 
-	left-shift: func [
+	left-shift-raw: func [
 		big					[bigdecimal!]
 		count				[integer!]
 		free?				[logic!]
@@ -241,7 +241,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/left-shift big count free?
 	]
 
-	right-shift: func [
+	right-shift-raw: func [
 		big					[bigdecimal!]
 		count				[integer!]
 		free?				[logic!]
@@ -250,14 +250,14 @@ bigdecimal: context [
 		as bigdecimal! bigint/right-shift big count free?
 	]
 
-	zero?*: func [
+	zero?*-raw: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 	][
 		bigint/zero?* as bigint! big
 	]
 
-	zero?*-exp: func [
+	zero?*: func [
 		big					[bigdecimal!]
 		return:				[logic!]
 		/local
@@ -273,15 +273,7 @@ bigdecimal: context [
 		bigint/zero?* as bigint! big
 	]
 
-	absolute-compare: func [
-		big1				[bigdecimal!]
-		big2				[bigdecimal!]
-		return:				[integer!]
-	][
-		bigint/absolute-compare as bigint! big1 as bigint! big2
-	]
-
-	compare: func [
+	compare-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[integer!]
@@ -289,78 +281,7 @@ bigdecimal: context [
 		bigint/compare as bigint! big1 as bigint! big2
 	]
 
-	negative*: func [
-		big					[bigdecimal!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/negative* as bigint! big free?
-	]
-
-	negative?*: func [
-		big					[bigdecimal!]
-		return:				[logic!]
-	][
-		bigint/negative?* as bigint! big
-	]
-
-	positive*: func [
-		big					[bigdecimal!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/positive* as bigint! big free?
-	]
-
-	positive?*: func [
-		big					[bigdecimal!]
-		return:				[logic!]
-	][
-		bigint/positive?* as bigint! big
-	]
-
-	absolute*: func [
-		big					[bigdecimal!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/absolute* as bigint! big free?
-	]
-
-	compare-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		return:				[integer!]
-	][
-		bigint/compare-int as bigint! big1 int
-	]
-
-	compare-uint: func [
-		big1				[bigdecimal!]
-		uint				[integer!]
-		return:				[integer!]
-	][
-		bigint/compare-uint as bigint! big1 uint
-	]
-
-	absolute-add: func [
-		big1				[bigdecimal!]
-		big2				[bigdecimal!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/absolute-add as bigint! big1 as bigint! big2
-	]
-
-	;-- big1 must large than big2
-	absolute-sub: func [
-		big1				[bigdecimal!]
-		big2				[bigdecimal!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/absolute-sub as bigint! big1 as bigint! big2
-	]
-
-	add: func [
+	add-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -369,7 +290,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/add as bigint! big1 as bigint! big2 free?
 	]
 
-	sub: func [
+	sub-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -378,16 +299,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/sub as bigint! big1 as bigint! big2 free?
 	]
 
-	add-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/add-int as bigint! big1 int free?
-	]
-
-	add-uint: func [
+	add-uint-raw: func [
 		big1				[bigdecimal!]
 		uint				[integer!]
 		free?				[logic!]
@@ -396,16 +308,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/add-uint as bigint! big1 uint free?
 	]
 
-	sub-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/sub-int as bigint! big1 int free?
-	]
-
-	sub-uint: func [
+	sub-uint-raw: func [
 		big1				[bigdecimal!]
 		uint				[integer!]
 		free?				[logic!]
@@ -414,15 +317,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/sub-uint as bigint! big1 uint free?
 	]
 
-	absolute-mul: func [
-		big1				[bigdecimal!]
-		big2				[bigdecimal!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/absolute-mul as bigint! big1 as bigint! big2
-	]
-
-	mul: func [
+	mul-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -431,28 +326,7 @@ bigdecimal: context [
 		as bigdecimal! bigint/mul as bigint! big1 as bigint! big2 free?
 	]
 
-	mul-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-	][
-		as bigdecimal! bigint/mul-int as bigint! big1 int free?
-	]
-
-	mul-uint: func [
-		big1				[bigdecimal!]
-		uint				[integer!]
-		free?				[logic!]
-		return:				[bigdecimal!]
-		/local
-			big				[bigdecimal!]
-			ret				[bigdecimal!]
-	][
-		as bigdecimal! bigint/mul-uint as bigint! big1 uint free?
-	]
-
-	div: func [
+	div-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		iQ					[int-ptr!]
@@ -463,29 +337,7 @@ bigdecimal: context [
 		bigint/div as bigint! big1 as bigint! big2 iQ iR free?
 	]
 
-	div-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		bigint/div-int as bigint! big1 int iQ iR free?
-	]
-
-	div-uint: func [
-		big1				[bigdecimal!]
-		uint				[integer!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		bigint/div-uint as bigint! big1 uint iQ iR free?
-	]
-
-	modulo: func [
+	modulo-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		iR					[int-ptr!]
@@ -493,26 +345,6 @@ bigdecimal: context [
 		return:				[logic!]
 	][
 		bigint/modulo* as bigint! big1 as bigint! big2 iR free? rounding-mode
-	]
-
-	modulo-int: func [
-		big1				[bigdecimal!]
-		int					[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		bigint/modulo-int* as bigint! big1 int iR free? rounding-mode
-	]
-
-	modulo-uint: func [
-		big1				[bigdecimal!]
-		uint				[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		bigint/modulo-uint* as bigint! big1 uint iR free? rounding-mode
 	]
 
 	digit-at: func [
@@ -548,37 +380,37 @@ bigdecimal: context [
 		switch mode [
 			ROUND-UP			[
 				either bsign > 0 [
-					ret: add-uint ret 1 true
+					ret: add-uint-raw ret 1 true
 				][
-					ret: sub-uint ret 1 true
+					ret: sub-uint-raw ret 1 true
 				]
 			]
 			ROUND-DOWN			[]
 			ROUND-CEIL			[
 				if bsign > 0 [
-					ret: add-uint ret 1 true
+					ret: add-uint-raw ret 1 true
 				]
 			]
 			ROUND-FLOOR			[
 				if bsign < 0 [
-					ret: sub-uint ret 1 true
+					ret: sub-uint-raw ret 1 true
 				]
 			]
 			ROUND-HALF-UP		[
 				if c >= 5 [
 					either bsign > 0 [
-						ret: add-uint ret 1 true
+						ret: add-uint-raw ret 1 true
 					][
-						ret: sub-uint ret 1 true
+						ret: sub-uint-raw ret 1 true
 					]
 				]
 			]
 			ROUND-HALF-DOWN		[
 				if c > 5 [
 					either bsign > 0 [
-						ret: add-uint ret 1 true
+						ret: add-uint-raw ret 1 true
 					][
-						ret: sub-uint ret 1 true
+						ret: sub-uint-raw ret 1 true
 					]
 				]
 			]
@@ -593,9 +425,9 @@ bigdecimal: context [
 					]
 				][
 					either bsign > 0 [
-						ret: add-uint ret 1 true
+						ret: add-uint-raw ret 1 true
 					][
-						ret: sub-uint ret 1 true
+						ret: sub-uint-raw ret 1 true
 					]
 				]
 			]
@@ -610,9 +442,9 @@ bigdecimal: context [
 					]
 				][
 					either bsign > 0 [
-						ret: add-uint ret 1 true
+						ret: add-uint-raw ret 1 true
 					][
-						ret: sub-uint ret 1 true
+						ret: sub-uint-raw ret 1 true
 					]
 				]
 			]
@@ -620,14 +452,14 @@ bigdecimal: context [
 				case [
 					c > 5 [
 						either bsign > 0 [
-							ret: add-uint ret 1 true
+							ret: add-uint-raw ret 1 true
 						][
-							ret: sub-uint ret 1 true
+							ret: sub-uint-raw ret 1 true
 						]
 					]
 					c = 5 [
 						if bsign > 0 [
-							ret: add-uint ret 1 true
+							ret: add-uint-raw ret 1 true
 						]
 					]
 					true []
@@ -637,14 +469,14 @@ bigdecimal: context [
 				case [
 					c > 5 [
 						either bsign > 0 [
-							ret: add-uint ret 1 true
+							ret: add-uint-raw ret 1 true
 						][
-							ret: sub-uint ret 1 true
+							ret: sub-uint-raw ret 1 true
 						]
 					]
 					c = 5 [
 						if bsign < 0 [
-							ret: sub-uint ret 1 true
+							ret: sub-uint-raw ret 1 true
 						]
 					]
 					true []
@@ -682,7 +514,7 @@ bigdecimal: context [
 		]
 		slen: bigint/digit-len? as bigint! big
 		if slen <= bprec [
-			ret: shrink-exp big free?
+			ret: shrink big free?
 			return ret
 		]
 		pos: (slen - bprec) / DECIMAL-BASE-LEN
@@ -698,10 +530,10 @@ bigdecimal: context [
 			c: digit-at p/1 offset - 1
 		]
 
-		ret: right-shift big slen - bprec free?
+		ret: right-shift-raw big slen - bprec free?
 		ret: round-with ret mode c true
 		ret/expo: ret/expo + (slen - bprec)
-		ret: shrink-exp ret true
+		ret: shrink ret true
 		ret
 	]
 
@@ -818,7 +650,7 @@ bigdecimal: context [
 			str: str + DECIMAL-BASE-LEN
 			len: len - DECIMAL-BASE-LEN
 		]
-		shrink ret
+		shrink-raw ret
 		ret
 	]
 
@@ -1301,7 +1133,7 @@ bigdecimal: context [
 		dlen: bigint/digit-len? big
 
 		if expo = 7FFFFFFFh [
-			if zero?* big [
+			if zero?*-raw big [
 				if bsign = 1 [
 					buf: allocate 7
 					copy-memory buf as byte-ptr! "1.#INF" 7
@@ -1384,7 +1216,7 @@ bigdecimal: context [
 	]
 
 	;-- functions for exp decimal!
-	left-shift-exp: func [
+	left-shift: func [
 		big					[bigdecimal!]
 		count				[integer!]
 		free?				[logic!]
@@ -1398,7 +1230,7 @@ bigdecimal: context [
 		ret
 	]
 
-	right-shift-exp: func [
+	right-shift: func [
 		big					[bigdecimal!]
 		count				[integer!]
 		free?				[logic!]
@@ -1412,7 +1244,7 @@ bigdecimal: context [
 		ret
 	]
 
-	compare-exp: func [
+	compare: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		return:				[integer!]
@@ -1459,7 +1291,7 @@ bigdecimal: context [
 		b1expo: big1/expo
 		b2expo: big2/expo
 		if b1expo = b2expo [
-			return compare big1 big2
+			return compare-raw big1 big2
 		]
 
 		if b1sign <> b2sign [
@@ -1482,18 +1314,18 @@ bigdecimal: context [
 		]
 
 		temp: max-expo - min-expo
-		bt1: left-shift emax temp false
+		bt1: left-shift-raw emax temp false
 		bt1/expo: emax/expo - temp
 		ret: either b1expo > b2expo [
-			compare bt1 big2
+			compare-raw bt1 big2
 		][
-			compare big1 bt1
+			compare-raw big1 bt1
 		]
 		free* bt1
 		ret
 	]
 
-	add-exp: func [
+	add: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -1541,7 +1373,7 @@ bigdecimal: context [
 		b2expo: big2/expo
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
 		if b1expo = b2expo [
-			ret: add big1 big2 free?
+			ret: add-raw big1 big2 free?
 			ret/prec: prec
 			ret: round ret rounding-mode true
 			if free? [free* big1]
@@ -1560,7 +1392,7 @@ bigdecimal: context [
 
 		if (max-expo - min-expo - bigint/digit-len? emin) >= prec [
 			temp: prec + 1 - bigint/digit-len? emax
-			bt1: left-shift emax temp false
+			bt1: left-shift-raw emax temp false
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
 			bt2/expo: bt1/expo
@@ -1569,7 +1401,7 @@ bigdecimal: context [
 			][
 				if big1/used < 0 [bt2/used: 0 - bt2/used]
 			]
-			ret: add bt1 bt2 true
+			ret: add-raw bt1 bt2 true
 			ret/prec: prec
 			ret: round ret rounding-mode true
 			free* bt2
@@ -1578,16 +1410,16 @@ bigdecimal: context [
 		]
 
 		temp: max-expo - min-expo
-		bt1: left-shift emax temp false
+		bt1: left-shift-raw emax temp false
 		bt1/expo: emax/expo - temp
-		ret: add bt1 emin true
+		ret: add-raw bt1 emin true
 		ret/prec: prec
 		ret: round ret rounding-mode true
 		if free? [free* big1]
 		ret
 	]
 
-	sub-exp: func [
+	sub: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -1636,7 +1468,7 @@ bigdecimal: context [
 
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
 		if b1expo = b2expo [
-			ret: sub big1 big2 free?
+			ret: sub-raw big1 big2 free?
 			ret/prec: prec
 			ret: round ret rounding-mode true
 			if free? [free* big1]
@@ -1655,15 +1487,15 @@ bigdecimal: context [
 
 		if (max-expo - min-expo - bigint/digit-len? emin) >= prec [
 			temp: prec + 1 - bigint/digit-len? emax
-			bt1: left-shift emax temp false
+			bt1: left-shift-raw emax temp false
 			bt1/expo: emax/expo - temp
 			bt2: load-uint 1
 			bt2/expo: bt1/expo
 			if emin/used < 0 [bt2/used: 0 - bt2/used]
 			ret: either b1expo > b2expo [
-				sub bt1 bt2 false
+				sub-raw bt1 bt2 false
 			][
-				sub bt2 bt1 false
+				sub-raw bt2 bt1 false
 			]
 			ret/prec: prec
 			ret: round ret rounding-mode true
@@ -1674,12 +1506,12 @@ bigdecimal: context [
 		]
 
 		temp: max-expo - min-expo
-		bt1: left-shift emax temp false
+		bt1: left-shift-raw emax temp false
 		bt1/expo: emax/expo - temp
 		ret: either b1expo > b2expo [
-			sub bt1 emin false
+			sub-raw bt1 emin false
 		][
-			sub emin bt1 false
+			sub-raw emin bt1 false
 		]
 		free* bt1
 		ret/prec: prec
@@ -1688,7 +1520,7 @@ bigdecimal: context [
 		ret
 	]
 
-	mul-exp: func [
+	mul: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -1715,8 +1547,8 @@ bigdecimal: context [
 		b2sign: either big2/used >= 0 [1][-1]
 		inf1?: INF? big1
 		inf2?: INF? big2
-		b1zero?: zero?*-exp big1
-		b2zero?: zero?*-exp big2
+		b1zero?: zero?* big1
+		b2zero?: zero?* big2
 		if any [inf1? inf2?][
 			if free? [free* big1]
 			if all [inf1? inf2?][
@@ -1732,7 +1564,7 @@ bigdecimal: context [
 		]
 
 		prec: either big1/prec > big2/prec [big1/prec][big2/prec]
-		ret: mul big1 big2 free?
+		ret: mul-raw big1 big2 free?
 		ret/expo: big1/expo + big2/expo
 		ret/prec: prec
 		ret: round ret rounding-mode true
@@ -1740,7 +1572,7 @@ bigdecimal: context [
 		ret
 	]
 
-	div-exp: func [
+	div: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -1781,8 +1613,8 @@ bigdecimal: context [
 			return load-inf b2sign
 		]
 
-		if zero?* big2 [
-			if zero?* big1 [
+		if zero?*-raw big2 [
+			if zero?*-raw big1 [
 				if free? [free* big1]
 				return load-nan
 			]
@@ -1795,10 +1627,10 @@ bigdecimal: context [
 		temp: prec - b1len + b2len + 2
 		temp: temp / DECIMAL-BASE-LEN + 1
 		temp: temp * DECIMAL-BASE-LEN
-		bt1: left-shift big1 temp false
+		bt1: left-shift-raw big1 temp false
 		bt1/expo: big1/expo - temp
 		iQ: 0
-		div bt1 big2 :iQ null true
+		div-raw bt1 big2 :iQ null true
 		ret: as bigdecimal! iQ
 		ret/expo: bt1/expo - big2/expo
 		ret/prec: prec
@@ -1807,7 +1639,7 @@ bigdecimal: context [
 		ret
 	]
 
-	remainder-exp: func [
+	remainder: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
@@ -1821,7 +1653,7 @@ bigdecimal: context [
 			T				[bigdecimal!]
 			ret				[bigdecimal!]
 	][
-		Q: div-exp big1 big2 false
+		Q: div big1 big2 false
 		if NaN? Q [
 			if free? [free* big1]
 			return Q
@@ -1832,7 +1664,7 @@ bigdecimal: context [
 			return Q
 		]
 		if Q/expo >= 0 [
-			R: sub-exp big1 mul-exp big2 Q false free?
+			R: sub big1 mul big2 Q false free?
 			free* Q
 			return R
 		]
@@ -1841,7 +1673,7 @@ bigdecimal: context [
 		intlen: expo + dlen
 		;-- xx . xx
 		either intlen > 0 [
-			T: right-shift Q 0 - expo true
+			T: right-shift-raw Q 0 - expo true
 			T/expo: 0
 		][
 			;-- 0 . 0 xx or 0 . xx
@@ -1850,7 +1682,7 @@ bigdecimal: context [
 			if Q/used < 0 [T/used: -1]
 			free* Q
 		]
-		ret: sub-exp big1 mul-exp big2 T false free?
+		ret: sub big1 mul big2 T false free?
 		free* T
 		ret
 	]
