@@ -5229,6 +5229,20 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big4
 
 	--test-- "remainder-3"
+		str1: "101"
+		big1: bigdecimal/load-float str1 -1
+		str2: "3"
+		big2: bigdecimal/load-float str2 -1
+		str3: "2"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/remainder big1 big2 false
+		--assert 0 = bigdecimal/compare big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "remainder-4"
 		str1: "12.3456"
 		big1: bigdecimal/load-float str1 -1
 		str2: "-2.345"
@@ -5242,7 +5256,7 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big3
 		bigdecimal/free* big4
 
-	--test-- "remainder-4"
+	--test-- "remainder-5"
 		str1: "100"
 		big1: bigdecimal/load-float str1 -1
 		str2: "-3"
@@ -5256,7 +5270,21 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big3
 		bigdecimal/free* big4
 
-	--test-- "remainder-5"
+	--test-- "remainder-6"
+		str1: "101"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-3"
+		big2: bigdecimal/load-float str2 -1
+		str3: "2"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/remainder big1 big2 false
+		--assert 0 = bigdecimal/compare big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "remainder-7"
 		str1: "-12.3456"
 		big1: bigdecimal/load-float str1 -1
 		str2: "2.345"
@@ -5270,7 +5298,7 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big3
 		bigdecimal/free* big4
 
-	--test-- "remainder-6"
+	--test-- "remainder-8"
 		str1: "-100"
 		big1: bigdecimal/load-float str1 -1
 		str2: "3"
@@ -5284,7 +5312,21 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big3
 		bigdecimal/free* big4
 
-	--test-- "remainder-7"
+	--test-- "remainder-9"
+		str1: "-101"
+		big1: bigdecimal/load-float str1 -1
+		str2: "3"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-2"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/remainder big1 big2 false
+		--assert 0 = bigdecimal/compare big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "remainder-10"
 		str1: "-12.3456"
 		big1: bigdecimal/load-float str1 -1
 		str2: "-2.345"
@@ -5298,12 +5340,26 @@ bigdecimal/set-rounding-mode ROUND-HALF-UP
 		bigdecimal/free* big3
 		bigdecimal/free* big4
 
-	--test-- "remainder-8"
+	--test-- "remainder-11"
 		str1: "-100"
 		big1: bigdecimal/load-float str1 -1
 		str2: "-3"
 		big2: bigdecimal/load-float str2 -1
 		str3: "-1"
+		big3: bigdecimal/load-float str3 -1
+		big4: bigdecimal/remainder big1 big2 false
+		--assert 0 = bigdecimal/compare big3 big4
+		bigdecimal/free* big1
+		bigdecimal/free* big2
+		bigdecimal/free* big3
+		bigdecimal/free* big4
+
+	--test-- "remainder-12"
+		str1: "-101"
+		big1: bigdecimal/load-float str1 -1
+		str2: "-3"
+		big2: bigdecimal/load-float str2 -1
+		str3: "-2"
 		big3: bigdecimal/load-float str3 -1
 		big4: bigdecimal/remainder big1 big2 false
 		--assert 0 = bigdecimal/compare big3 big4

@@ -363,17 +363,16 @@ bigdecimal: context [
 
 	round-with: func [
 		big					[bigdecimal!]
-		mode				[ROUNDING!]
+		bsign				[integer!]
 		c					[integer!]
+		mode				[ROUNDING!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
-			bsign			[integer!]
 			p				[int-ptr!]
 			tail			[integer!]
 			ret				[bigdecimal!]
 	][
-		bsign: either big/used >= 0 [1][-1]
 		p: as int-ptr! (big + 1)
 		tail: p/1 % 10
 		ret: copy* big
@@ -531,7 +530,7 @@ bigdecimal: context [
 		]
 
 		ret: right-shift-raw big slen - bprec free?
-		ret: round-with ret mode c true
+		ret: round-with ret bsign c mode true
 		ret/expo: ret/expo + (slen - bprec)
 		ret: shrink ret true
 		ret
@@ -1325,9 +1324,10 @@ bigdecimal: context [
 		ret
 	]
 
-	add: func [
+	add*: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
+		mode				[ROUNDING!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
@@ -1375,7 +1375,7 @@ bigdecimal: context [
 		if b1expo = b2expo [
 			ret: add-raw big1 big2 free?
 			ret/prec: prec
-			ret: round ret rounding-mode true
+			ret: round ret mode true
 			if free? [free* big1]
 			return ret
 		]
@@ -1403,7 +1403,7 @@ bigdecimal: context [
 			]
 			ret: add-raw bt1 bt2 true
 			ret/prec: prec
-			ret: round ret rounding-mode true
+			ret: round ret mode true
 			free* bt2
 			if free? [free* big1]
 			return ret
@@ -1414,14 +1414,24 @@ bigdecimal: context [
 		bt1/expo: emax/expo - temp
 		ret: add-raw bt1 emin true
 		ret/prec: prec
-		ret: round ret rounding-mode true
+		ret: round ret mode true
 		if free? [free* big1]
 		ret
 	]
 
-	sub: func [
+	add: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		add* big1 big2 rounding-mode free?
+	]
+
+	sub*: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		mode				[ROUNDING!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
@@ -1470,7 +1480,7 @@ bigdecimal: context [
 		if b1expo = b2expo [
 			ret: sub-raw big1 big2 free?
 			ret/prec: prec
-			ret: round ret rounding-mode true
+			ret: round ret mode true
 			if free? [free* big1]
 			return ret
 		]
@@ -1498,7 +1508,7 @@ bigdecimal: context [
 				sub-raw bt2 bt1 false
 			]
 			ret/prec: prec
-			ret: round ret rounding-mode true
+			ret: round ret mode true
 			free* bt1
 			free* bt2
 			if free? [free* big1]
@@ -1515,14 +1525,24 @@ bigdecimal: context [
 		]
 		free* bt1
 		ret/prec: prec
-		ret: round ret rounding-mode true
+		ret: round ret mode true
 		if free? [free* big1]
 		ret
 	]
 
-	mul: func [
+	sub: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		sub* big1 big2 rounding-mode free?
+	]
+
+	mul*: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		mode				[ROUNDING!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
@@ -1567,14 +1587,24 @@ bigdecimal: context [
 		ret: mul-raw big1 big2 free?
 		ret/expo: big1/expo + big2/expo
 		ret/prec: prec
-		ret: round ret rounding-mode true
+		ret: round ret mode true
 		if free? [free* big1]
 		ret
 	]
 
-	div: func [
+	mul: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		mul* big1 big2 rounding-mode free?
+	]
+
+	div*: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		mode				[ROUNDING!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
@@ -1634,9 +1664,18 @@ bigdecimal: context [
 		ret: as bigdecimal! iQ
 		ret/expo: bt1/expo - big2/expo
 		ret/prec: prec
-		ret: round ret rounding-mode true
+		ret: round ret mode true
 		if free? [free* big1]
 		ret
+	]
+
+	div: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		div* big1 big2 rounding-mode free?
 	]
 
 	remainder: func [
@@ -1653,7 +1692,7 @@ bigdecimal: context [
 			T				[bigdecimal!]
 			ret				[bigdecimal!]
 	][
-		Q: div big1 big2 false
+		Q: div* big1 big2 ROUND-DOWN false
 		if NaN? Q [
 			if free? [free* big1]
 			return Q
@@ -1664,27 +1703,103 @@ bigdecimal: context [
 			return Q
 		]
 		if Q/expo >= 0 [
-			R: sub big1 mul big2 Q false free?
+			R: sub big1 mul big2 Q false false
 			free* Q
+			if free? [free* big1]
 			return R
 		]
 		dlen: bigint/digit-len? Q
 		expo: Q/expo
 		intlen: expo + dlen
-		;-- 0 . 0 xx or 0 . xx
+		;-- 0 . 0 xx
 		if intlen < 0 [
 			free* Q
 			ret: copy* big1
 			if free? [free* big1]
 			return ret
 		]
-		;-- xx . xx
+		;-- xx . xx or 0 . xx
 		T: right-shift-raw Q 0 - expo true
 		T/expo: 0
-		ret: sub big1 mul big2 T false free?
+		ret: sub big1 mul big2 T false false
 		free* T
+		if free? [free* big1]
 		ret
 	]
+
+	modulo: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		mode				[ROUNDING!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			Q				[bigdecimal!]
+			R				[bigdecimal!]
+			dlen			[integer!]
+			expo			[integer!]
+			intlen			[integer!]
+			T				[bigdecimal!]
+			ret				[bigdecimal!]
+			p				[int-ptr!]
+			pos				[integer!]
+			offset			[integer!]
+			c				[integer!]
+	][
+		Q: div* big1 big2 ROUND-DOWN false
+		if NaN? Q [
+			if free? [free* big1]
+			return Q
+		]
+		if INF? Q [
+			Q/used: 0 - Q/used
+			if free? [free* big1]
+			return Q
+		]
+		if Q/expo >= 0 [
+			R: sub big1 mul big2 Q false false
+			free* Q
+			if free? [free* big1]
+			return R
+		]
+		dlen: bigint/digit-len? Q
+		expo: Q/expo
+		intlen: expo + dlen
+
+		p: as int-ptr! (Q + 1)
+		pos: (-1 - expo) / DECIMAL-BASE-LEN
+		p: p + pos
+		offset: (-1 - expo) % DECIMAL-BASE-LEN
+
+		case [
+			;-- 0 . 0 xx
+			intlen < 0 [
+				c: 1
+				T: load-uint 0
+				T/expo: 0
+			]
+			;-- 0 . xx
+			intlen = 0 [
+				c: digit-at p/1 offset
+				T: load-uint 0
+				T/expo: 0
+			]
+			;-- xx . xx
+			true [
+				c: digit-at p/1 offset
+				T: right-shift-raw Q 0 - expo true
+				T/expo: 0
+			]
+		]
+
+		T: round-with T either Q/used >= 0 [1][-1] c mode true
+		ret: sub big1 mul big2 T false false
+		free* T
+		free* Q
+		if free? [free* big1]
+		ret
+	]
+
 
 	#if debug? = yes [
 		dump: func [
