@@ -1807,7 +1807,7 @@ bigdecimal: context [
 		ret
 	]
 
-	remainder: func [
+	remainder-exp: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		free?				[logic!]
