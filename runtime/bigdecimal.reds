@@ -337,16 +337,6 @@ bigdecimal: context [
 		bigint/div as bigint! big1 as bigint! big2 iQ iR free?
 	]
 
-	modulo-raw: func [
-		big1				[bigdecimal!]
-		big2				[bigdecimal!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		bigint/modulo* as bigint! big1 as bigint! big2 iR free? rounding-mode
-	]
-
 	digit-at: func [
 		uint				[integer!]
 		index				[integer!]
@@ -1727,7 +1717,7 @@ bigdecimal: context [
 		ret
 	]
 
-	modulo: func [
+	modulo*: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
 		mode				[ROUNDING!]
@@ -1787,7 +1777,7 @@ bigdecimal: context [
 			;-- xx . xx
 			true [
 				c: digit-at p/1 offset
-				T: right-shift-raw Q 0 - expo true
+				T: right-shift-raw Q 0 - expo false
 				T/expo: 0
 			]
 		]
@@ -1800,6 +1790,14 @@ bigdecimal: context [
 		ret
 	]
 
+	modulo: func [
+		big1				[bigdecimal!]
+		big2				[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+	][
+		modulo* big1 big2 rounding-mode free?
+	]
 
 	#if debug? = yes [
 		dump: func [
