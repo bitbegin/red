@@ -1671,17 +1671,16 @@ bigdecimal: context [
 		dlen: bigint/digit-len? Q
 		expo: Q/expo
 		intlen: expo + dlen
-		;-- xx . xx
-		either intlen > 0 [
-			T: right-shift-raw Q 0 - expo true
-			T/expo: 0
-		][
-			;-- 0 . 0 xx or 0 . xx
-			T: load-uint 0
-			T/expo: 0
-			if Q/used < 0 [T/used: -1]
+		;-- 0 . 0 xx or 0 . xx
+		if intlen < 0 [
 			free* Q
+			ret: copy* big1
+			if free? [free* big1]
+			return ret
 		]
+		;-- xx . xx
+		T: right-shift-raw Q 0 - expo true
+		T/expo: 0
 		ret: sub big1 mul big2 T false free?
 		free* T
 		ret
