@@ -529,49 +529,21 @@ bigdecimal: context [
 		ret
 	]
 
-	round: func [
+	round-with: func [
 		big					[bigdecimal!]
+		c					[integer!]
 		free?				[logic!]
 		return:				[bigdecimal!]
 		/local
-			bprec			[integer!]
-			bused			[integer!]
 			bsign			[integer!]
-			slen			[integer!]
 			p				[int-ptr!]
-			pos				[integer!]
-			offset			[integer!]
 			tail			[integer!]
-			c				[integer!]
 			ret				[bigdecimal!]
 	][
-		bprec: big/prec
-		either big/used >= 0 [
-			bused: big/used
-			bsign: 1
-		][
-			bused: 0 - big/used
-			bsign: -1
-		]
-		slen: bigint/digit-len? as bigint! big
-		if slen <= bprec [
-			ret: shrink-exp big free?
-			return ret
-		]
-		pos: (slen - bprec) / DECIMAL-BASE-LEN
-		offset: (slen - bprec) % DECIMAL-BASE-LEN
+		bsign: either big/used >= 0 [1][-1]
 		p: as int-ptr! (big + 1)
-		p: p + pos
-		either offset = 0 [
-			tail: digit-at p/1 0
-			p: p - 1
-			c: digit-at p/1 7
-		][
-			tail: digit-at p/1 offset
-			c: digit-at p/1 offset - 1
-		]
-
-		ret: right-shift big slen - bprec free?
+		tail: p/1 % 10
+		ret: copy* big
 		switch rounding-mode [
 			ROUND-UP			[
 				either bsign > 0 [
@@ -678,6 +650,54 @@ bigdecimal: context [
 				]
 			]
 		]
+		if free? [free* big]
+		ret
+	]
+
+	round: func [
+		big					[bigdecimal!]
+		free?				[logic!]
+		return:				[bigdecimal!]
+		/local
+			bprec			[integer!]
+			bused			[integer!]
+			bsign			[integer!]
+			slen			[integer!]
+			p				[int-ptr!]
+			pos				[integer!]
+			offset			[integer!]
+			;tail			[integer!]
+			c				[integer!]
+			ret				[bigdecimal!]
+	][
+		bprec: big/prec
+		either big/used >= 0 [
+			bused: big/used
+			bsign: 1
+		][
+			bused: 0 - big/used
+			bsign: -1
+		]
+		slen: bigint/digit-len? as bigint! big
+		if slen <= bprec [
+			ret: shrink-exp big free?
+			return ret
+		]
+		pos: (slen - bprec) / DECIMAL-BASE-LEN
+		offset: (slen - bprec) % DECIMAL-BASE-LEN
+		p: as int-ptr! (big + 1)
+		p: p + pos
+		either offset = 0 [
+			;tail: digit-at p/1 0
+			p: p - 1
+			c: digit-at p/1 7
+		][
+			;tail: digit-at p/1 offset
+			c: digit-at p/1 offset - 1
+		]
+
+		ret: right-shift big slen - bprec free?
+		ret: round-with ret c true
 		ret/expo: ret/expo + (slen - bprec)
 		ret: shrink-exp ret true
 		ret
