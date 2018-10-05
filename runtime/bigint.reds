@@ -1113,7 +1113,7 @@ bigint: context [
 		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
 		p2: as int-ptr! (big2 + 1)
 
-		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
+		big: expand* big1 1 + either big1/size > big2/size [big1/size][big2/size]
 		big/used: b1used
 		big/expo: big1/expo
 		big/prec: big1/prec
@@ -1174,7 +1174,7 @@ bigint: context [
 		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
 		p2: as int-ptr! (big2 + 1)
 
-		big: expand* big1 either big1/size > big2/size [big1/size][big2/size]
+		big: expand* big1 1 + either big1/size > big2/size [big1/size][big2/size]
 		big/used: b1used
 		big/expo: big1/expo
 		big/prec: big1/prec
