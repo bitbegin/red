@@ -2397,7 +2397,7 @@ bigint: context [
 	]
 
 	;-- A = Q * B + R
-	div: func [
+	div*: func [
 		A					[bigint!]
 		B					[bigint!]
 		iQ					[int-ptr!]
@@ -2429,19 +2429,30 @@ bigint: context [
 		true
 	]
 
+	div: func [
+		A					[bigint!]
+		B					[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			iQ				[integer!]
+	][
+		iQ: 0
+		if false = div* A B :iQ null free? [return null]
+		as bigint! iQ
+	]
+
 	div-int: func [
 		A					[bigint!]
 		int					[integer!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
 		free?				[logic!]
-		return:				[logic!]
+		return:				[bigint!]
 		/local
 			big				[bigint!]
-			ret				[logic!]
+			ret				[bigint!]
 	][
 		big: either A/prec = 0 [load-int int][dec-load-int int]
-		ret: div A big iQ iR free?
+		ret: div A big free?
 		free* big
 		ret
 	]
@@ -2449,18 +2460,29 @@ bigint: context [
 	div-uint: func [
 		A					[bigint!]
 		uint				[integer!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
 		free?				[logic!]
-		return:				[logic!]
+		return:				[bigint!]
 		/local
 			big				[bigint!]
-			ret				[logic!]
+			ret				[bigint!]
 	][
 		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
-		ret: div A big iQ iR free?
+		ret: div A big free?
 		free* big
 		ret
+	]
+
+	remainder: func [
+		A					[bigint!]
+		B					[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			iR				[integer!]
+	][
+		iR: 0
+		if false = div* A B null :iR free? [return null]
+		as bigint! iR
 	]
 
 	modulo*: func [
@@ -2490,7 +2512,7 @@ bigint: context [
 
 		iQ2: 0
 		iR2: 0
-		if false = div A B :iQ2 :iR2 false [
+		if false = div* A B :iQ2 :iR2 false [
 			return false
 		]
 		Q2: as bigint! iQ2
@@ -2782,7 +2804,7 @@ bigint: context [
 		]
 
 		iR2: 0
-		if false = div A B null :iR2 false [
+		if false = div* A B null :iR2 false [
 			return false
 		]
 		R: as bigint! iR2
@@ -3027,16 +3049,14 @@ bigint: context [
 			ret				[integer!]
 			pi				[int-ptr!]
 			Q				[bigint!]
-			iQ				[integer!]
 			pb				[byte-ptr!]
 	][
 		if any [radix < 2 radix > 16] [return false]
 
 		ret: 0
 		if false = modulo-int-s big radix :ret false [return false]
-		iQ: 0
-		if false = div-int big radix :iQ null false [return false]
-		Q: as bigint! iQ
+		Q: div-int big radix false
+		if null = Q [return false]
 		if 0 <> compare-int Q 0 [
 			if false = form-hlp Q radix buf [
 				free* Q

@@ -801,11 +801,8 @@ big2: as bigint! 0
 		big: bigint/load-str str -1 16
 		big2: bigint/load-str str2 -1 16
 		big3: bigint/load-str str3 -1 16
-		pQ: 0
-		pR: 0
-		--assert true = bigint/div big big2 :pQ :pR false
-		big4: as bigint! pQ
-		big5: as bigint! pR
+		big4: bigint/div big big2 false
+		big5: bigint/remainder big big2 false
 		--assert 0 = bigint/compare big3 big4
 		--assert 0 = bigint/compare-int big5 0
 		bigint/free* big
@@ -821,11 +818,8 @@ big2: as bigint! 0
 		big: bigint/load-str str -1 16
 		big2: bigint/load-str str2 -1 16
 		big3: bigint/load-str str3 -1 16
-		pQ: 0
-		pR: 0
-		--assert true = bigint/div big big2 :pQ :pR false
-		big4: as bigint! pQ
-		big5: as bigint! pR
+		big4: bigint/div big big2 false
+		big5: bigint/remainder big big2 false
 		--assert 0 = bigint/compare big3 big4
 		--assert 0 = bigint/compare-int big5 0
 		bigint/free* big
@@ -841,11 +835,8 @@ big2: as bigint! 0
 		big: bigint/load-str str -1 16
 		big2: bigint/load-str str2 -1 16
 		big3: bigint/load-str str3 -1 16
-		pQ: 0
-		pR: 0
-		--assert true = bigint/div big big2 :pQ :pR false
-		big4: as bigint! pQ
-		big5: as bigint! pR
+		big4: bigint/div big big2 false
+		big5: bigint/remainder big big2 false
 		--assert 0 = bigint/compare big3 big4
 		--assert 0 = bigint/compare-int big5 0
 		bigint/free* big
@@ -861,11 +852,8 @@ big2: as bigint! 0
 		big: bigint/load-str str -1 16
 		big2: bigint/load-str str2 -1 16
 		big3: bigint/load-str str3 -1 16
-		pQ: 0
-		pR: 0
-		--assert true = bigint/div big big2 :pQ :pR false
-		big4: as bigint! pQ
-		big5: as bigint! pR
+		big4: bigint/div big big2 false
+		big5: bigint/remainder big big2 false
 		--assert 0 = bigint/compare big3 big4
 		--assert 0 = bigint/compare-int big5 1
 		bigint/free* big
@@ -1012,11 +1000,8 @@ big2: as bigint! 0
 		strU: "602AB7ECA597A3D6B56FF9829A5E8B859E857EA95A03512E2BAE7391688D264AA5663B0341DB9CCFD2C4C5F421FEC8148001B72E848A38CAE1C65F78E56ABDEFE12D3C039B8A02D6BE593F0BBBDA56F1ECF677152EF804370C1A305CAF3B5BF130879B56C61DE584A0F53A2447A51E"
 		U: bigint/load-str strU -1 16
 		--assert 0 = bigint/compare T U
-		iX: 0
-		iY: 0
-		--assert true = bigint/div A N :iX :iY false
-		X: as bigint! iX
-		Y: as bigint! iY
+		X: bigint/div A N false
+		Y: bigint/remainder A N false
 		strX2: "256567336059E52CAE22925474705F39A94"
 		X2: bigint/load-str strX2 -1 16
 		strY2: "6613F26162223DF488E9CD48CC132C7A0AC93C701B001B092E4E5B9F73BCD27B9EE50D0657C77F374E903CDFA4C642"

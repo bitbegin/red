@@ -329,12 +329,10 @@ bigdecimal: context [
 	div-raw: func [
 		big1				[bigdecimal!]
 		big2				[bigdecimal!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
 		free?				[logic!]
-		return:				[logic!]
+		return:				[bigdecimal!]
 	][
-		bigint/div as bigint! big1 as bigint! big2 iQ iR free?
+		as bigdecimal! bigint/div as bigint! big1 as bigint! big2 free?
 	]
 
 	digit-at: func [
@@ -1609,7 +1607,6 @@ bigdecimal: context [
 			b2len			[integer!]
 			temp			[integer!]
 			bt1				[bigdecimal!]
-			iQ				[integer!]
 			ret				[bigdecimal!]
 	][
 		if any [NaN? big1 NaN? big2][
@@ -1649,9 +1646,7 @@ bigdecimal: context [
 		temp: temp * DECIMAL-BASE-LEN
 		bt1: left-shift-raw big1 temp false
 		bt1/expo: big1/expo - temp
-		iQ: 0
-		div-raw bt1 big2 :iQ null true
-		ret: as bigdecimal! iQ
+		ret: div-raw bt1 big2 true
 		ret/expo: bt1/expo - big2/expo
 		ret/prec: prec
 		ret: round ret mode true
