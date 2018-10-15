@@ -1268,6 +1268,185 @@ gdiplus-draw-roundbox: func [
 	GdipDeletePath path
 ]
 
+rect-offset: func [
+	rc		[RECT_STRUCT]
+	x		[integer!]
+	y		[integer!]
+][
+	rc/left: rc/left + x
+	rc/right: rc/right + x
+	rc/top: rc/top + y
+	rc/bottom: rc/bottom + y
+]
+
+rect-inflate: func [
+	rc		[RECT_STRUCT]
+	x		[integer!]
+	y		[integer!]
+][
+	rc/left: rc/left - x
+	rc/right: rc/right + x
+	rc/top: rc/top - y
+	rc/bottom: rc/bottom + y
+]
+
+rect-init: func [
+	rc			[RECT_STRUCT]
+	upper		[red-pair!]
+	lower		[red-pair!]
+][
+	rc/left: upper/x
+	rc/top: upper/y
+	rc/right: lower/x
+	rc/bottom: lower/y
+]
+
+rect-copy: func [
+	rc			[RECT_STRUCT]
+	src			[RECT_STRUCT]
+][
+	rc/left: src/left
+	rc/top: src/top
+	rc/right: src/right
+	rc/bottom: src/bottom
+]
+
+rect-width: func [
+	rc			[RECT_STRUCT]
+	return:		[integer!]
+][
+	rc/right - rc/left
+]
+
+rect-height: func [
+	rc			[RECT_STRUCT]
+	return:		[integer!]
+][
+	rc/bottom - rc/top
+]
+
+rect-contains: func [
+	outer		[RECT_STRUCT]
+	inner		[RECT_STRUCT]
+	return:		[logic!]
+][
+	if all [
+		outer/left <= inner/left
+		outer/right >= inner/right
+		outer/top <= inner/top
+		outer/bottom >= inner/bottom
+	][return true]
+	false
+]
+
+rect-print: func [
+	rc			[RECT_STRUCT]
+][
+	print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
+]
+
+draw-round-rect: func [
+	ctx			[draw-ctx!]
+	rect		[RECT_STRUCT]
+	radius		[integer!]
+	clr			[integer!]
+	/local
+		oldbr	[integer!]
+		oldpen	[integer!]
+		handle	[integer!]
+][
+	oldbr: ctx/gp-brush
+	handle: 0
+	GdipCreateSolidFill to-gdiplus-color clr :handle
+	ctx/gp-brush: handle
+	oldpen: ctx/pen-color
+	GdipSetPenColor ctx/gp-pen to-gdiplus-color clr
+	either radius > 0 [
+		gdiplus-draw-roundbox
+			ctx
+			rect/left
+			rect/top
+			rect-width rect
+			rect-height rect
+			radius
+			true
+	][
+		GdipFillRectangleI
+			ctx/graphics
+			ctx/gp-brush
+			rect/left
+			rect/top
+			rect-width rect
+			rect-height rect
+	]
+	GdipDeleteBrush ctx/gp-brush
+	ctx/gp-brush: oldbr
+	ctx/pen-color: oldpen
+	GdipSetPenColor ctx/gp-pen to-gdiplus-color ctx/pen-color
+]
+
+h-shadow: 40
+v-shadow: 40
+blur: 40
+spread: 0
+color: 00888888h
+inset?: no
+
+outset-shadow: func [
+	ctx			[draw-ctx!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+	/local
+		inner	[RECT_STRUCT value]
+		outer	[RECT_STRUCT value]
+		;origin	[RECT_STRUCT value]
+		output	[RECT_STRUCT value]
+		cblur	[integer!]
+		dh		[float!]
+		dbase	[float!]
+		trans	[float!]
+		clr		[integer!]
+][
+	print-line upper/x
+	print-line upper/y
+	print-line lower/x
+	print-line lower/y
+	rect-init inner upper lower
+	rect-init outer upper lower
+	rect-print inner
+	;rect-print outer
+	rect-offset inner h-shadow v-shadow
+	rect-print inner
+	rect-inflate inner 0 - blur 0 - blur
+	rect-print inner
+	;rect-print outer
+	rect-inflate outer spread spread
+	rect-offset outer h-shadow v-shadow
+	;rect-copy origin outer
+	rect-print inner
+	rect-print outer
+
+	cblur: 0
+	dbase: as float! (blur * 2 + (spread * 2))
+	until [
+	;loop 10 [
+		dh: as float! ((rect-height outer) - rect-height inner)
+		trans: dh / dbase
+		print-line trans
+		clr: FFh and as integer! ((as float! 255) * trans * trans)
+		clr: color or (clr << 24)
+		print-line clr
+		rect-copy output inner
+		;rect-offset output 0 - outer/left 0 - outer/top
+		rect-inflate inner 1 1
+		cblur: as integer! ((as float! blur) * (1.0 - (trans * trans)))
+		print-line cblur
+		rect-print output
+		draw-round-rect ctx output cblur clr
+		not rect-contains outer inner
+	]
+]
+
 OS-draw-box: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
@@ -1286,6 +1465,7 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
+	outset-shadow ctx upper lower
 	either positive? rad [
 		rad: rad * 2
 		either ctx/other/GDI+? [
