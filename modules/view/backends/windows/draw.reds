@@ -1385,11 +1385,16 @@ draw-round-rect: func [
 	GdipSetPenColor ctx/gp-pen to-gdiplus-color ctx/pen-color
 ]
 
-h-shadow: 40
-v-shadow: 40
-blur: 40
-spread: 0
-color: 00888888h
+config1: [5 5 5 10 0]
+config2: [10 10 80 30 00FF0000h]
+config3: [-50 20 50 10 00888888h]
+config4: [10 10 20 20 00002244h]
+config5: [0 0 50 50 00002244h]
+h-shadow: config3/1
+v-shadow: config3/2
+blur: config3/3
+spread: config3/4
+color: config3/5
 inset?: no
 
 outset-shadow: func [
@@ -1399,50 +1404,34 @@ outset-shadow: func [
 	/local
 		inner	[RECT_STRUCT value]
 		outer	[RECT_STRUCT value]
-		;origin	[RECT_STRUCT value]
-		output	[RECT_STRUCT value]
 		cblur	[integer!]
 		dh		[float!]
 		dbase	[float!]
 		trans	[float!]
 		clr		[integer!]
 ][
-	print-line upper/x
-	print-line upper/y
-	print-line lower/x
-	print-line lower/y
 	rect-init inner upper lower
 	rect-init outer upper lower
-	rect-print inner
-	;rect-print outer
 	rect-offset inner h-shadow v-shadow
-	rect-print inner
 	rect-inflate inner 0 - blur 0 - blur
-	rect-print inner
-	;rect-print outer
 	rect-inflate outer spread spread
 	rect-offset outer h-shadow v-shadow
-	;rect-copy origin outer
-	rect-print inner
-	rect-print outer
 
 	cblur: 0
 	dbase: as float! (blur * 2 + (spread * 2))
 	until [
-	;loop 10 [
 		dh: as float! ((rect-height outer) - rect-height inner)
 		trans: dh / dbase
 		print-line trans
 		clr: FFh and as integer! ((as float! 255) * trans * trans)
+		clr: clr xor FFh
 		clr: color or (clr << 24)
 		print-line clr
-		rect-copy output inner
-		;rect-offset output 0 - outer/left 0 - outer/top
-		rect-inflate inner 1 1
 		cblur: as integer! ((as float! blur) * (1.0 - (trans * trans)))
 		print-line cblur
-		rect-print output
-		draw-round-rect ctx output cblur clr
+		rect-print inner
+		draw-round-rect ctx inner cblur clr
+		rect-inflate inner 1 1
 		not rect-contains outer inner
 	]
 ]
