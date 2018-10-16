@@ -591,7 +591,7 @@ tagMSG: alias struct! [
 	lParam	[integer!]
 	time	[integer!]
 	x		[integer!]									;@@ POINT struct
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagLOGBRUSH: alias struct! [
@@ -765,7 +765,7 @@ OSVERSIONINFO: alias struct! [
 	dwOSVersionInfoSize [integer!]
 	dwMajorVersion		[integer!]
 	dwMinorVersion		[integer!]
-	dwBuildNumber		[integer!]	
+	dwBuildNumber		[integer!]
 	dwPlatformId		[integer!]
 	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
 	szCSDVersion0		[integer!]
@@ -1649,7 +1649,7 @@ XFORM!: alias struct! [
 			cbCount		[integer!]						;-- count of characters
 			lpDx		[int-ptr!]
 			return:		[integer!]
-		]	
+		]
 		GetTextExtentPoint32: "GetTextExtentPoint32W" [
 			hdc			[handle!]
 			lpString	[c-string!]
@@ -2707,6 +2707,30 @@ XFORM!: alias struct! [
 		]
 		GdipDisposeImage: "GdipDisposeImage" [
 			image		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateEffect: "GdipCreateEffect" [
+			guid		[tagGUID]
+			effect		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSetEffectParameters: "GdipSetEffectParameters" [
+			effect		[int-ptr!]
+			params		[integer!]
+			size		[integer!]
+			return:		[integer!]
+		]
+		GdipBitmapApplyEffect: "GdipBitmapApplyEffect" [
+			bitmap		[integer!]
+			effect		[int-ptr!]
+			roi			[integer!]
+			useAuxData	[logic!]
+			auxData		[int-ptr!]
+			auxDataSize	[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeleteEffect: "GdipDeleteEffect" [
+			effect		[int-ptr!]
 			return:		[integer!]
 		]
 	]
