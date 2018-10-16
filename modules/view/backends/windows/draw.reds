@@ -1385,16 +1385,11 @@ draw-round-rect: func [
 	GdipSetPenColor ctx/gp-pen to-gdiplus-color ctx/pen-color
 ]
 
-config1: [5 5 5 10 0]
-config2: [10 10 80 30 00FF0000h]
-config3: [-50 20 50 10 00888888h]
-config4: [10 10 20 20 00002244h]
-config5: [0 0 50 50 00002244h]
-h-shadow: config3/1
-v-shadow: config3/2
-blur: config3/3
-spread: config3/4
-color: config3/5
+h-shadow: 5
+v-shadow: 5
+blur: 10
+spread: 0
+color: 0
 inset?: no
 
 outset-shadow: func [
@@ -1436,6 +1431,37 @@ outset-shadow: func [
 	]
 ]
 
+inset-shadow: func [
+	ctx			[draw-ctx!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+	/local
+		inner	[RECT_STRUCT value]
+		fblur	[float!]
+		cblur	[float!]
+		trans	[float!]
+		clr		[integer!]
+][
+	rect-init inner upper lower
+	rect-offset inner h-shadow v-shadow
+	rect-inflate inner blur blur
+	rect-inflate inner 0 - spread 0 - spread
+
+	fblur: as float! blur
+	cblur: fblur
+	until [
+		trans: cblur / fblur
+		clr: FFh and as integer! ((as float! 255) * trans * trans)
+		clr: clr xor FFh
+		clr: color or (clr << 24)
+		rect-inflate inner -1 -1
+		draw-round-rect ctx inner as integer! cblur clr
+		cblur: cblur - 1.0
+		cblur <= 0.0
+	]
+
+]
+
 OS-draw-box: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
@@ -1444,17 +1470,33 @@ OS-draw-box: func [
 		t		[integer!]
 		radius	[red-integer!]
 		rad		[integer!]
+		val		[red-integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
 		exit
+	]
+	if TYPE_OF(lower) = TYPE_BLOCK [
+		val: as red-integer! block/rs-head as red-block! lower
+		h-shadow: val/value
+		val: val + 1
+		v-shadow: val/value
+		val: val + 1
+		blur: val/value
+		val: val + 1
+		spread: val/value
+		val: val + 1
+		color: val/value
+		val: val + 1
+		inset?: either val/value = 0 [no][yes]
+		lower:  lower - 1
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
 		radius/value
 	][0]
-	outset-shadow ctx upper lower
+	unless inset? [outset-shadow ctx upper lower]
 	either positive? rad [
 		rad: rad * 2
 		either ctx/other/GDI+? [
@@ -1497,6 +1539,7 @@ OS-draw-box: func [
 			Rectangle ctx/dc upper/x upper/y lower/x lower/y
 		]
 	]
+	if inset? [inset-shadow ctx upper lower]
 ]
 
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
