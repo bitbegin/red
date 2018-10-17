@@ -1248,23 +1248,24 @@ gdiplus-roundrect-path: func [
 ]
 
 gdiplus-draw-roundbox: func [
-	ctx			[draw-ctx!]
+	graphics	[integer!]
 	x			[integer!]
 	y			[integer!]
 	width		[integer!]
 	height		[integer!]
 	radius		[integer!]
-	fill?		[logic!]
+	pen			[integer!]
+	brush		[integer!]
 	/local
 		path	[integer!]
 ][
 	path: 0
 	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
-	if fill? [
-		GdipFillPath ctx/graphics ctx/gp-brush path
+	if brush <> 0 [
+		GdipFillPath graphics brush path
 	]
-	GdipDrawPath ctx/graphics ctx/gp-pen path
+	GdipDrawPath graphics pen path
 	GdipDeletePath path
 ]
 
@@ -1283,11 +1284,17 @@ rect-inflate: func [
 	rc		[RECT_STRUCT]
 	x		[integer!]
 	y		[integer!]
+	/local
+		t	[integer!]
 ][
 	rc/left: rc/left - x
 	rc/right: rc/right + x
 	rc/top: rc/top - y
 	rc/bottom: rc/bottom + y
+	if rc/left > rc/right [t: rc/left rc/left: rc/right rc/right: t]
+	if rc/top > rc/bottom [t: rc/top rc/top: rc/bottom rc/bottom: t]
+	if rc/left < 0 [rc/left: 0]
+	if rc/top < 0 [rc/top: 0]
 ]
 
 rect-init: func [
@@ -1345,44 +1352,89 @@ rect-print: func [
 	print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
 ]
 
-draw-round-rect: func [
-	ctx			[draw-ctx!]
-	rect		[RECT_STRUCT]
+gdiplus-draw-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
 	radius		[integer!]
-	clr			[integer!]
-	/local
-		oldbr	[integer!]
-		oldpen	[integer!]
-		handle	[integer!]
+	pen			[integer!]
+	brush		[integer!]
 ][
-	oldbr: ctx/gp-brush
-	handle: 0
-	GdipCreateSolidFill to-gdiplus-color clr :handle
-	ctx/gp-brush: handle
-	oldpen: ctx/pen-color
-	GdipSetPenColor ctx/gp-pen to-gdiplus-color clr
-	either radius > 0 [
+	if radius > 0 [
 		gdiplus-draw-roundbox
-			ctx
-			rect/left
-			rect/top
-			rect-width rect
-			rect-height rect
+			graphics
+			x
+			y
+			width
+			height
 			radius
-			true
-	][
-		GdipFillRectangleI
-			ctx/graphics
-			ctx/gp-brush
-			rect/left
-			rect/top
-			rect-width rect
-			rect-height rect
+			pen
+			brush
+		exit
 	]
-	GdipDeleteBrush ctx/gp-brush
-	ctx/gp-brush: oldbr
-	ctx/pen-color: oldpen
-	GdipSetPenColor ctx/gp-pen to-gdiplus-color ctx/pen-color
+	if brush <> 0 [				;-- fill rect
+		GdipFillRectangleI
+			graphics
+			brush
+			x
+			y
+			width
+			height
+			radius
+	]
+
+	GdipFillRectangleI
+		graphics
+		brush
+		x
+		y
+		width
+		height
+		radius
+]
+
+draw-color-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	_color		[integer!]
+	/local
+		color	[integer!]
+		brush	[integer!]
+		pen		[integer!]
+][
+	color: to-gdiplus-color _color
+	brush: 0
+	pen: 0
+	GdipCreateSolidFill color :brush
+	GdipCreatePen1 color as float32! 1 GDIPLUS_UNIT_WORLD :pen
+	gdiplus-draw-box graphics x y width height radius pen brush
+	GdipDeleteBrush brush
+	GdipDeletePen pen
+]
+
+copy-dc: func [
+	old			[handle!]
+	bitmap		[int-ptr!]
+	return:		[handle!]
+	/local
+		width	[integer!]
+		height	[integer!]
+		hBitmap	[handle!]
+		dc		[handle!]
+][
+	width: GetDeviceCaps old HORZRES
+	height: GetDeviceCaps old VERTRES
+	hBitmap: CreateCompatibleBitmap old width height
+	dc: CreateCompatibleDC old
+	SelectObject dc hBitmap
+	if bitmap <> null [bitmap/value: as integer! hBitmap]
+	dc
 ]
 
 h-shadow: 5
@@ -1392,74 +1444,109 @@ spread: 0
 color: 0
 inset?: no
 
+radix-table: "0123456789ABCDEF"
+chr-index: func [
+	chr					[byte!]
+	radix				[integer!]
+	return:				[integer!]
+	/local
+		i				[integer!]
+][
+	i: 1
+	loop radix [
+		if chr = radix-table/i [return i - 1]
+		i: i + 1
+	]
+	-1
+]
+
+; little endian
+pos-map: [4 3 2 1 6 5 8 7 9 10 11 12 13 14 15 16]
+; big endian
+;pos-map: [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16]
+to-guid: func [
+	str			[c-string!]
+	guid		[tagGUID]
+	return:		[logic!]
+	/local
+		len		[integer!]
+		p		[byte-ptr!]
+		i		[integer!]
+		j		[integer!]
+		h		[integer!]
+		l		[integer!]
+		pos		[integer!]
+][
+	len: length? str
+	p: as byte-ptr! guid
+	i: 1
+	j: 1
+	until [
+		if str/i <> #"-" [
+			h: chr-index str/i 16
+			if h = -1 [return false]
+			i: i + 1
+			l: chr-index str/i 16
+			if l = -1 [return false]
+			pos: pos-map/j
+			p/pos: as byte! (h * 16 + l)
+			j: j + 1
+		]
+		i: i + 1
+		i > len
+	]
+	true
+]
+
+; 633C80A4-1843-482B-9EF2-BE2834C5FDD4
+BlurEffectGuid: declare tagGUID
+to-guid "633C80A4-1843-482B-9EF2-BE2834C5FDD4" BlurEffectGuid
+
+BlurParams!: alias struct! [
+	radius		[float32!]
+	expandEdge	[integer!]
+]
+
+GaussianBlur: func [
+	bmp			[handle!]
+	rc			[RECT_STRUCT]
+	radius		[float32!]
+	expandEdge	[logic!]
+	/local
+		effect	[integer!]
+		bpara	[BlurParams! value]
+		t		[integer!]
+		bitmap	[integer!]
+][
+	effect: 0
+	GdipCreateEffect BlurEffectGuid :effect
+	bpara/radius: radius
+	bpara/expandEdge: as integer! expandEdge
+	GdipSetEffectParameters effect as byte-ptr! :bpara size? BlurParams!
+	t: 0
+	bitmap: 0
+	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
+	GdipBitmapApplyEffect bitmap effect rc false :t null
+]
+
 outset-shadow: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
 	lower		[red-pair!]
+	rad			[integer!]
 	/local
 		inner	[RECT_STRUCT value]
 		outer	[RECT_STRUCT value]
-		cblur	[integer!]
-		dh		[float!]
-		dbase	[float!]
-		trans	[float!]
-		clr		[integer!]
 ][
-	rect-init inner upper lower
-	rect-init outer upper lower
-	rect-offset inner h-shadow v-shadow
-	rect-inflate inner 0 - blur 0 - blur
-	rect-inflate outer spread spread
-	rect-offset outer h-shadow v-shadow
+	if rad < 0 [rad: 0]
+	rect-init :inner upper lower
+	rect-offset :inner h-shadow v-shadow
+	rect-init :outer upper lower
+	rect-inflate :outer spread spread
+	rect-offset :outer h-shadow v-shadow
 
-	cblur: 0
-	dbase: as float! (blur * 2 + (spread * 2))
-	until [
-		dh: as float! ((rect-height outer) - rect-height inner)
-		trans: dh / dbase
-		print-line trans
-		clr: FFh and as integer! ((as float! 255) * trans * trans)
-		clr: clr xor FFh
-		clr: color or (clr << 24)
-		print-line clr
-		cblur: as integer! ((as float! blur) * (1.0 - (trans * trans)))
-		print-line cblur
-		rect-print inner
-		draw-round-rect ctx inner cblur clr
-		rect-inflate inner 1 1
-		not rect-contains outer inner
-	]
-]
-
-inset-shadow: func [
-	ctx			[draw-ctx!]
-	upper		[red-pair!]
-	lower		[red-pair!]
-	/local
-		inner	[RECT_STRUCT value]
-		fblur	[float!]
-		cblur	[float!]
-		trans	[float!]
-		clr		[integer!]
-][
-	rect-init inner upper lower
-	rect-offset inner h-shadow v-shadow
-	rect-inflate inner blur blur
-	rect-inflate inner 0 - spread 0 - spread
-
-	fblur: as float! blur
-	cblur: fblur
-	until [
-		trans: cblur / fblur
-		clr: FFh and as integer! ((as float! 255) * trans * trans)
-		clr: clr xor FFh
-		clr: color or (clr << 24)
-		rect-inflate inner -1 -1
-		draw-round-rect ctx inner as integer! cblur clr
-		cblur: cblur - 1.0
-		cblur <= 0.0
-	]
-
+	draw-color-box ctx/graphics inner/left inner/top rect-width :inner rect-height :inner rad color
+	GaussianBlur ctx/bitmap :inner as float32! blur true
 ]
 
 OS-draw-box: func [
@@ -1496,20 +1583,21 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
-	unless inset? [outset-shadow ctx upper lower]
+	unless inset? [outset-shadow ctx upper lower rad * 2]
 	either positive? rad [
 		rad: rad * 2
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			gdiplus-draw-roundbox
-				ctx
+			gdiplus-draw-box
+				ctx/graphics
 				upper/x
 				upper/y
 				lower/x - upper/x
 				lower/y - upper/y
 				rad
-				ctx/brush?
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
 			RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
 		]
@@ -1519,27 +1607,19 @@ OS-draw-box: func [
 			if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			unless zero? ctx/gp-brush [				;-- fill rect
-				GdipFillRectangleI
-					ctx/graphics
-					ctx/gp-brush
-					upper/x
-					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
-			]
-			GdipDrawRectangleI
+			gdiplus-draw-box
 				ctx/graphics
-				ctx/gp-pen
 				upper/x
 				upper/y
 				lower/x - upper/x
 				lower/y - upper/y
+				rad
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
 			Rectangle ctx/dc upper/x upper/y lower/x lower/y
 		]
 	]
-	if inset? [inset-shadow ctx upper lower]
 ]
 
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
