@@ -484,6 +484,7 @@ Red/System [
 ;#define GDIPLUS_COMBINEMODECOMPLEMENT   5
 
 
+#define OBJ_BITMAP					7
 
 #define AC_SRC_OVER                 0
 #define AC_SRC_ALPHA                0			;-- there are some troubles on Win64 with value 1
@@ -1961,6 +1962,11 @@ XFORM!: alias struct! [
             iMode       [integer!]
             return:     [logic!]
         ]
+		GetCurrentObject: "GetCurrentObject" [
+			hdc			[handle!]
+			type		[integer!]
+			return:		[integer!]
+		]
 	]
 	"comdlg32.dll" stdcall [
 			GetOpenFileName: "GetOpenFileNameW" [
@@ -2707,6 +2713,13 @@ XFORM!: alias struct! [
 		]
 		GdipDisposeImage: "GdipDisposeImage" [
 			image		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateBitmapFromGraphics: "GdipCreateBitmapFromGraphics" [
+			width		[integer!]
+			height		[integer!]
+			graphics	[integer!]
+			bitmap		[int-ptr!]
 			return:		[integer!]
 		]
 		GdipCreateEffect: "GdipCreateEffect" [

@@ -1318,20 +1318,6 @@ rect-copy: func [
 	rc/bottom: src/bottom
 ]
 
-rect-width: func [
-	rc			[RECT_STRUCT]
-	return:		[integer!]
-][
-	rc/right - rc/left
-]
-
-rect-height: func [
-	rc			[RECT_STRUCT]
-	return:		[integer!]
-][
-	rc/bottom - rc/top
-]
-
 rect-contains: func [
 	outer		[RECT_STRUCT]
 	inner		[RECT_STRUCT]
@@ -1418,23 +1404,40 @@ draw-color-box: func [
 	GdipDeletePen pen
 ]
 
-copy-dc: func [
-	old			[handle!]
+new-dc: func [
+	src			[handle!]
+	w			[integer!]
+	h			[integer!]
 	bitmap		[int-ptr!]
+	graphics	[int-ptr!]
 	return:		[handle!]
 	/local
-		width	[integer!]
-		height	[integer!]
 		hBitmap	[handle!]
 		dc		[handle!]
+		gfx		[integer!]
 ][
-	width: GetDeviceCaps old HORZRES
-	height: GetDeviceCaps old VERTRES
-	hBitmap: CreateCompatibleBitmap old width height
-	dc: CreateCompatibleDC old
+	hBitmap: CreateCompatibleBitmap src w h
+	dc: CreateCompatibleDC src
 	SelectObject dc hBitmap
-	if bitmap <> null [bitmap/value: as integer! hBitmap]
+	gfx: 0
+	GdipCreateFromHDC dc :gfx
+	SetGraphicsMode dc GM_ADVANCED
+	SetArcDirection dc AD_CLOCKWISE
+	SetBkMode dc BK_TRANSPARENT
+	SelectObject dc GetStockObject NULL_BRUSH
+	bitmap/value: as integer! hBitmap
+	graphics/value: gfx
 	dc
+]
+
+free-dc: func [
+	dc			[handle!]
+	bitmap		[integer!]
+	graphics	[integer!]
+][
+	GdipDeleteGraphics graphics
+	DeleteObject as handle! bitmap
+	DeleteDC dc
 ]
 
 h-shadow: 5
@@ -1508,25 +1511,36 @@ BlurParams!: alias struct! [
 ]
 
 GaussianBlur: func [
-	bmp			[handle!]
-	rc			[RECT_STRUCT]
+	gfx			[integer!]
+	gbmp		[integer!]
+	x			[integer!]
+	y			[integer!]
+	w			[integer!]
+	h			[integer!]
 	radius		[float32!]
 	expandEdge	[logic!]
+	return:		[integer!]
 	/local
+		ret		[integer!]
 		effect	[integer!]
 		bpara	[BlurParams! value]
 		t		[integer!]
-		bitmap	[integer!]
+		rc		[RECT_STRUCT value]
 ][
+	ret: 0
 	effect: 0
-	GdipCreateEffect BlurEffectGuid :effect
+	ret: ret + GdipCreateEffect BlurEffectGuid :effect
 	bpara/radius: radius
 	bpara/expandEdge: as integer! expandEdge
-	GdipSetEffectParameters effect as byte-ptr! :bpara size? BlurParams!
+	ret: ret + GdipSetEffectParameters effect as byte-ptr! :bpara size? BlurParams!
 	t: 0
-	bitmap: 0
-	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
-	GdipBitmapApplyEffect bitmap effect rc false :t null
+	rc/left: x
+	rc/top: y
+	rc/right: x + w
+	rc/bottom: y + h
+	ret: ret + GdipBitmapApplyEffect gbmp effect rc false :t null
+	ret: ret + GdipDrawImageRectI gfx gbmp x y w h
+	ret
 ]
 
 outset-shadow: func [
@@ -1537,16 +1551,67 @@ outset-shadow: func [
 	/local
 		inner	[RECT_STRUCT value]
 		outer	[RECT_STRUCT value]
+		dc		[handle!]
+		bmp		[integer!]
+		gbmp	[integer!]
+		gfx		[integer!]
+		width	[integer!]
+		height	[integer!]
 ][
 	if rad < 0 [rad: 0]
+	if blur < 0 [blur: 0]
+	if spread < 0 [spread: 0]
 	rect-init :inner upper lower
 	rect-offset :inner h-shadow v-shadow
+	rect-inflate :inner 0 - blur 0 - blur
 	rect-init :outer upper lower
-	rect-inflate :outer spread spread
 	rect-offset :outer h-shadow v-shadow
+	rect-inflate :outer spread spread
+	rect-print :inner
+	rect-print :outer
 
-	draw-color-box ctx/graphics inner/left inner/top rect-width :inner rect-height :inner rad color
-	GaussianBlur ctx/bitmap :inner as float32! blur true
+	width: outer/right - outer/left
+	height: outer/bottom - outer/top
+	bmp: 0
+	gfx: 0
+	dc: new-dc ctx/dc width height :bmp :gfx
+	BitBlt
+		dc
+		0
+		0
+		width
+		height
+		ctx/dc
+		outer/left
+		outer/top
+		SRCCOPY
+	draw-color-box
+		gfx
+		inner/left - outer/left
+		inner/top - outer/top
+		inner/right - inner/left
+		inner/bottom - inner/top
+		rad
+		color
+	gbmp: 0
+	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
+	;GdipCreateBitmapFromGraphics
+	;	width
+	;	height
+	;	gfx
+	;	:gbmp
+	print-line GaussianBlur
+		gfx
+		gbmp
+		0
+		0
+		width
+		height
+		as float32! blur
+		false
+	GdipDisposeImage gbmp
+	BitBlt ctx/dc outer/left outer/top width height dc 0 0 SRCCOPY
+	free-dc dc bmp gfx
 ]
 
 OS-draw-box: func [
@@ -1577,6 +1642,7 @@ OS-draw-box: func [
 		val: val + 1
 		inset?: either val/value = 0 [no][yes]
 		lower:  lower - 1
+		print-line ["h-shadow: " h-shadow " v-shadow: " v-shadow " blur: " blur " spread: " spread " color: " color " inset?: " inset?]
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
