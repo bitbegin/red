@@ -59,6 +59,120 @@ INT_SIZE: alias struct! [
 	height				[integer!]
 ]
 
+rect-offset: func [
+	rc					[RECT_STRUCT]
+	x					[integer!]
+	y					[integer!]
+][
+	rc/left: rc/left + x
+	rc/right: rc/right + x
+	rc/top: rc/top + y
+	rc/bottom: rc/bottom + y
+]
+
+rect-inflate: func [
+	rc					[RECT_STRUCT]
+	x					[integer!]
+	y					[integer!]
+	/local
+		t				[integer!]
+][
+	rc/left: rc/left - x
+	rc/right: rc/right + x
+	rc/top: rc/top - y
+	rc/bottom: rc/bottom + y
+	if rc/left > rc/right [t: rc/left rc/left: rc/right rc/right: t]
+	if rc/top > rc/bottom [t: rc/top rc/top: rc/bottom rc/bottom: t]
+	if rc/left < 0 [rc/left: 0]
+	if rc/top < 0 [rc/top: 0]
+]
+
+rect-intersect: func [
+	rc1					[RECT_STRUCT]
+	rc2					[RECT_STRUCT]
+	ret					[RECT_STRUCT]
+][
+	ret/left: MAX(rc1/left rc2/left)
+	ret/top: MAX(rc1/top rc2/top)
+	ret/right: MIN(rc1/right rc2/right)
+	ret/bottom: MIN(rc1/bottom rc2/bottom)
+	if any [
+		ret/right < ret/left
+		ret/bottom < ret/top
+	][
+		ret/right: ret/left
+		ret/bottom: ret/top
+	]
+]
+
+rect-copy: func [
+	rc					[RECT_STRUCT]
+	src					[RECT_STRUCT]
+][
+	rc/left: src/left
+	rc/top: src/top
+	rc/right: src/right
+	rc/bottom: src/bottom
+]
+
+rect-contains: func [
+	outer				[RECT_STRUCT]
+	inner				[RECT_STRUCT]
+	return:				[logic!]
+][
+	if all [
+		outer/left <= inner/left
+		outer/right >= inner/right
+		outer/top <= inner/top
+		outer/bottom >= inner/bottom
+	][return true]
+	false
+]
+
+rect-empty?: func [
+	rc					[RECT_STRUCT]
+	return: 			[logic!]
+][
+	if any [
+		rc/right <= rc/left
+		rc/bottom <= rc/top
+	][return true]
+	false
+]
+
+rect-equal?: func [
+	rc1					[RECT_STRUCT]
+	rc2					[RECT_STRUCT]
+	return: 			[logic!]
+][
+	if all [
+		rc1/left = rc2/left
+		rc1/right = rc2/right
+		rc1/top = rc2/top
+		rc1/bottom = rc2/bottom
+	][return true]
+	false
+]
+
+rect-interior-equal?: func [
+	rc1					[RECT_STRUCT]
+	rc2					[RECT_STRUCT]
+	return: 			[logic!]
+][
+	if rect-equal? rc1 rc2 [return true]
+	if all [
+		rect-empty? rc1
+		rect-empty? rc2
+	][return true]
+	false
+]
+
+rect-print: func [
+	rc					[RECT_STRUCT]
+][
+	print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
+]
+
 GetAlignedStride: func [
 	alignment			[integer!]
 	aWidth				[integer!]
@@ -91,6 +205,49 @@ BufferSizeFromStrideAndHeight: func [
 	][return 0]
 	requiredBytes: aStride * aHeight + aExtraBytes
 	requiredBytes
+]
+
+ComputeMinSizeForShadowShape: func [
+	aCornerRadii		[int-ptr!]
+	aBlurRadius			[INT_SIZE]
+	aOutSlice			[RECT_STRUCT]
+	aRectSize			[INT_SIZE]
+	minSize				[INT_SIZE]
+	/local
+		cornerSize		[INT_SIZE value]
+		i				[integer!]
+		corners			[INT_SIZE]
+][
+	cornerSize/width: 0
+	cornerSize/height: 0
+	if aCornerRadii <> null [
+		i: 0
+		while [i < 4][
+			corners: as INT_SIZE aCornerRadii + i
+			cornerSize/width: MAX(cornerSize/width corners/width)
+			cornerSize/height: MAX(cornerSize/height corners/height)
+			i: i + 1
+		]
+	]
+	cornerSize/width: cornerSize/width + aBlurRadius/width
+	cornerSize/height: cornerSize/height + aBlurRadius/height
+
+	aOutSlice/top: cornerSize/height
+	aOutSlice/right: cornerSize/width
+	aOutSlice/bottom: cornerSize/height
+	aOutSlice/left: cornerSize/width
+	minSize/width: aOutSlice/left + aOutSlice/right + 1
+	minSize/height: aOutSlice/top + aOutSlice/bottom + 1
+	if aRectSize/width < minSize/width [
+		minSize/width: aRectSize/width
+		aOutSlice/left: 0
+		aOutSlice/right: 0
+	]
+	if aRectSize/height < minSize/height [
+		minSize/height: aRectSize/height
+		aOutSlice/top: 0
+		aOutSlice/bottom: 0
+	]
 ]
 
 box-blur-row: func [
@@ -581,6 +738,9 @@ AlphaBoxBlur: context [
 	mSkipRect: declare RECT_STRUCT
 	mBlurRadius: declare INT_SIZE
 	mSpreadRadius: declare INT_SIZE
+	mDirtyRect: declare RECT_STRUCT
+	mHasDirtyRect: false
+	mSurfaceAllocationSize: 0
 
 	RoundUpToMultipleOf4: func [
 		aVal				[integer!]
@@ -592,6 +752,60 @@ AlphaBoxBlur: context [
 		val: val / 4
 		val: val * 4
 		val
+	]
+
+	Init: func [
+		aRect				[RECT_STRUCT]
+		aSpreadRadius		[INT_SIZE]
+		aBlurRadius			[INT_SIZE]
+		aDirtyRect			[RECT_STRUCT]
+		aSkipRect			[RECT_STRUCT]
+		/local
+			width			[integer!]
+			height			[integer!]
+			requiredBlur	[RECT_STRUCT value]
+			size			[integer!]
+	][
+		mSpreadRadius/width: aSpreadRadius/width
+		mSpreadRadius/height: aSpreadRadius/height
+		mBlurRadius/width: aBlurRadius/width
+		mBlurRadius/height: aBlurRadius/height
+
+		rect-copy mRect aRect
+		width: aBlurRadius/width + aSpreadRadius/width
+		height: aBlurRadius/height + aSpreadRadius/height
+		rect-inflate mRect width height
+
+		either aDirtyRect <> null [
+			mHasDirtyRect: true
+			rect-copy mDirtyRect aDirtyRect
+			rect-intersect aDirtyRect mRect :requiredBlur
+			rect-inflate :requiredBlur width height
+			rect-intersect :requiredBlur mRect mRect
+		][
+			mHasDirtyRect: false
+		]
+
+		if any [
+			mRect/right <= mRect/left
+			mRect/bottom <= mRect/right
+		][exit]
+
+		either aSkipRect <> null [
+			rect-copy mSkipRect aSkipRect
+			rect-inflate mSkipRect 0 - width 0 - height
+			rect-intersect mSkipRect mRect mSkipRect
+			if rect-interior-equal? mSkipRect mRect [exit]
+			rect-offset mSkipRect 0 - mRect/left 0 - mRect/top
+		][
+			mSkipRect/left: 0
+			mSkipRect/right: 0
+			mSkipRect/top: 0
+			mSkipRect/bottom: 0
+		]
+		mStride: RoundUpToMultipleOf4 mRect/right - mRect/left
+		size: BufferSizeFromStrideAndHeight mStride mRect/bottom - mRect/top 3
+		if size <> 0 [mSurfaceAllocationSize: size]
 	]
 
 	BoxBlur: func [
@@ -767,18 +981,32 @@ AlphaBoxBlur: context [
 		BoxBlur aData horizontalLobes/5 horizontalLobes/6 verticalLobes/5 verticalLobes/6 integralImage ImageStride
 	]
 
-	calc-blur-radius: func [
-		x					[float!]
-		y					[float!]
-		size				[INT_SIZE]
+
+	cacl-window: func [
+		sigma				[float!]		; standard Deviation
+		return:				[integer!]
 		/local
-			rx				[float!]
-			ry				[float!]
+			ft				[float!]
+			ret				[integer!]
 	][
-		rx: x * GAUSSIAN_SCALE_FACTOR + 0.5
-		ry: y * GAUSSIAN_SCALE_FACTOR + 0.5
-		size/width: as integer! rx
-		size/height: as integer! ry
+		case [
+			sigma < 0.0 [sigma: 0.0]
+			sigma > 136.0 [sigma: 136.0]
+			true []
+		]
+		ft: sigma * GAUSSIAN_SCALE_FACTOR + 0.5
+		ret: as integer! ft
+		if ret < 1 [ret: 1]
+		ret
+	]
+
+	calc-blur-radius: func [
+		xsigma				[float!]
+		ysigma				[float!]
+		size				[INT_SIZE]
+	][
+		size/width: cacl-window xsigma
+		size/height: cacl-window ysigma
 	]
 
 	calc-blur-sigma: func [
