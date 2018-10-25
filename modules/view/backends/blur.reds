@@ -115,6 +115,19 @@ rect-copy: func [
 	rc/bottom: src/bottom
 ]
 
+rect-swap: func [
+	rect				[RECT_STRUCT]
+	/local
+		temp			[integer!]
+][
+	temp: rect/left
+	rect/left: rect/top
+	rect/top: temp
+	temp: rect/right
+	rect/right: rect/bottom
+	rect/bottom: temp
+]
+
 rect-contains: func [
 	outer				[RECT_STRUCT]
 	inner				[RECT_STRUCT]
@@ -288,7 +301,7 @@ box-blur-row: func [
 	alphaSum: (boxSize + 1) / 2
 	initLeft: aStart - aLeftLobe
 	if initLeft < 0 [
-		temp: (0 - initLeft) * aInput/1
+		temp: 0 - (initLeft * aInput/1)
 		alphaSum: alphaSum + temp
 		initLeft: 0
 	]
@@ -361,7 +374,6 @@ box-blur-row: func [
 
 		while [dst < iterEnd][
 			dst/1: as byte! ((alphaSum * reciprocal) >>> 24)
-			p: src + boxStep
 			alphaSum: alphaSum + firstLastDiff
 			dst: dst + outputStep
 		]
@@ -383,19 +395,6 @@ box-blur-row: func [
 	while [dst < iterEnd][
 		RIGHT_ITER
 	]
-]
-
-rect-swap: func [
-	rect				[RECT_STRUCT]
-	/local
-		temp			[integer!]
-][
-	temp: rect/left
-	rect/left: rect/top
-	rect/top: temp
-	temp: rect/right
-	rect/right: rect/bottom
-	rect/bottom: temp
 ]
 
 box-blur: func [
@@ -436,22 +435,23 @@ box-blur: func [
 	while [y < aRows][
 		inSkipRectY: either all [y >= aSkipRect/top y < aSkipRect/bottom][true][false]
 		if all [inSkipRectY skipWhole?][
-			temp: stride * (aSkipRect/bottom - aSkipRect/top)
+			temp: stride * (aSkipRect/bottom - y)
 			aData: aData + temp
-			y: aSkipRect/bottom - 1
+			y: aSkipRect/bottom
 			continue
 		]
 		p: aLobes
 		box-blur-row aTranspose false aData tmpRow p/1 p/2 aWidth aStride 0 aWidth
 		p: aLobes + 2
 		box-blur-row false false tmpRow tmpRow2 p/1 p/2 aWidth aStride 0 aWidth
+
 		skipStart: either inSkipRectY [
 			temp: MAX(aSkipRect/left 0)
 			MIN(temp aWidth)
 		][aWidth]
 		skipEnd: MAX(skipStart aSkipRect/right)
 		p: aLobes + 4
-		if skipStart > 0[
+		if skipStart > 0 [
 			box-blur-row false aTranspose tmpRow2 aData p/1 p/2 aWidth aStride 0 skipStart
 		]
 		if skipEnd < aWidth [
@@ -519,7 +519,7 @@ spread-h: func [
 	while [y < aRows][
 		inSkipRectY: either all [y >= aSkipRect/top y < aSkipRect/bottom][true][false]
 		if all [inSkipRectY skipWhole?][
-			y: aSkipRect/bottom - 1
+			y: aSkipRect/bottom
 			continue
 		]
 
@@ -541,7 +541,7 @@ spread-h: func [
 			sMax: MIN(temp temp2)
 			v: 0
 			s: sMin
-			while [s < sMax][
+			while [s <= sMax][
 				temp: aStride * y + s
 				p: aInput + temp
 				temp: as integer! p/1
@@ -589,7 +589,7 @@ spread-v: func [
 	while [x < aWidth][
 		inSkipRectX: either all [x >= aSkipRect/left x < aSkipRect/right][true][false]
 		if all [inSkipRectX skipWhole?][
-			x: aSkipRect/right - 1
+			x: aSkipRect/right
 			continue
 		]
 
@@ -611,7 +611,7 @@ spread-v: func [
 			sMax: MIN(temp temp2)
 			v: 0
 			s: sMin
-			while [s < sMax][
+			while [s <= sMax][
 				temp: aStride * s + x
 				p: aInput + temp
 				temp: as integer! p/1
@@ -708,7 +708,7 @@ gen-integral-image: func [
 
 	gen-integral-row aIntegralImage aSource aIntegralImage aSize/width aLeftInflation aRightInflation
 	y: 1
-	while [y < aTopInflation][
+	while [y < (aTopInflation + 1)][
 		gen-integral-row aIntegralImage + (y * stride32bit) aSource aIntegralImage + ((y - 1) * stride32bit)
 				aSize/width aLeftInflation aRightInflation
 		y: y + 1
@@ -731,8 +731,6 @@ gen-integral-image: func [
 ]
 
 AlphaBoxBlur: context [
-	mWidth: 0
-	mHeight: 0
 	mStride: 0
 	mRect: declare RECT_STRUCT
 	mSkipRect: declare RECT_STRUCT
@@ -788,7 +786,7 @@ AlphaBoxBlur: context [
 
 		if any [
 			mRect/right <= mRect/left
-			mRect/bottom <= mRect/right
+			mRect/bottom <= mRect/top
 		][exit]
 
 		either aSkipRect <> null [
@@ -852,13 +850,13 @@ AlphaBoxBlur: context [
 
 		gen-integral-image leftInflation aRightLobe aTopLobe abottomLobe aIntegralImage aImageStride aData mStride :size
 
-		ft: 2147483648.0 / as float! boxSize
+		ft: 4294967296.0 / as float! boxSize
 		reciprocal: as integer! ft
 		innerIntegral: aIntegralImage + (aTopLobe * stride32bit) + leftInflation
 
 		y: 0
-		while [y < mHeight][
-			inSkipRectY: either all [y >= mSkipRect/top y < mSkipRect/bottom][true][false]
+		while [y < size/height][
+			inSkipRectY: either all [y > mSkipRect/top y < mSkipRect/bottom][true][false]
 			temp: (y - aTopLobe) * stride32bit - aLeftLobe
 			topLeftBase: innerIntegral + temp
 			temp: (y - aTopLobe) * stride32bit + aRightLobe
@@ -869,13 +867,13 @@ AlphaBoxBlur: context [
 			bottomLeftBase: innerIntegral + temp
 
 			x: 0
-			while [x < mWidth][
+			while [x < size/width][
 				if all [
 					inSkipRectY
 					x > mSkipRect/left
 					x < mSkipRect/right
 				][
-					x: mSkipRect/right - 1
+					x: mSkipRect/right
 					inSkipRectY: false
 					continue
 				]
@@ -922,11 +920,11 @@ AlphaBoxBlur: context [
 			exit
 		]
 
-		unless any [
-			mBlurRadius/width <> 0
-			mBlurRadius/height <> 0
-			mSpreadRadius/width <> 0
-			mSpreadRadius/height <> 0
+		if all [
+			mBlurRadius/width = 0
+			mBlurRadius/height = 0
+			mSpreadRadius/width = 0
+			mSpreadRadius/height = 0
 		][
 			exit
 		]
