@@ -1394,6 +1394,7 @@ draw-color-box: func [
 		brush	[integer!]
 		pen		[integer!]
 ][
+	print-line ["x: " x " y: " y " width: " width " height: " height]
 	color: to-gdiplus-color _color
 	brush: 0
 	pen: 0
@@ -1538,7 +1539,8 @@ GaussianBlur: func [
 	rc/top: y
 	rc/right: x + w
 	rc/bottom: y + h
-	ret: ret + GdipBitmapApplyEffect gbmp effect rc false :t null
+	rect-print :rc
+	ret: ret + GdipBitmapApplyEffect gbmp effect :rc false :t null
 	ret: ret + GdipDrawImageRectI gfx gbmp x y w h
 	ret
 ]
@@ -1551,6 +1553,7 @@ outset-shadow: func [
 	/local
 		inner	[RECT_STRUCT value]
 		outer	[RECT_STRUCT value]
+		blur2	[integer!]
 		dc		[handle!]
 		bmp		[integer!]
 		gbmp	[integer!]
@@ -1558,20 +1561,22 @@ outset-shadow: func [
 		width	[integer!]
 		height	[integer!]
 ][
+	blur2: blur
 	if rad < 0 [rad: 0]
-	if blur < 0 [blur: 0]
+	if blur2 < 0 [blur: 0 blur2: 0]
 	if spread < 0 [spread: 0]
 	rect-init :inner upper lower
 	rect-offset :inner h-shadow v-shadow
-	rect-inflate :inner 0 - blur 0 - blur
+	;rect-inflate :inner 0 - blur2 0 - blur2
 	rect-init :outer upper lower
 	rect-offset :outer h-shadow v-shadow
-	rect-inflate :outer spread spread
+	rect-inflate :outer spread + blur spread + blur
 	rect-print :inner
 	rect-print :outer
 
 	width: outer/right - outer/left
 	height: outer/bottom - outer/top
+	print-line ["width: " width " height:" height]
 	bmp: 0
 	gfx: 0
 	dc: new-dc ctx/dc width height :bmp :gfx
@@ -1585,6 +1590,14 @@ outset-shadow: func [
 		outer/left
 		outer/top
 		SRCCOPY
+	;draw-color-box
+	;	gfx
+	;	0
+	;	0
+	;	width
+	;	height
+	;	rad
+	;	000000FFh
 	draw-color-box
 		gfx
 		inner/left - outer/left
@@ -1595,11 +1608,6 @@ outset-shadow: func [
 		color
 	gbmp: 0
 	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
-	;GdipCreateBitmapFromGraphics
-	;	width
-	;	height
-	;	gfx
-	;	:gbmp
 	print-line GaussianBlur
 		gfx
 		gbmp
@@ -1607,7 +1615,7 @@ outset-shadow: func [
 		0
 		width
 		height
-		as float32! blur
+		as float32! blur ;(blur2 + spread)
 		false
 	GdipDisposeImage gbmp
 	BitBlt ctx/dc outer/left outer/top width height dc 0 0 SRCCOPY
@@ -1649,6 +1657,7 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
+	print-line ["x1: " upper/x " y1: " upper/y " x2: " lower/x " y2: " lower/y]
 	unless inset? [outset-shadow ctx upper lower rad * 2]
 	either positive? rad [
 		rad: rad * 2
