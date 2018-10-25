@@ -46,7 +46,7 @@ system/view/platform: context [
 				FACE_OBJ_EXT4
 				FACE_OBJ_EXT5
 			]
-			
+
 			#enum facet-flag! [
 				FACET_FLAG_TYPE:		00000001h
 				FACET_FLAG_OFFSET:		00000002h
@@ -72,7 +72,7 @@ system/view/platform: context [
 				FACET_FLAG_EXTRA:		00200000h
 				FACET_FLAG_DRAW:		00400000h
 			]
-			
+
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
@@ -88,7 +88,7 @@ system/view/platform: context [
 				FACET_FLAGS_NO_TITLE:	40000000h
 				FACET_FLAGS_NO_BORDER:	80000000h
 			]
-			
+
 			#enum font-facet! [
 				FONT_OBJ_NAME
 				FONT_OBJ_SIZE
@@ -100,7 +100,7 @@ system/view/platform: context [
 				FONT_OBJ_STATE
 				FONT_OBJ_PARENT
 			]
-			
+
 			#enum para-facet! [
 				PARA_OBJ_ORIGIN
 				PARA_OBJ_PADDING
@@ -142,17 +142,17 @@ system/view/platform: context [
 				EVT_FOCUS
 				EVT_UNFOCUS
 				EVT_ENTER
-				
+
 				EVT_ZOOM
 				EVT_PAN
 				EVT_ROTATE
 				EVT_TWO_TAP
 				EVT_PRESS_TAP
-				
+
 				EVT_SELECT
 				EVT_CHANGE
 				EVT_MENU
-				
+
 				EVT_CLOSE								;-- window events
 				EVT_MOVE
 				EVT_SIZE
@@ -162,7 +162,7 @@ system/view/platform: context [
 				EVT_DRAWING
 				EVT_SCROLL
 			]
-			
+
 			#enum event-flag! [
 				EVT_FLAG_AX2_DOWN:		00200000h
 				EVT_FLAG_AUX_DOWN:		00400000h
@@ -185,7 +185,7 @@ system/view/platform: context [
 				PEN_LINE_JOIN
 			]
 			red/boot?: yes								;-- forces words allocation in root block
-			
+
 			facets: context [
 				type:		symbol/make "type"
 				offset:		symbol/make "offset"
@@ -208,7 +208,7 @@ system/view/platform: context [
 				extra:		symbol/make "extra"
 				draw:		symbol/make "draw"
 			]
-			
+
 			_para: context [
 				origin: 	symbol/make "origin"
 				padding:	symbol/make "padding"
@@ -251,7 +251,7 @@ system/view/platform: context [
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
-			
+
 			ClearType:		symbol/make "ClearType"
 			_bold:			symbol/make "bold"
 			_italic:		symbol/make "italic"
@@ -265,7 +265,7 @@ system/view/platform: context [
 			_regular:		symbol/make "regular"
 			_small:			symbol/make "small"
 			_mini:			symbol/make "mini"
-			
+
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"
 			draggable:		symbol/make "draggable"
@@ -374,7 +374,7 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
-			
+
 			red/boot?: no
 			red/collector/active?: yes
 
@@ -420,7 +420,7 @@ system/view/platform: context [
 					EVT_PRESS_TAP	 [_press-tap]
 				]
 			]
-			
+
 			set-event-type: func [
 				evt		[red-event!]
 				word	[red-word!]
@@ -512,6 +512,15 @@ system/view/platform: context [
 				]
 			]]
 
+			RECT_STRUCT: alias struct! [
+				left				[integer!]
+				top					[integer!]
+				right				[integer!]
+				bottom				[integer!]
+			]
+
+			#include %blur.reds
+
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds
@@ -526,7 +535,7 @@ system/view/platform: context [
 			]
 		]
 	]
-	
+
 	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [
@@ -537,7 +546,7 @@ system/view/platform: context [
 		pair: gui/get-screen-size id
 		SET_RETURN(pair)
 	]
-	
+
 	size-text: routine [
 		face  [object!]
 		value
@@ -570,10 +579,10 @@ system/view/platform: context [
 		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		
+
 		gui/get-text-size text hFont pair
 	]
-	
+
 	on-change-facet: routine [
 		owner  [object!]
 		word   [word!]
@@ -586,22 +595,22 @@ system/view/platform: context [
 		if TYPE_OF(new) = TYPE_NONE [new: null]
 		gui/OS-update-facet owner word value action new index part
 	]
-	
+
 	update-font: routine [font [object!] flags [integer!]][
 		gui/update-font font flags
 		SET_RETURN(none-value)
 	]
-	
+
 	update-para: routine [face [object!] flags [integer!]][
 		gui/update-para face flags
 		SET_RETURN(none-value)
 	]
-	
+
 	destroy-view: routine [face [object!] empty? [logic!]][
 		gui/OS-destroy-view face empty?
 		SET_RETURN(none-value)
 	]
-	
+
 	update-view: routine [face [object!]][
 		gui/OS-update-view face
 		SET_RETURN(none-value)
@@ -766,7 +775,7 @@ system/view/platform: context [
 				]
 			]
 		]
-		
+
 		colors: system/view/metrics/colors
 		#switch config/OS [
 			Windows [
@@ -775,7 +784,7 @@ system/view/platform: context [
 				;colors/panel							;-- set in gui/init from OS metrics
 			]
 			macOS [
-			
+
 			]
 		]
 
@@ -786,7 +795,7 @@ system/view/platform: context [
 			pane:	make block! 4
 			state:	reduce [make-null-handle 0 none copy [1]]
 		]
-		
+
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
@@ -799,14 +808,14 @@ system/view/platform: context [
 				]
 				macOS [["Menlo" "Arial" "Times"]]
 			]
-		
+
 		set [font-fixed font-sans-serif font-serif] reduce fonts
 	]
-	
+
 	version: none
 	build:	 none
 	product: none
-	
+
 	init
 ]
 

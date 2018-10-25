@@ -592,7 +592,7 @@ tagMSG: alias struct! [
 	lParam	[integer!]
 	time	[integer!]
 	x		[integer!]									;@@ POINT struct
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagLOGBRUSH: alias struct! [
@@ -766,7 +766,7 @@ OSVERSIONINFO: alias struct! [
 	dwOSVersionInfoSize [integer!]
 	dwMajorVersion		[integer!]
 	dwMinorVersion		[integer!]
-	dwBuildNumber		[integer!]	
+	dwBuildNumber		[integer!]
 	dwPlatformId		[integer!]
 	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
 	szCSDVersion0		[integer!]
@@ -836,13 +836,6 @@ MENUITEMINFO: alias struct! [
 	dwTypeData	[c-string!]
 	cch			[integer!]
 	hbmpItem	[handle!]
-]
-
-RECT_STRUCT: alias struct! [
-	left		[integer!]
-	top			[integer!]
-	right		[integer!]
-	bottom		[integer!]
 ]
 
 RECT_STRUCT_FLOAT32: alias struct! [
@@ -1650,7 +1643,7 @@ XFORM!: alias struct! [
 			cbCount		[integer!]						;-- count of characters
 			lpDx		[int-ptr!]
 			return:		[integer!]
-		]	
+		]
 		GetTextExtentPoint32: "GetTextExtentPoint32W" [
 			hdc			[handle!]
 			lpString	[c-string!]

@@ -150,7 +150,7 @@ Red/System [
 
 #define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
 #define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
-#define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
+#define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]]
 
 #define RedNSEventKey			4000FFF0h
 #define RedCameraSessionKey		4000FFF1h
@@ -209,13 +209,6 @@ CGPatternCallbacks!: alias struct! [
 	version		[integer!]
 	drawPattern [integer!]
 	releaseInfo [integer!]
-]
-
-RECT_STRUCT: alias struct! [
-	left		[integer!]
-	top			[integer!]
-	right		[integer!]
-	bottom		[integer!]
 ]
 
 tagPOINT: alias struct! [
@@ -432,7 +425,7 @@ tagSIZE: alias struct! [
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
 		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [integer!]
-		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
+		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]
 		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
 		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
