@@ -1310,6 +1310,22 @@ gdiplus-draw-box: func [
 		height
 ]
 
+h-shadow: 5
+v-shadow: 5
+blur: 10
+spread: 0
+color: 0
+inset?: no
+
+draw-outset-shadow: func [
+	ctx			[draw-ctx!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+	rad			[integer!]
+][
+
+]
+
 OS-draw-box: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
@@ -1324,10 +1340,27 @@ OS-draw-box: func [
 		low-y	[integer!]
 		width	[integer!]
 		height	[integer!]
+		val		[red-integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
 		exit
+	]
+	if TYPE_OF(lower) = TYPE_BLOCK [
+		val: as red-integer! block/rs-head as red-block! lower
+		h-shadow: val/value
+		val: val + 1
+		v-shadow: val/value
+		val: val + 1
+		blur: val/value
+		val: val + 1
+		spread: val/value
+		val: val + 1
+		color: val/value
+		val: val + 1
+		inset?: either val/value = 0 [no][yes]
+		lower:  lower - 1
+		print-line ["h-shadow: " h-shadow " v-shadow: " v-shadow " blur: " blur " spread: " spread " color: " color " inset?: " inset?]
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
@@ -1335,6 +1368,7 @@ OS-draw-box: func [
 		radius/value
 	][0]
 	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	unless inset? [draw-outset-shadow ctx upper lower rad * 2]
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
