@@ -121,6 +121,15 @@ red-bigint: context [
 					OP_REM [
 						bint: bigint/remainder-int left/node int/value false
 					]
+					OP_AND [
+						bint: bigint/and-uint* left/node int/value false
+					]
+					OP_OR  [
+						bint: bigint/or-uint* left/node int/value false
+					]
+					OP_XOR [
+						bint: bigint/xor-uint* left/node int/value false
+					]
 				]
 			]
 			TYPE_BIGINT TYPE_HEX [
@@ -139,6 +148,15 @@ red-bigint: context [
 					]
 					OP_REM [
 						bint: bigint/remainder left/node right/node false
+					]
+					OP_AND [
+						bint: bigint/and* left/node right/node false
+					]
+					OP_OR  [
+						bint: bigint/or* left/node right/node false
+					]
+					OP_XOR [
+						bint: bigint/xor* left/node right/node false
 					]
 				]
 			]
@@ -332,6 +350,22 @@ red-bigint: context [
 		as red-value! do-math OP_SUB
 	]
 
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/xor~"]]
+		as red-value! do-math OP_XOR
+	]
+
 	even?: func [
 		big		[red-bigint!]
 		return: [logic!]
@@ -396,10 +430,10 @@ red-bigint: context [
 			:even?
 			:odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at

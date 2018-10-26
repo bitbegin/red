@@ -1257,6 +1257,21 @@ bigint: context [
 		big
 	]
 
+	and-uint*: func [
+		big1				[bigint!]
+		uint				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			big				[bigint!]
+			ret				[bigint!]
+	][
+		big: load-uint uint
+		ret: and* big1 big free?
+		free* big
+		ret
+	]
+
 	or*: func [
 		big1				[bigint!]
 		big2				[bigint!]
@@ -1298,6 +1313,21 @@ bigint: context [
 		big
 	]
 
+	or-uint*: func [
+		big1				[bigint!]
+		uint				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			big				[bigint!]
+			ret				[bigint!]
+	][
+		big: load-uint uint
+		ret: or* big1 big free?
+		free* big
+		ret
+	]
+
 	xor*: func [
 		big1				[bigint!]
 		big2				[bigint!]
@@ -1322,6 +1352,21 @@ bigint: context [
 		]
 		if free? [free* big1]
 		big
+	]
+
+	xor-uint*: func [
+		big1				[bigint!]
+		uint				[integer!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			big				[bigint!]
+			ret				[bigint!]
+	][
+		big: load-uint uint
+		ret: xor* big1 big free?
+		free* big
+		ret
 	]
 
 	dec-absolute-add: func [
