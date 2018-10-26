@@ -285,6 +285,267 @@ big2: as bigint! 0
 
 ===end-group===
 
+===start-group=== "and tests"
+	--test-- "and-test-1"
+		str:  "123456789ABCDEF0"
+		str2: "1"
+		str3: "0"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "and-test-2"
+		str:  "1"
+		str2: "0FEDCBA987654321"
+		str3: "1"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "and-test-3"
+		str:  "123456789ABCDEF0"
+		str2: "0FEDCBA987654321"
+		str3: "224422882244220"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "and-test-4"
+		str:  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str2: "123456789ABCDEF0"
+		str3: "1230101010145890"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "and-test-5"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "123456789ABCDEF0"
+		str3: "444681A849290"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "and-test-6"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str3: "6810103450309000244208900200405010123002708000344048000230441090"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/and* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+===end-group===
+
+===start-group=== "or tests"
+	--test-- "or-test-1"
+		str:  "123456789ABCDEF0"
+		str2: "1"
+		str3: "123456789ABCDEF1"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "or-test-2"
+		str:  "1"
+		str2: "0FEDCBA987654321"
+		str3: "0FEDCBA987654321"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "or-test-3"
+		str:  "123456789ABCDEF0"
+		str2: "0FEDCBA987654321"
+		str3: "1FFDDFF99FFDDFF1"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "or-test-4"
+		str:  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str2: "123456789ABCDEF0"
+		str3: "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567CD67ABEFEFEF0"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "or-test-5"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "123456789ABCDEF0"
+		str3: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCF2FC5FFABAFDDEFC"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "or-test-6"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str3: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567BD056FE567AB177BF7EFB92967CDFFCB456FFDF799632FCF6FCDDFA3ED7FA9C"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/or* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+===end-group===
+
+===start-group=== "xor tests"
+	--test-- "xor-test-1"
+		str:  "123456789ABCDEF0"
+		str2: "1"
+		str3: "123456789ABCDEF1"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "xor-test-2"
+		str:  "1"
+		str2: "0FEDCBA987654321"
+		str3: "FEDCBA987654320"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "xor-test-3"
+		str:  "123456789ABCDEF0"
+		str2: "0FEDCBA987654321"
+		str3: "1DD99DD11DD99DD1"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "xor-test-4"
+		str:  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str2: "123456789ABCDEF0"
+		str3: "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234444CC66AAEEAA660"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "xor-test-5"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "123456789ABCDEF0"
+		str3: "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCF2F81B92A0794C6C"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+	--test-- "xor-test-6"
+		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"
+		str2: "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		str3: "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345613C046CA064A21779B3CF302947C9FACA444CFDD091632C8B6B4DDF80E93EA0C"
+		big: bigint/load-str str -1 16
+		big2: bigint/load-str str2 -1 16
+		big3: bigint/load-str str3 -1 16
+		big4: bigint/xor* big big2 false
+		--assert 0 = bigint/compare big3 big4
+		bigint/free* big
+		bigint/free* big2
+		bigint/free* big3
+		bigint/free* big4
+
+===end-group===
+
 ===start-group=== "add tests"
 	--test-- "add-test-1"
 		str:  "6B5054FE5032B165AF6A8B928648C9D43456FB8B718620FCE0CC4DEA3AC5929C"

@@ -609,6 +609,7 @@ bigint: context [
 
 	shrink: func [
 		big					[bigint!]
+		return:				[bigint!]
 		/local
 			bsign			[integer!]
 			bused			[integer!]
@@ -622,7 +623,7 @@ bigint: context [
 			bsign: -1
 			bused: 0 - big/used
 		]
-		if bused = 0 [exit]
+		if bused = 0 [return big]
 
 		pb: as int-ptr! (big + 1)
 		pb: pb + bused - 1
@@ -637,6 +638,7 @@ bigint: context [
 		]
 		if nused = 0 [nused: 1 bsign: 1]
 		big/used: either bsign > 0 [nused][0 - nused]
+		big
 	]
 
 	;-- u1 < u2
@@ -1095,6 +1097,248 @@ bigint: context [
 		]
 	]
 
+	bin-absolute-and: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+		/local
+			b1used			[integer!]
+			b2used			[integer!]
+			_max			[bigint!]
+			_min			[bigint!]
+			big				[bigint!]
+			pmax			[int-ptr!]
+			pmin			[int-ptr!]
+			max-size		[integer!]
+			i				[integer!]
+	][
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
+		either b1used > b2used [
+			_max: big1 _min: big2 max-size: b1used
+		][
+			_min: big1 _max: big2 max-size: b2used
+		]
+		big: expand* _min max-size
+		big/used: max-size
+		big/expo: big1/expo
+		big/prec: big1/prec
+		pmin: as int-ptr! (big + 1)
+		pmax: as int-ptr! (_max + 1)
+
+		i: 0
+		loop max-size [
+			pmin/1: pmin/1 and pmax/1
+			pmin: pmin + 1
+			pmax: pmax + 1
+			i: i + 1
+		]
+
+		shrink big
+	]
+
+	bin-absolute-or: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+		/local
+			b1used			[integer!]
+			b2used			[integer!]
+			_max			[bigint!]
+			_min			[bigint!]
+			big				[bigint!]
+			pmax			[int-ptr!]
+			pmin			[int-ptr!]
+			max-size		[integer!]
+			i				[integer!]
+	][
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
+		either b1used > b2used [
+			_max: big1 _min: big2 max-size: b1used
+		][
+			_min: big1 _max: big2 max-size: b2used
+		]
+		big: expand* _min max-size
+		big/used: max-size
+		big/expo: big1/expo
+		big/prec: big1/prec
+		pmin: as int-ptr! (big + 1)
+		pmax: as int-ptr! (_max + 1)
+
+		i: 0
+		loop max-size [
+			pmin/1: pmin/1 or pmax/1
+			pmin: pmin + 1
+			pmax: pmax + 1
+			i: i + 1
+		]
+
+		shrink big
+	]
+
+	bin-absolute-xor: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+		/local
+			b1used			[integer!]
+			b2used			[integer!]
+			_max			[bigint!]
+			_min			[bigint!]
+			big				[bigint!]
+			pmax			[int-ptr!]
+			pmin			[int-ptr!]
+			max-size		[integer!]
+			i				[integer!]
+	][
+		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
+		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
+		either b1used > b2used [
+			_max: big1 _min: big2 max-size: b1used
+		][
+			_min: big1 _max: big2 max-size: b2used
+		]
+		big: expand* _min max-size
+		big/used: max-size
+		big/expo: big1/expo
+		big/prec: big1/prec
+		pmin: as int-ptr! (big + 1)
+		pmax: as int-ptr! (_max + 1)
+
+		i: 0
+		loop max-size [
+			pmin/1: pmin/1 xor pmax/1
+			pmin: pmin + 1
+			pmax: pmax + 1
+			i: i + 1
+		]
+
+		shrink big
+	]
+
+	absolute-and: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+	][
+		bin-absolute-and big1 big2
+	]
+
+	absolute-or: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+	][
+		bin-absolute-or big1 big2
+	]
+
+	absolute-xor: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		return:				[bigint!]
+	][
+		bin-absolute-xor big1 big2
+	]
+
+	and*: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			big				[bigint!]
+			p				[int-ptr!]
+	][
+		if any [zero?* big1 zero?* big2][
+			if free? [free* big1]
+			return load-int 0
+		]
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+
+		big: absolute-and big1 big2
+		if b1sign <> b2sign [big/used: 0 - big/used]
+		if big/used = -1 [
+			p: as int-ptr! (big + 1)
+			if p/1 = 0 [
+				big/used: 1
+			]
+		]
+		if free? [free* big1]
+		big
+	]
+
+	or*: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			big				[bigint!]
+			p				[int-ptr!]
+	][
+		if all [zero?* big1 zero?* big2][
+			if free? [free* big1]
+			return load-int 0
+		]
+		if zero?* big1 [
+			big: copy* big2
+			if free? [free* big1]
+			return big
+		]
+		if zero?* big2 [
+			big: copy* big1
+			if free? [free* big1]
+			return big
+		]
+
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+
+		big: absolute-or big1 big2
+		if b1sign <> b2sign [big/used: 0 - big/used]
+		if big/used = -1 [
+			p: as int-ptr! (big + 1)
+			if p/1 = 0 [
+				big/used: 1
+			]
+		]
+		if free? [free* big1]
+		big
+	]
+
+	xor*: func [
+		big1				[bigint!]
+		big2				[bigint!]
+		free?				[logic!]
+		return:				[bigint!]
+		/local
+			b1sign			[integer!]
+			b2sign			[integer!]
+			big				[bigint!]
+			p				[int-ptr!]
+	][
+		b1sign: either big1/used >= 0 [1][-1]
+		b2sign: either big2/used >= 0 [1][-1]
+
+		big: absolute-xor big1 big2
+		if b1sign <> b2sign [big/used: 0 - big/used]
+		if big/used = -1 [
+			p: as int-ptr! (big + 1)
+			if p/1 = 0 [
+				big/used: 1
+			]
+		]
+		if free? [free* big1]
+		big
+	]
+
 	dec-absolute-add: func [
 		big1				[bigint!]
 		big2				[bigint!]
@@ -1311,7 +1555,6 @@ bigint: context [
 		]
 
 		shrink big
-		big
 	]
 
 	add: func [
@@ -1750,7 +1993,6 @@ bigint: context [
 		]
 
 		shrink big
-		big
 	]
 
 	mul: func [
