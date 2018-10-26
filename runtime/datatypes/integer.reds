@@ -12,7 +12,7 @@ Red/System [
 
 integer: context [
 	verbose: 0
-	
+
 	overflow?: func [
 		fl		[red-float!]
 		return: [logic!]
@@ -40,7 +40,7 @@ integer: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		int/value
 	]
-	
+
 	get-any*: func [									;-- special get* variant for SWITCH
 		return: [integer!]
 		/local
@@ -49,7 +49,7 @@ integer: context [
 		int: as red-integer! stack/arguments
 		either TYPE_OF(int) = TYPE_INTEGER [int/value][0] ;-- accept NONE values
 	]
-	
+
 	get: func [											;-- unboxing integer value
 		value	[red-value!]
 		return: [integer!]
@@ -60,7 +60,7 @@ integer: context [
 		int: as red-integer! value
 		int/value
 	]
-	
+
 	box: func [
 		value	[integer!]
 		return: [red-integer!]
@@ -72,7 +72,7 @@ integer: context [
 		int/value: value
 		int
 	]
-	
+
 	from-binary: func [
 		bin		[red-binary!]
 		return: [integer!]
@@ -116,7 +116,7 @@ integer: context [
 		len: string/rs-length? str
 		if len > 8 [len: 8]
 
-		str/node: binary/decode-16 
+		str/node: binary/decode-16
 			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
 			len
 			unit
@@ -129,12 +129,12 @@ integer: context [
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
-		/local 
+		/local
 			s	[c-string!]
 			c 	[integer!]
 			n 	[logic!]
 	][
-		s: "-0000000000"								;-- 11 bytes wide	
+		s: "-0000000000"								;-- 11 bytes wide
 		if zero? i [									;-- zero special case
 			s/11: #"0"
 			return s + 10
@@ -249,7 +249,7 @@ integer: context [
 				copy-cell as red-value! right as red-value! left
 				right/header: TYPE_INTEGER
 				right/value: value
-				
+
 				either TYPE_OF(left) = TYPE_PAIR [
 					if op = OP_DIV [
 						fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]
@@ -309,13 +309,13 @@ integer: context [
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/make-in"]]
-		
+
 		int: as red-integer! ALLOC_TAIL(parent)
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
 	]
-	
+
 	push: func [
 		value	[integer!]
 		return: [red-integer!]
@@ -323,7 +323,7 @@ integer: context [
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
-		
+
 		int: as red-integer! stack/push*
 		int/header: TYPE_INTEGER
 		int/value: value
@@ -331,7 +331,7 @@ integer: context [
 	]
 
 	;-- Actions --
-	
+
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
@@ -395,12 +395,12 @@ integer: context [
 			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
-		
+
 		if TYPE_OF(spec) = TYPE_INTEGER [return spec]
-		
+
 		int: as red-integer! proto
 		int/header: TYPE_INTEGER
-		
+
 		switch TYPE_OF(spec) [
 			TYPE_CHAR [
 				int/value: spec/data2
@@ -452,12 +452,12 @@ integer: context [
 			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
-		
+
 		formed: form-signed int/value
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]
-	
+
 	mold: func [
 		int		[red-integer!]
 		buffer	[red-string!]
@@ -466,14 +466,14 @@ integer: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part 	[integer!]
-		indent	[integer!]		
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/mold"]]
 
 		form int buffer arg part
 	]
-	
+
 	compare: func [
 		value1    [red-integer!]						;-- first operand
 		value2    [red-integer!]						;-- second operand
@@ -483,8 +483,9 @@ integer: context [
 			char  [red-char!]
 			f	  [red-float!]
 			left  [integer!]
-			right [integer!] 
+			right [integer!]
 			res	  [integer!]
+			big	  [red-bigint!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
 
@@ -492,9 +493,9 @@ integer: context [
 			any [op = COMP_FIND op = COMP_STRICT_EQUAL]
 			TYPE_OF(value2) <> TYPE_INTEGER
 		][return 1]
-		
+
 		left: value1/value
-		
+
 		switch TYPE_OF(value2) [
 			TYPE_INTEGER [
 				right: value2/value
@@ -512,14 +513,15 @@ integer: context [
 				return res
 			]
 			TYPE_BIGINT TYPE_HEX [
-				right: bigint/compare-int as red-bigint! value2 left
+				big: as red-bigint! value2
+				right: bigint/compare-int big/node left
 				left: 0
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
 		SIGN_COMPARE_RESULT(left right)
 	]
-	
+
 	complement: func [
 		int		[red-integer!]
 		return:	[red-value!]
@@ -539,7 +541,7 @@ integer: context [
 			int	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
-		
+
 		int: as red-integer! stack/arguments
 		int/value: abs int/value
 		int
@@ -549,17 +551,17 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
 	]
-	
+
 	divide: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/divide"]]
 		as red-value! do-math OP_DIV
 	]
-		
+
 	multiply: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/multiply"]]
 		as red-value! do-math OP_MUL
 	]
-	
+
 	subtract: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
@@ -627,11 +629,11 @@ integer: context [
 		base: as red-integer! stack/arguments
 		exp: base + 1
 		type: TYPE_OF(exp)
-		
+
 		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
 			ERR_EXPECT_ARGUMENT(type 1)
 		]
-		
+
 		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value
@@ -650,14 +652,14 @@ integer: context [
 		]
 		as red-value! base
 	]
-	
+
 	even?: func [
 		int		[red-integer!]
 		return: [logic!]
 	][
 		not as-logic int/value and 1
 	]
-	
+
 	odd?: func [
 		int		[red-integer!]
 		return: [logic!]

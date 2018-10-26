@@ -12,11 +12,11 @@ Red/System [
 
 red: context [
 	;-- Runtime sub-system --
-	
+
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
-	
+
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
@@ -24,13 +24,14 @@ red: context [
 		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
-	
+
 	;#include %threads.reds
 	#include %allocator.reds
 	#include %crush.reds
-	
+
 	;-- Datatypes --
-	
+
+	#include %datatypes/bigdecimal.reds
 	#include %datatypes/structures.reds
 	#include %print.reds
 	#include %datatypes/common.reds
@@ -39,7 +40,7 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
-	
+
 	;--------------------------------------------
 	;-- Import OS dependent image functions
 	;-- load-image: func [								;-- return handle
@@ -54,7 +55,7 @@ red: context [
 		FreeBSD  []
 		#default []
 	]
-	
+
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
@@ -103,15 +104,15 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
-	#include %datatypes/bigint.reds
+	#include %datatypes/red-bigint.reds
 	#include %datatypes/hex.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
 	;-- Debugging helpers --
-	
+
 	#include %debug-tools.reds
-	
+
 	;-- Core --
 	#include %actions.reds
 	#include %natives.reds
@@ -141,16 +142,16 @@ red: context [
 	boot?: 		no
 
 	;-- Booting... --
-	
+
 	init: does [
 		boot?: yes
 		dyn-print/init
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context
-		
+
 		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!				;-- datatype names table
-		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer!	;-- actions jump table	
+		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer!	;-- actions jump table
 
 		datatype/init
 		unset/init
@@ -200,13 +201,13 @@ red: context [
 		handle/init
 		date/init
 		port/init
-		bigint/init
+		red-bigint/init
 		hex/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
-		
+
 		actions/init
-		
+
 		;-- initialize memory before anything else
 		alloc-node-frame nodes-per-frame				;-- 10k nodes
 		alloc-series-frame								;-- first frame of 1MB
@@ -217,7 +218,6 @@ red: context [
 		symbols: 	block/make-in root 4000
 		global-ctx: _context/create 4000 no no
 
-		bigint/init-caches
 		case-folding/init
 		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL 1
 
@@ -230,10 +230,10 @@ red: context [
 		ownership/init
 		crypto/init
 		ext-process/init
-		
+
 		stack/init
 		redbin/boot-load system/boot-data no
-		
+
 		#if debug? = yes [
 			datatype/verbose:	verbosity
 			unset/verbose:		verbosity
@@ -291,7 +291,7 @@ red: context [
 			unicode/verbose:	verbosity
 		]
 	]
-	
+
 	cleanup: does [
 		free-all										;-- Allocator's memory freeing
 		free as byte-ptr! natives/table
@@ -302,7 +302,7 @@ red: context [
 		free as byte-ptr! cycles/stack
 		free as byte-ptr! crypto/crc32-table
 	]
-	
+
 	#if type = 'dll [
 		boot: does [
 			***-boot-rs

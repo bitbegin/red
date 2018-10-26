@@ -15,12 +15,11 @@ hex: context [
 
 	make-at: func [
 		slot		[red-value!]
-		len 		[integer!]
 		return:		[red-bigint!]
 		/local
 			big		[red-bigint!]
 	][
-		big: bigint/make-at slot len
+		big: red-bigint/make-at slot
 		big/header: TYPE_HEX
 		big
 	]
@@ -31,46 +30,13 @@ hex: context [
 		len		[integer!]
 		unit	[integer!]
 		/local
-			s		[series!]
-			c		[integer!]
-			hex		[integer!]
-			accum	[integer!]
-			count	[integer!]
-			table	[byte-ptr!]
-			pp		[int-ptr!]
-			size	[integer!]
+			bint	[bigint!]
 			big		[red-bigint!]
 	][
 		assert len > 0
-
-		size: len + 7 >> 3
-		big: make-at slot size
-		big/size: size
-
-		s: GET_BUFFER(big)
-		pp: as int-ptr! s/offset
-		table: string/escape-url-chars
-		p: p + (len * unit)
-		accum: 0
-		count: 0
-		until [
-			p: p - unit
-			c: 7Fh and string/get-char p unit
-			c: c + 1
-			hex: as-integer table/c
-			accum: hex << (count << 2) or accum
-			count: count + 1
-			if count = 8 [
-				pp/value: accum
-				pp: pp + 1
-				count: 0
-				accum: 0
-			]
-			len: len - 1
-			zero? len
-		]
-		if count > 0 [pp/value: accum pp: pp + 1]
-		s/tail: as red-value! pp
+		bint: bigint/load-str as c-string! p len 16
+		big: make-at slot
+		big/node: bint
 	]
 
 	;--- Actions ---
@@ -93,7 +59,7 @@ hex: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hex/to"]]
 
-		bigint/to proto spec type
+		red-bigint/to proto spec type
 		proto/header: TYPE_HEX
 		proto
 	]
@@ -115,7 +81,7 @@ hex: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hex/mold"]]
 
-		bigint/serialize big buffer flat? arg part yes
+		red-bigint/serialize big buffer flat? arg part yes
 	]
 
 	init: does [

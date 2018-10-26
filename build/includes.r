@@ -99,6 +99,8 @@ write %build/bin/sources.r set-cache [
 			%action.reds
 			%block.reds
 			%bigint.reds
+			%bigdecimal.reds
+			%red-bigint.reds
 			%bitset.reds
 			%binary.reds
 			%char.reds
@@ -163,7 +165,7 @@ write %build/bin/sources.r set-cache [
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
-			
+
 		]
 	]
 	%modules/ [
