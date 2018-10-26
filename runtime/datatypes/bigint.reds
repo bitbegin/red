@@ -10,30 +10,9 @@ Red/System [
 bigint!: alias struct! [
 	size		[integer!]				;-- size in integer!
 	used		[integer!]				;-- used length in integer!
-	expo		[integer!]
-	prec		[integer!]
 ]
-
-#enum ROUNDING! [
-	ROUND-UP							;Rounds away from zero
-	ROUND-DOWN							;Rounds towards zero
-	ROUND-CEIL							;Rounds towards Infinity
-	ROUND-FLOOR							;Rounds towards -Infinity
-	ROUND-HALF-UP						;Rounds towards nearest neighbour. If equidistant, rounds away from zero
-	ROUND-HALF-DOWN						;Rounds towards nearest neighbour. If equidistant, rounds towards zero
-	ROUND-HALF-EVEN						;Rounds towards nearest neighbour. If equidistant, rounds towards even neighbour
-	ROUND-HALF-ODD						;Rounds towards nearest neighbour. If equidistant, rounds towards odd neighbour
-	ROUND-HALF-CEIL						;Rounds towards nearest neighbour. If equidistant, rounds towards Infinity
-	ROUND-HALF-FLOOR					;Rounds towards nearest neighbour. If equidistant, rounds towards -Infinity
-]
-
-#define DECIMAL-BASE					100000000
-#define DECIMAL-BASE-LEN				8
 
 bigint: context [
-
-	rounding-mode: ROUND-HALF-UP
-
 	ciL:				4				;-- bigint! unit is 4 bytes; chars in limb
 	biL:				ciL << 3		;-- bits in limb
 	biLH:				ciL << 2		;-- half bits in limb
@@ -59,28 +38,6 @@ bigint: context [
 		c: r1					d/1: r0		d: d + 1
 	]
 	#define MULADDC_STOP []
-
-	#define DEC_MULADDC_INIT [
-		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
-		b0: b and FFFFh
-		b1: b >>> 16
-	]
-	#define DEC_MULADDC_CORE [
-		s0: s/1 and FFFFh
-		s1: s/1 >>> 16			s: s + 1
-		rx: s0 * b1 			r0: s0 * b0
-		ry: s1 * b0 			r1: s1 * b1
-		r1: r1 + (rx >>> 16)
-		r1: r1 + (ry >>> 16)
-		rx: rx << 16 			ry: ry << 16
-		r0: r0 + rx 			r1: r1 + as integer! (uint-less r0 rx)
-		r0: r0 + ry 			r1: r1 + as integer! (uint-less r0 ry)
-		r0: r0 + c 				r1: r1 + as integer! (uint-less r0 c)
-		r0: r0 + d/1			r1: r1 + as integer! (uint-less r0 d/1)
-		c: long-divide r1 r0 DECIMAL-BASE d
-		d: d + 1
-	]
-	#define DEC_MULADDC_STOP []
 
 	set-max-size: func [size [integer!]][
 		if size > 0 [BN_MAX_LIMB: size]
@@ -134,8 +91,6 @@ bigint: context [
 		if ret = null [return null]
 		ret/size: bused
 		ret/used: big/used
-		ret/expo: big/expo
-		ret/prec: big/prec
 		pr: as byte-ptr! (ret + 1)
 		pb: as byte-ptr! (big + 1)
 		copy-memory pr pb bused * 4
@@ -172,8 +127,6 @@ bigint: context [
 		if ret = null [return null]
 		ret/size: nsize
 		ret/used: either bsign > 0 [size][0 - size]
-		ret/expo: big/expo
-		ret/prec: big/prec
 		cp-size: either size > bused [bused][size]
 		pr: as byte-ptr! (ret + 1)
 		pb: as byte-ptr! (big + 1)
@@ -249,75 +202,6 @@ bigint: context [
 		pb/1: uL
 		pb/2: uH
 		big/used: 2
-		big
-	]
-
-	dec-load-int: func [
-		int					[integer!]
-		return:				[bigint!]
-		/local
-			uint			[integer!]
-			sign			[integer!]
-			big				[bigint!]
-			p				[int-ptr!]
-			q				[integer!]
-			r				[integer!]
-	][
-		either int >= 0 [
-			uint: int
-			sign: 1
-		][
-			uint: 0 - int
-			sign: -1
-		]
-		if uint-less uint DECIMAL-BASE [
-			big: alloc* 1
-			if big = null [return null]
-			big/used: either sign > 0 [1][-1]
-			p: as int-ptr! (big + 1)
-			p/1: uint
-			return big
-		]
-		q: 0 r: 0
-		if false = uint-div uint DECIMAL-BASE :q :r [
-			return null
-		]
-		big: alloc* 2
-		if big = null [return null]
-		big/used: either sign > 0 [2][-2]
-		p: as int-ptr! (big + 1)
-		p/1: r
-		p/2: q
-		big
-	]
-
-	dec-load-uint: func [
-		uint				[integer!]
-		return:				[bigint!]
-		/local
-			big				[bigint!]
-			p				[int-ptr!]
-			q				[integer!]
-			r				[integer!]
-	][
-		if uint-less uint DECIMAL-BASE [
-			big: alloc* 1
-			if big = null [return null]
-			big/used: 1
-			p: as int-ptr! (big + 1)
-			p/1: uint
-			return big
-		]
-		q: 0 r: 0
-		if false = uint-div uint DECIMAL-BASE :q :r [
-			return null
-		]
-		big: alloc* 2
-		if big = null [return null]
-		big/used: 2
-		p: as int-ptr! (big + 1)
-		p/1: r
-		p/2: q
 		big
 	]
 
@@ -478,9 +362,7 @@ bigint: context [
 		if zero?* big1 [return either int > 0 [-1][1]]
 		if int = 0 [return either big1/used >= 0 [1][-1]]
 
-		big: either big1/prec = 0 [load-int int][dec-load-int int]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-int int
 		ret: compare big1 big
 		free* big
 		ret
@@ -498,9 +380,7 @@ bigint: context [
 		if zero?* big1 [return -1]
 		if uint = 0 [return either big1/used >= 0 [1][-1]]
 
-		big: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-uint uint
 		ret: compare big1 big
 		free* big
 		ret
@@ -541,91 +421,6 @@ bigint: context [
 		pb: as int-ptr! (big + 1)
 		ret: biL - count-leading-zero pb/bused
 		ret: ret + ((bused - 1) * biL)
-		ret
-	]
-
-	form-decimal: func [
-		value				[integer!]
-		pad8?				[logic!]
-		return:				[c-string!]
-		/local
-			s				[c-string!]
-			r				[c-string!]
-			m				[c-string!]
-			rem				[integer!]
-			t				[integer!]
-			i				[integer!]
-			rsize			[integer!]
-			j				[integer!]
-			p				[byte-ptr!]
-	][
-		s: "0000000000"
-		r: "0000000000"
-		m: "0123456789"
-
-		if pad8? [copy-memory as byte-ptr! s as byte-ptr! "00000000" 9]
-
-		i: 1
-		rem: value
-		until [
-			t: (rem % 10) + 1
-			s/i: m/t
-			rem: rem / 10
-
-			i: i + 1
-			any [
-				rem = 0
-				all [pad8? i > 8]
-			]
-		]
-		either pad8? [
-			rsize: 8
-		][
-			rsize: i - 1
-			s/i: null-byte
-		]
-
-		j: 1
-		p: as byte-ptr! s + rsize - 1
-		loop rsize [
-			r/j: p/1
-
-			p: p - 1
-			j: j + 1
-		]
-		r/j: null-byte
-		r
-	]
-
-	base10-len?: func [
-		uint				[integer!]
-		return:				[integer!]
-	][
-		if bigint/uint-less uint 10 [return 1]
-		if bigint/uint-less uint 100 [return 2]
-		if bigint/uint-less uint 1000 [return 3]
-		if bigint/uint-less uint 10000 [return 4]
-		if bigint/uint-less uint 100000 [return 5]
-		if bigint/uint-less uint 1000000 [return 6]
-		if bigint/uint-less uint 10000000 [return 7]
-		if bigint/uint-less uint 100000000 [return 8]
-		if bigint/uint-less uint 1000000000 [return 9]
-		10
-	]
-
-	digit-len?: func [
-		big					[bigint!]
-		return:				[integer!]
-		/local
-			bused			[integer!]
-			p				[int-ptr!]
-			ret				[integer!]
-	][
-		bused: either big/used >= 0 [big/used][0 - big/used]
-		if bused = 0 [return 0]
-
-		p: as int-ptr! (big + 1)
-		ret: (bused - 1) * DECIMAL-BASE-LEN + base10-len? p/bused
 		ret
 	]
 
@@ -671,155 +466,7 @@ bigint: context [
 		(as int-ptr! u1) < (as int-ptr! u2)
 	]
 
-	uint-mul: func [
-		u1					[integer!]
-		u2					[integer!]
-		hr					[int-ptr!]
-		lr					[int-ptr!]
-		/local
-			h1				[integer!]
-			l1				[integer!]
-			h2				[integer!]
-			l2				[integer!]
-			hx				[integer!]
-			lx				[integer!]
-			c				[integer!]
-			l1l2			[integer!]
-			h1l2			[integer!]
-			h2l1			[integer!]
-			h1h2			[integer!]
-			temp			[integer!]
-	][
-		h1: u1 >>> 16
-		l1: u1 and FFFFh
-		h2: u2 >>> 16
-		l2: u2 and FFFFh
-		l1l2: l1 * l2
-		h1l2: h1 * l2
-		h2l1: h2 * l1
-		h1h2: h1 * h2
-		temp: h1l2 << 16
-		lx: l1l2 + temp
-		c: as integer! uint-less lx temp
-		temp: h2l1 << 16
-		lx: lx + temp
-		c: c + as integer! uint-less lx temp
-		hx: h1h2 + (h1l2 >>> 16) + (h2l1 >>> 16) + c
-		hr/value: hx
-		lr/value: lx
-	]
-
-	dec-exp: func [
-		expo				[integer!]
-		return:				[integer!]
-	][
-		switch expo [
-			0				[1]
-			1				[10]
-			2				[100]
-			3				[1000]
-			4				[10000]
-			5				[100000]
-			6				[1000000]
-			7				[10000000]
-			8				[100000000]
-			default			[0]
-		]
-	]
-
-	dec-left-shift: func [
-		big					[bigint!]
-		count				[integer!]
-		free?				[logic!]
-		return:				[bigint!]
-		/local
-			bused			[integer!]
-			i				[integer!]
-			v0				[integer!]
-			t1				[integer!]
-			r0				[integer!]
-			r1				[integer!]
-			size			[integer!]
-			pr				[int-ptr!]
-			pb				[int-ptr!]
-			p1				[int-ptr!]
-			p2				[int-ptr!]
-			temp			[integer!]
-			mh				[integer!]
-			ml				[integer!]
-			q				[integer!]
-			r				[integer!]
-			ret				[bigint!]
-	][
-		bused: either big/used >= 0 [big/used][0 - big/used]
-		if bused = 0 [
-			if free? [free* big]
-			ret: load-int 0
-			ret/expo: big/expo
-			ret/prec: big/prec
-			return ret
-		]
-
-		r0: 0
-		v0: count / DECIMAL-BASE-LEN
-		t1: count and (DECIMAL-BASE-LEN - 1)
-		i: digit-len? big
-		i: i + count
-
-		either (bused * DECIMAL-BASE-LEN) < i [
-			size: i / DECIMAL-BASE-LEN
-			if i % DECIMAL-BASE-LEN <> 0 [
-				size: size + 1
-			]
-		][
-			size: bused
-		]
-
-		ret: alloc* size
-		ret/used: either big/used >= 0 [size][0 - size]
-		ret/expo: big/expo
-		ret/prec: big/prec
-		pr: as int-ptr! (ret + 1)
-		pb: as int-ptr! (big + 1)
-
-		either t1 > 0 [
-			i: v0
-			while [i < size][
-				p1: pr + i
-				p2: pb + i - v0
-				temp: either (i - v0) >= bused [0][p2/1]
-				mh: 0 ml: 0
-				uint-mul temp dec-exp t1 :mh :ml
-				either mh = 0 [
-					q: 0 r: 0
-					uint-div ml DECIMAL-BASE :q :r
-				][
-					r: 0
-					q: long-divide mh ml DECIMAL-BASE :r
-				]
-				p1/1: r + r0
-				if p1/1 >= DECIMAL-BASE [
-					q: q + 1
-					p1/1: p1/1 - DECIMAL-BASE
-				]
-				r0: q
-				i: i + 1
-			]
-		][
-			copy-memory as byte-ptr! (pr + v0) as byte-ptr! pb bused * 4
-		]
-
-		if any [
-			v0 > 0
-			t1 > 0
-		][
-			shrink ret
-		]
-		if free? [free* big]
-		ret
-	]
-
-	bin-left-shift: func [
+	left-shift: func [
 		big					[bigint!]
 		count				[integer!]
 		free?				[logic!]
@@ -839,6 +486,9 @@ bigint: context [
 			temp			[integer!]
 			ret				[bigint!]
 	][
+		if big = null [
+			return null
+		]
 		bused: either big/used >= 0 [big/used][0 - big/used]
 		if bused = 0 [
 			if free? [free* big]
@@ -862,8 +512,6 @@ bigint: context [
 
 		ret: alloc* size
 		ret/used: either big/used >= 0 [size][0 - size]
-		ret/expo: big/expo
-		ret/prec: big/prec
 		pr: as int-ptr! (ret + 1)
 		pb: as int-ptr! (big + 1)
 
@@ -893,125 +541,27 @@ bigint: context [
 		ret
 	]
 
-	left-shift: func [
+	right-shift: func [
 		big					[bigint!]
 		count				[integer!]
 		free?				[logic!]
 		return:				[bigint!]
+		/local
+			bused			[integer!]
+			i				[integer!]
+			v0				[integer!]
+			v1				[integer!]
+			r0				[integer!]
+			r1				[integer!]
+			pr				[int-ptr!]
+			pb				[int-ptr!]
+			p1				[int-ptr!]
+			p2				[int-ptr!]
+			ret				[bigint!]
 	][
-		either big = null [
+		if big = null [
 			return null
-		][
-			either big/prec = 0 [
-				return bin-left-shift big count free?
-			][
-				return dec-left-shift big count free?
-			]
 		]
-	]
-
-	dec-right-shift: func [
-		big					[bigint!]
-		count				[integer!]
-		free?				[logic!]
-		return:				[bigint!]
-		/local
-			bused			[integer!]
-			i				[integer!]
-			v0				[integer!]
-			v1				[integer!]
-			r0				[integer!]
-			r1				[integer!]
-			pr				[int-ptr!]
-			pb				[int-ptr!]
-			p1				[int-ptr!]
-			p2				[int-ptr!]
-			ev1				[integer!]
-			ev2				[integer!]
-			q				[integer!]
-			r				[integer!]
-			ret				[bigint!]
-	][
-		bused: either big/used >= 0 [big/used][0 - big/used]
-		if big/used = 0 [
-			if free? [free* big]
-			ret: load-int 0
-			ret/expo: big/expo
-			ret/prec: big/prec
-			return ret
-		]
-
-		r0: 0
-		v0: count / DECIMAL-BASE-LEN
-		v1: count and (DECIMAL-BASE-LEN - 1)
-
-		if any [
-			v0 > bused
-			all [
-				v0 = bused
-				v1 > 0
-			]
-		][
-			if free? [free* big]
-			ret: load-int 0
-			ret/expo: big/expo
-			ret/prec: big/prec
-			return ret
-		]
-
-		ret: alloc* bused
-		ret/used: big/used
-		ret/expo: big/expo
-		ret/prec: big/prec
-		pr: as int-ptr! (ret + 1)
-		pb: as int-ptr! (big + 1)
-
-		either v1 > 0 [
-			ev1: dec-exp v1
-			ev2: dec-exp 8 - v1
-			i: bused - v0
-			while [i > 0][
-				p1: pr + i - 1
-				p2: pb + i - 1 + v0
-				p1/1: r0 * ev2
-				q: 0 r: 0
-				uint-div p2/1 ev1 :q :r
-				p1/1: p1/1 + q
-				r0: r
-				i: i - 1
-			]
-		][
-			copy-memory as byte-ptr! pr as byte-ptr! (pb + v0) (bused - v0) * 4
-		]
-
-		if any [
-			v0 > 0
-			v1 > 0
-		][
-			shrink ret
-		]
-		if free? [free* big]
-		ret
-	]
-
-	bin-right-shift: func [
-		big					[bigint!]
-		count				[integer!]
-		free?				[logic!]
-		return:				[bigint!]
-		/local
-			bused			[integer!]
-			i				[integer!]
-			v0				[integer!]
-			v1				[integer!]
-			r0				[integer!]
-			r1				[integer!]
-			pr				[int-ptr!]
-			pb				[int-ptr!]
-			p1				[int-ptr!]
-			p2				[int-ptr!]
-			ret				[bigint!]
-	][
 		bused: either big/used >= 0 [big/used][0 - big/used]
 		if big/used = 0 [
 			if free? [free* big]
@@ -1035,8 +585,6 @@ bigint: context [
 
 		ret: alloc* bused
 		ret/used: big/used
-		ret/expo: big/expo
-		ret/prec: big/prec
 		pr: as int-ptr! (ret + 1)
 		pb: as int-ptr! (big + 1)
 
@@ -1065,24 +613,7 @@ bigint: context [
 		ret
 	]
 
-	right-shift: func [
-		big					[bigint!]
-		count				[integer!]
-		free?				[logic!]
-		return:				[bigint!]
-	][
-		either big = null [
-			return null
-		][
-			either big/prec = 0 [
-				return bin-right-shift big count free?
-			][
-				return dec-right-shift big count free?
-			]
-		]
-	]
-
-	bin-absolute-and: func [
+	absolute-and: func [
 		big1				[bigint!]
 		big2				[bigint!]
 		return:				[bigint!]
@@ -1106,8 +637,6 @@ bigint: context [
 		]
 		big: expand* _min max-size
 		big/used: max-size
-		big/expo: big1/expo
-		big/prec: big1/prec
 		pmin: as int-ptr! (big + 1)
 		pmax: as int-ptr! (_max + 1)
 
@@ -1122,7 +651,7 @@ bigint: context [
 		shrink big
 	]
 
-	bin-absolute-or: func [
+	absolute-or: func [
 		big1				[bigint!]
 		big2				[bigint!]
 		return:				[bigint!]
@@ -1146,8 +675,6 @@ bigint: context [
 		]
 		big: expand* _min max-size
 		big/used: max-size
-		big/expo: big1/expo
-		big/prec: big1/prec
 		pmin: as int-ptr! (big + 1)
 		pmax: as int-ptr! (_max + 1)
 
@@ -1162,7 +689,7 @@ bigint: context [
 		shrink big
 	]
 
-	bin-absolute-xor: func [
+	absolute-xor: func [
 		big1				[bigint!]
 		big2				[bigint!]
 		return:				[bigint!]
@@ -1186,8 +713,6 @@ bigint: context [
 		]
 		big: expand* _min max-size
 		big/used: max-size
-		big/expo: big1/expo
-		big/prec: big1/prec
 		pmin: as int-ptr! (big + 1)
 		pmax: as int-ptr! (_max + 1)
 
@@ -1200,30 +725,6 @@ bigint: context [
 		]
 
 		shrink big
-	]
-
-	absolute-and: func [
-		big1				[bigint!]
-		big2				[bigint!]
-		return:				[bigint!]
-	][
-		bin-absolute-and big1 big2
-	]
-
-	absolute-or: func [
-		big1				[bigint!]
-		big2				[bigint!]
-		return:				[bigint!]
-	][
-		bin-absolute-or big1 big2
-	]
-
-	absolute-xor: func [
-		big1				[bigint!]
-		big2				[bigint!]
-		return:				[bigint!]
-	][
-		bin-absolute-xor big1 big2
 	]
 
 	and*: func [
@@ -1369,7 +870,7 @@ bigint: context [
 		ret
 	]
 
-	dec-absolute-add: func [
+	absolute-add: func [
 		big1				[bigint!]
 		big2				[bigint!]
 		return:				[bigint!]
@@ -1389,69 +890,6 @@ bigint: context [
 
 		big: expand* big1 1 + either b1used > b2used [b1used][b2used]
 		big/used: b1used
-		big/expo: big1/expo
-		big/prec: big1/prec
-		p: as int-ptr! (big + 1)
-
-
-		c: 0
-		i: 0
-		loop b2used [
-			tmp: p2/1
-			p/1: p/1 + c
-			c: 0
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			p/1: p/1 + tmp
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: c + 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			p: p + 1
-			p2: p2 + 1
-			i: i + 1
-		]
-
-		while [c > 0][
-			p/1: p/1 + c
-			c: 0
-			unless bigint/uint-less p/1 DECIMAL-BASE [
-				c: 1
-				p/1: p/1 - DECIMAL-BASE
-			]
-			i: i + 1
-			p: p + 1
-		]
-		if big/used < i [
-			big/used: i
-		]
-		big
-	]
-
-	bin-absolute-add: func [
-		big1				[bigint!]
-		big2				[bigint!]
-		return:				[bigint!]
-		/local
-			b1used			[integer!]
-			b2used			[integer!]
-			big				[bigint!]
-			p				[int-ptr!]
-			p2				[int-ptr!]
-			i				[integer!]
-			c				[integer!]
-			tmp				[integer!]
-	][
-		b1used: either big1/used >= 0 [big1/used][0 - big1/used]
-		b2used: either big2/used >= 0 [big2/used][0 - big2/used]
-		p2: as int-ptr! (big2 + 1)
-
-		big: expand* big1 1 + either b1used > b2used [b1used][b2used]
-		big/used: b1used
-		big/expo: big1/expo
-		big/prec: big1/prec
 		p: as int-ptr! (big + 1)
 
 		c: 0
@@ -1477,59 +915,6 @@ bigint: context [
 			big/used: i
 		]
 		big
-	]
-
-	absolute-add: func [
-		big1				[bigint!]
-		big2				[bigint!]
-		return:				[bigint!]
-	][
-		if any [big1/prec = 0 big2/prec = 0][
-			return bin-absolute-add big1 big2
-		]
-		dec-absolute-add big1 big2
-	]
-
-	dec-sub-hlp: func [
-		n					[integer!]
-		s					[int-ptr!]
-		d					[int-ptr!]
-		/local
-			c				[integer!]
-			z				[integer!]
-	][
-		c: 0
-		loop n [
-			z: 0
-			either bigint/uint-less d/1 c [
-				z: 1
-				d/1: DECIMAL-BASE - c + d/1
-			][
-				d/1: d/1 - c
-			]
-			c: z
-			either bigint/uint-less d/1 s/1 [
-				c: c + 1
-				d/1: d/1 + DECIMAL-BASE
-			][
-				d/1: d/1 - c
-			]
-			d/1: d/1 - s/1
-			s: s + 1
-			d: d + 1
-		]
-
-		while [c <> 0][
-			z: 0
-			either bigint/uint-less d/1 c [
-				z: 1
-				d/1: DECIMAL-BASE - c + d/1
-			][
-				d/1: d/1 - c
-			]
-			c: z
-			d: d + 1
-		]
 	]
 
 	sub-hlp: func [
@@ -1575,14 +960,8 @@ bigint: context [
 
 		big: copy* big1
 		big/used: b1used
-		big/expo: big1/expo
-		big/prec: big1/prec
 
-		either any [big1/prec = 0 big2/prec = 0][
-			sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
-		][
-			dec-sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
-		]
+		sub-hlp b2used as int-ptr! (big2 + 1) as int-ptr! (big + 1)
 
 		shrink big
 	]
@@ -1709,15 +1088,11 @@ bigint: context [
 	][
 		if all [zero?* big1 int = 0][
 			ret: load-int 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 		if zero?* big1 [
-			ret: either big1/prec = 0 [load-int int][dec-load-int int]
-			ret/expo: big1/expo
-			ret/prec: big1/prec
+			ret: load-int int
 			if free? [free* big1]
 			return ret
 		]
@@ -1727,9 +1102,7 @@ bigint: context [
 			return big
 		]
 
-		big: either big1/prec = 0 [load-int int][dec-load-int int]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-int int
 		ret: add big1 big free?
 		free* big
 		ret
@@ -1746,15 +1119,11 @@ bigint: context [
 	][
 		if all [zero?* big1 uint = 0][
 			ret: load-uint 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 		if zero?* big1 [
-			ret: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-			ret/expo: big1/expo
-			ret/prec: big1/prec
+			ret: load-uint uint
 			if free? [free* big1]
 			return ret
 		]
@@ -1764,9 +1133,7 @@ bigint: context [
 			return big
 		]
 
-		big: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-uint uint
 		ret: add big1 big free?
 		free* big
 		ret
@@ -1783,15 +1150,11 @@ bigint: context [
 	][
 		if all [zero?* big1 int = 0][
 			ret: load-int 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 		if zero?* big1 [
-			ret: either big1/prec = 0 [load-int 0 - int][dec-load-int 0 - int]
-			ret/expo: big1/expo
-			ret/prec: big1/prec
+			ret: load-int 0 - int
 			if free? [free* big1]
 			return ret
 		]
@@ -1801,9 +1164,7 @@ bigint: context [
 			return big
 		]
 
-		big: either big1/prec = 0 [load-int int][dec-load-int int]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-int int
 		ret: sub big1 big free?
 		free* big
 		ret
@@ -1820,15 +1181,11 @@ bigint: context [
 	][
 		if all [zero?* big1 uint = 0][
 			ret: load-uint 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 		if zero?* big1 [
-			ret: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-			ret/expo: big1/expo
-			ret/prec: big1/prec
+			ret: load-uint uint
 			ret/used: 0 - ret/used
 			if free? [free* big1]
 			return ret
@@ -1839,79 +1196,10 @@ bigint: context [
 			return big
 		]
 
-		big: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-uint uint
 		ret: sub big1 big free?
 		free* big
 		ret
-	]
-
-	dec-mul-hlp: func [
-		i					[integer!]
-		s					[int-ptr!]
-		d					[int-ptr!]
-		b					[integer!]
-		/local
-			c				[integer!]
-			t				[integer!]
-			s0				[integer!]
-			s1				[integer!]
-			b0				[integer!]
-			b1				[integer!]
-			r0				[integer!]
-			r1				[integer!]
-			rx				[integer!]
-			ry				[integer!]
-	][
-		c: 0
-		t: 0
-
-		while [i >= 16][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			MULADDC_STOP
-			i: i - 16
-		]
-
-		while [i >= 8][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_CORE	DEC_MULADDC_CORE
-			DEC_MULADDC_STOP
-			i: i - 8
-		]
-
-		while [i > 0][
-			DEC_MULADDC_INIT
-			DEC_MULADDC_CORE
-			DEC_MULADDC_STOP
-			i: i - 1
-		]
-
-		t: t + 1
-
-		until [
-			d/1: d/1 + c
-			c: 0
-			unless bigint/uint-less d/1 DECIMAL-BASE [
-				c: 1
-				d/1: d/1 - DECIMAL-BASE
-			]
-			d: d + 1
-			c = 0
-		]
 	]
 
 	mul-hlp: func [
@@ -1933,21 +1221,6 @@ bigint: context [
 	][
 		c: 0
 		t: 0
-
-		while [i >= 16][
-			MULADDC_INIT
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_CORE	MULADDC_CORE
-			MULADDC_STOP
-			i: i - 16
-		]
 
 		while [i >= 8][
 			MULADDC_INIT
@@ -1993,8 +1266,6 @@ bigint: context [
 	][
 		if any [zero?* big1 zero?* big2][
 			big: load-uint 0
-			big/expo: big1/expo
-			big/prec: big1/prec
 			return big
 		]
 
@@ -2006,19 +1277,13 @@ bigint: context [
 		len: b1used + b2used + 1
 		big: alloc* len
 		big/used: len
-		big/expo: big1/expo
-		big/prec: big1/prec
 		p: as int-ptr! (big + 1)
 
 		b1used: b1used + 1
 		while [b2used > 0]
 		[
 			pt: p2 + b2used - 1
-			either any [big1/prec = 0 big2/prec = 0][
-				mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
-			][
-				dec-mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
-			]
+			mul-hlp (b1used - 1) p1 (p + b2used - 1) pt/1
 			b2used: b2used - 1
 		]
 
@@ -2037,8 +1302,6 @@ bigint: context [
 	][
 		if any [zero?* big1 zero?* big2][
 			big: load-int 0
-			big/expo: big1/expo
-			big/prec: big1/prec
 			if free? [free* big1]
 			return big
 		]
@@ -2068,15 +1331,11 @@ bigint: context [
 	][
 		if any [big1/used = 0 int = 0][
 			ret: load-int 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 
-		big: either big1/prec = 0 [load-int int][dec-load-int int]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-int int
 		ret: mul big1 big free?
 		free* big
 		ret
@@ -2093,15 +1352,11 @@ bigint: context [
 	][
 		if any [zero?* big1 uint = 0][
 			ret: load-int 0
-			ret/expo: big1/expo
-			ret/prec: big1/prec
 			if free? [free* big1]
 			return ret
 		]
 
-		big: either big1/prec = 0 [load-uint uint][dec-load-uint uint]
-		big/expo: big1/expo
-		big/prec: big1/prec
+		big: load-uint uint
 		ret: mul big1 big free?
 		free* big
 		ret
@@ -2271,215 +1526,7 @@ bigint: context [
 		return q1 * radix + q0
 	]
 
-	dec-absolute-div: func [
-		A					[bigint!]
-		B					[bigint!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
-		return:				[logic!]
-		/local
-			Q				[bigint!]
-			R				[bigint!]
-			Aused			[integer!]
-			Bused			[integer!]
-			X				[bigint!]
-			Y				[bigint!]
-			Y2				[bigint!]
-			Z				[bigint!]
-			T1				[bigint!]
-			T2				[bigint!]
-			i				[integer!]
-			n				[integer!]
-			t				[integer!]
-			k				[integer!]
-			px				[int-ptr!]
-			py				[int-ptr!]
-			pz				[int-ptr!]
-			pt1				[int-ptr!]
-			pt2				[int-ptr!]
-			tmp				[integer!]
-			tmp2			[integer!]
-			mh				[integer!]
-			ml				[integer!]
-	][
-		if zero?* B [return false]
-
-		if 0 > absolute-compare A B [
-			if iQ <> null [
-				Q: load-int 0
-				Q/expo: A/expo
-				Q/prec: A/prec
-				iQ/value: as integer! Q
-			]
-			if iR <> null [
-				R: copy* A
-				iR/value: as integer! R
-			]
-			return true
-		]
-
-		Aused: either A/used >= 0 [A/used][0 - A/used]
-		Bused: either B/used >= 0 [B/used][0 - B/used]
-
-		X: absolute* A false
-		Y: absolute* B false
-		Z: alloc* Aused + 2
-		Z/used: Aused + 2
-		Z/expo: A/expo
-		Z/prec: A/prec
-		T1: alloc* 2
-		T1/used: 2
-		T1/expo: A/expo
-		T1/prec: A/prec
-		T2: alloc* 3
-		T2/used: 3
-		T2/expo: A/expo
-		T2/prec: A/prec
-
-		k: (digit-len? Y) % DECIMAL-BASE-LEN
-
-		either k < (DECIMAL-BASE-LEN - 1) [
-			k: DECIMAL-BASE-LEN - 1 - k
-			X: left-shift X k true
-			Y: left-shift Y k true
-		][
-			k: 0
-		]
-
-		n: X/used
-		t: Y/used
-		Y2: left-shift Y DECIMAL-BASE-LEN * (n - t) false
-
-		pz: as int-ptr! (Z + 1)
-
-		while [0 <= compare X Y2][
-			tmp: n - t + 1
-			pz/tmp: pz/tmp + 1
-			X: sub X Y2 true
-		]
-		free* Y2
-
-		;-- we can't zoom first unit to (DECIMAL-BASE/2, DECIMAL-BASE) for now
-		;-- So, when X = 0, we should return right now
-		if zero?* X [
-			either iQ <> null [
-				shrink Z
-				Q: Z
-				Q/expo: A/expo
-				Q/prec: A/prec
-				iQ/value: as integer! Q
-			][
-				free* Z
-			]
-
-			if iR <> null [
-				R: dec-load-uint 0
-				R/expo: A/expo
-				R/prec: A/prec
-				iR/value: as integer! R
-			]
-			free* X
-
-			free* Y
-			free* T1
-			free* T2
-			return true
-		]
-
-		px: as int-ptr! (X + 1)
-		py: as int-ptr! (Y + 1)
-		pt1: as int-ptr! (T1 + 1)
-		pt2: as int-ptr! (T2 + 1)
-
-		i: n
-		while [i > t][
-			tmp: i - t
-			either not uint-less px/i py/t [
-				pz/tmp: DECIMAL-BASE - 1
-			][
-				tmp2: i - 1
-				mh: 0 ml: 0
-				uint-mul px/i DECIMAL-BASE :mh :ml
-				ml: ml + px/tmp2
-				if uint-less ml px/tmp2 [mh: mh + 1]
-				pz/tmp: long-divide mh ml py/t null
-			]
-
-			pz/tmp: pz/tmp + 1
-			until [
-				pz/tmp: pz/tmp - 1
-				pt1: as int-ptr! (T1 + 1)
-				pt1/1: either t < 2 [
-					0
-				][
-					tmp2: t - 1
-					py/tmp2
-				]
-				pt1/2: py/t
-				T1/used: 2
-				T1: mul-uint T1 pz/tmp true
-				pt2: as int-ptr! (T2 + 1)
-				pt2/1: either i < 3 [
-					0
-				][
-					tmp2: i - 2
-					px/tmp2
-				]
-				pt2/2: either i < 2 [
-					0
-				][
-					tmp2: i - 1
-					px/tmp2
-				]
-				pt2/3: px/i
-				T2/used: 3
-
-				0 >= compare T1 T2
-			]
-
-			free* T1
-			T1: mul-uint Y pz/tmp false
-			T1: left-shift T1 DECIMAL-BASE-LEN * (tmp - 1) true
-			X: sub X T1 true
-			px: as int-ptr! (X + 1)
-			if 0 > compare-int X 0 [
-				free* T1
-				T1: copy* Y
-				T1: left-shift T1 DECIMAL-BASE-LEN * (tmp - 1) true
-				X: add X T1 true
-				px: as int-ptr! (X + 1)
-				pz/tmp: pz/tmp - 1
-			]
-			i: i - 1
-		]
-
-		either iQ <> null [
-			shrink Z
-			Q: Z
-			Q/expo: A/expo
-			Q/prec: A/prec
-			iQ/value: as integer! Q
-		][
-			free* Z
-		]
-
-		either iR <> null [
-			R: right-shift X k true
-			R/expo: A/expo
-			R/prec: A/prec
-			shrink R
-			iR/value: as integer! R
-		][
-			free* X
-		]
-
-		free* Y
-		free* T1
-		free* T2
-		true
-	]
-
-	bin-absolute-div: func [
+	absolute-div: func [
 		A					[bigint!]
 		B					[bigint!]
 		iQ					[int-ptr!]
@@ -2513,8 +1560,6 @@ bigint: context [
 		if 0 > absolute-compare A B [
 			if iQ <> null [
 				Q: load-int 0
-				Q/expo: A/expo
-				Q/prec: A/prec
 				iQ/value: as integer! Q
 			]
 			if iR <> null [
@@ -2531,16 +1576,10 @@ bigint: context [
 		Y: absolute* B false
 		Z: alloc* Aused + 2
 		Z/used: Aused + 2
-		Z/expo: A/expo
-		Z/prec: A/prec
 		T1: alloc* 2
 		T1/used: 2
-		T1/expo: A/expo
-		T1/prec: A/prec
 		T2: alloc* 3
 		T2/used: 3
-		T2/expo: A/expo
-		T2/prec: A/prec
 
 		k: (bit-len? Y) % biL
 
@@ -2631,8 +1670,6 @@ bigint: context [
 		either iQ <> null [
 			shrink Z
 			Q: Z
-			Q/expo: A/expo
-			Q/prec: A/prec
 			iQ/value: as integer! Q
 		][
 			free* Z
@@ -2640,8 +1677,6 @@ bigint: context [
 
 		either iR <> null [
 			R: right-shift X k true
-			R/expo: A/expo
-			R/prec: A/prec
 			shrink R
 			iR/value: as integer! R
 		][
@@ -2652,20 +1687,6 @@ bigint: context [
 		free* T1
 		free* T2
 		true
-	]
-
-	absolute-div: func [
-		A					[bigint!]
-		B					[bigint!]
-		iQ					[int-ptr!]
-		iR					[int-ptr!]
-		return:				[logic!]
-	][
-		either any [A/prec = 0 B/prec = 0][
-			bin-absolute-div A B iQ iR
-		][
-			dec-absolute-div A B iQ iR
-		]
 	]
 
 	;-- A = Q * B + R
@@ -2723,7 +1744,7 @@ bigint: context [
 			big				[bigint!]
 			ret				[bigint!]
 	][
-		big: either A/prec = 0 [load-int int][dec-load-int int]
+		big: load-int int
 		ret: div A big free?
 		free* big
 		ret
@@ -2738,7 +1759,7 @@ bigint: context [
 			big				[bigint!]
 			ret				[bigint!]
 	][
-		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
+		big: load-uint uint
 		ret: div A big free?
 		free* big
 		ret
@@ -2766,234 +1787,11 @@ bigint: context [
 			big				[bigint!]
 			iR				[integer!]
 	][
-		big: either A/prec = 0 [load-int int][dec-load-int int]
+		big: load-int int
 		iR: 0
 		if false = div* A big null :iR free? [free* big return null]
 		free* big
 		as bigint! iR
-	]
-
-	modulo*: func [
-		A					[bigint!]
-		B					[bigint!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		mode				[ROUNDING!]
-		return:				[logic!]
-		/local
-			iQ2				[integer!]
-			iR2				[integer!]
-			Q2				[bigint!]
-			R2				[bigint!]
-			R3				[bigint!]
-			iC				[integer!]
-			C				[bigint!]
-			pc				[int-ptr!]
-			pq				[int-ptr!]
-			qused			[integer!]
-			qeven?			[logic!]
-			BT				[bigint!]
-	][
-		if zero?* B [
-			return false
-		]
-
-		iQ2: 0
-		iR2: 0
-		if false = div* A B :iQ2 :iR2 false [
-			return false
-		]
-		Q2: as bigint! iQ2
-		R2: as bigint! iR2
-
-		if zero?* R2 [
-			free* Q2
-			iR/value: as integer! R2
-			if free? [free* A]
-			return true
-		]
-
-		R3: mul-int R2 10 false
-		iC: 0
-		absolute-div R3 B :iC null
-		C: as bigint! iC
-		pc: as int-ptr! (C + 1)
-		pq: as int-ptr! (Q2 + 1)
-		qused: either Q2/used >= 0 [Q2/used][0 - Q2/used]
-		qeven?: either (pq/qused and 1) = 1 [false][true]
-		switch mode [
-			ROUND-UP			[
-				either positive?* Q2 [
-					R2: sub R2 B true
-				][
-					R2: add R2 B true
-				]
-			]
-			ROUND-DOWN			[]
-			ROUND-CEIL			[
-				if positive?* Q2 [
-					R2: sub R2 B true
-				]
-			]
-			ROUND-FLOOR			[
-				if negative?* Q2 [
-					R2: add R2 B true
-				]
-			]
-			ROUND-HALF-UP		[
-				if pc/1 >= 5 [
-					either positive?* Q2 [
-						R2: sub R2 B true
-					][
-						R2: add R2 B true
-					]
-				]
-			]
-			ROUND-HALF-DOWN		[
-				if pc/1 > 5 [
-					either positive?* Q2 [
-						R2: sub R2 B true
-					][
-						R2: add R2 B true
-					]
-				]
-			]
-			ROUND-HALF-EVEN		[
-				if any [
-					pc/1 > 5
-					all [
-						pc/1 = 5
-						not qeven?
-					]
-				][
-					either positive?* Q2 [
-						R2: sub R2 B true
-					][
-						R2: add R2 B true
-					]
-				]
-			]
-			ROUND-HALF-ODD		[
-				if any [
-					pc/1 > 5
-					all [
-						pc/1 = 5
-						qeven?
-					]
-				][
-					either positive?* Q2 [
-						R2: sub R2 B true
-					][
-						R2: add R2 B true
-					]
-				]
-			]
-			ROUND-HALF-CEIL		[
-				case [
-					pc/1 > 5 [
-						either positive?* Q2 [
-							R2: sub R2 B true
-						][
-							R2: add R2 B true
-						]
-					]
-					pc/1 = 5 [
-						if positive?* Q2 [
-							R2: sub R2 B true
-						]
-					]
-					true []
-				]
-			]
-			ROUND-HALF-FLOOR	[
-				case [
-					pc/1 > 5 [
-						either positive?* Q2 [
-							R2: sub R2 B true
-						][
-							R2: add R2 B true
-						]
-					]
-					pc/1 = 5 [
-						if negative?* Q2 [
-							R2: add R2 B true
-						]
-					]
-					true []
-				]
-			]
-		]
-
-		free* Q2
-		free* R3
-		free* C
-		iR/value: as integer! R2
-		if free? [free* A]
-		true
-	]
-
-	modulo-int*: func [
-		A					[bigint!]
-		int					[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		mode				[ROUNDING!]
-		return:				[logic!]
-		/local
-			big				[bigint!]
-			ret				[logic!]
-	][
-		big: either A/prec = 0 [load-int int][dec-load-int int]
-		ret: modulo A big iR free? mode
-		free* big
-		ret
-	]
-
-	modulo-uint*: func [
-		A					[bigint!]
-		uint				[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		mode				[ROUNDING!]
-		return:				[logic!]
-		/local
-			big				[bigint!]
-			ret				[logic!]
-	][
-		big: either A/prec = 0 [load-uint uint][dec-load-uint uint]
-		ret: modulo A big iR free? mode
-		free* big
-		ret
-	]
-
-	modulo: func [
-		A					[bigint!]
-		B					[bigint!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		modulo* A B iR free? rounding-mode
-	]
-
-	modulo-int: func [
-		A					[bigint!]
-		int					[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		modulo-int* A int iR free? rounding-mode
-	]
-
-	modulo-uint: func [
-		A					[bigint!]
-		uint				[integer!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-	][
-		modulo-uint* A uint iR free? rounding-mode
 	]
 
 	modulo-int-s: func [
@@ -3073,47 +1871,6 @@ bigint: context [
 		iR/value: y
 		if free? [free* A]
 		return true
-	]
-
-	;-- behave like rebol
-	mod: func [
-		A					[bigint!]
-		B					[bigint!]
-		iR					[int-ptr!]
-		free?				[logic!]
-		return:				[logic!]
-		/local
-			iR2				[integer!]
-			R				[bigint!]
-			T1				[bigint!]
-	][
-		if zero?* B [
-			return false
-		]
-
-		iR2: 0
-		if false = div* A B null :iR2 false [
-			return false
-		]
-		R: as bigint! iR2
-
-		if 0 > compare-int R 0 [
-			R: add R B true
-		]
-
-		T1: add R R false
-		T1: sub T1 B true
-		if all [
-			0 = compare R B
-			positive?* T1
-		][
-			R: sub R B true
-		]
-
-		free* T1
-		iR/value: as integer! R
-		if free? [free* A]
-		true
 	]
 
 	load-bin: func [
@@ -3469,39 +2226,7 @@ bigint: context [
 	]
 
 	#if debug? = yes [
-		dec-dump: func [
-			big				[bigint!]
-			/local
-				bused		[integer!]
-				bsign		[integer!]
-				p			[int-ptr!]
-				pad8?		[logic!]
-		][
-			print-line [lf "===============dump bigdecimal!==============="]
-			either big = null [
-				print-line "null"
-			][
-				either big/used >= 0 [
-					bsign: 1
-					bused: big/used
-				][
-					bsign: -1
-					bused: 0 - big/used
-				]
-				print-line ["size: " big/size " used: " bused " sign: " bsign " expo: " big/expo " prec: " big/prec]
-				p: as int-ptr! (big + 1)
-				p: p + bused - 1
-				pad8?: false
-				loop bused [
-					print form-decimal p/1 pad8?
-					unless pad8? [pad8?: true]
-					print " "
-					p: p - 1
-				]
-			]
-			print-line [lf "=============dump bigdecimal! end============="]
-		]
-		bin-dump: func [
+		dump: func [
 			big				[bigint!]
 			/local
 				bused		[integer!]
@@ -3532,19 +2257,6 @@ bigint: context [
 				]
 			]
 			print-line [lf "-------------dump bigint! end-------------"]
-		]
-		dump: func [
-			big				[bigint!]
-		][
-			either big = null [
-				print-line "null"
-			][
-				either big/prec = 0 [
-					bin-dump big
-				][
-					dec-dump big
-				]
-			]
 		]
 	]
 

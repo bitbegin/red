@@ -31,7 +31,7 @@ red: context [
 
 	;-- Datatypes --
 
-	#include %datatypes/bigdecimal.reds
+	#include %datatypes/bigint.reds
 	#include %datatypes/structures.reds
 	#include %print.reds
 	#include %datatypes/common.reds

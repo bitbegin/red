@@ -99,7 +99,6 @@ write %build/bin/sources.r set-cache [
 			%action.reds
 			%block.reds
 			%bigint.reds
-			%bigdecimal.reds
 			%red-bigint.reds
 			%bitset.reds
 			%binary.reds
