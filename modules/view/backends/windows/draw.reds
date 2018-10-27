@@ -1310,20 +1310,141 @@ gdiplus-draw-box: func [
 		height
 ]
 
-h-shadow: 5
-v-shadow: 5
-blur: 10
-spread: 0
-color: 0
-inset?: no
+draw-color-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	_color		[integer!]
+	/local
+		color	[integer!]
+		brush	[integer!]
+		pen		[integer!]
+][
+	print-line ["x: " x " y: " y " width: " width " height: " height]
+	color: to-gdiplus-color _color
+	brush: 0
+	pen: 0
+	GdipCreateSolidFill color :brush
+	GdipCreatePen1 color as float32! 1 GDIPLUS_UNIT_WORLD :pen
+	gdiplus-draw-box graphics x y width height radius pen brush
+	GdipDeleteBrush brush
+	GdipDeletePen pen
+]
+
+new-dc: func [
+	src			[handle!]
+	w			[integer!]
+	h			[integer!]
+	bitmap		[int-ptr!]
+	graphics	[int-ptr!]
+	return:		[handle!]
+	/local
+		hBitmap	[handle!]
+		dc		[handle!]
+		gfx		[integer!]
+][
+	hBitmap: CreateCompatibleBitmap src w h
+	dc: CreateCompatibleDC src
+	SelectObject dc hBitmap
+	gfx: 0
+	GdipCreateFromHDC dc :gfx
+	SetGraphicsMode dc GM_ADVANCED
+	SetArcDirection dc AD_CLOCKWISE
+	SetBkMode dc BK_TRANSPARENT
+	SelectObject dc GetStockObject NULL_BRUSH
+	bitmap/value: as integer! hBitmap
+	graphics/value: gfx
+	dc
+]
+
+free-dc: func [
+	dc			[handle!]
+	bitmap		[integer!]
+	graphics	[integer!]
+][
+	GdipDeleteGraphics graphics
+	DeleteObject as handle! bitmap
+	DeleteDC dc
+]
+
+shadow-left: 5
+shadow-top: 5
+shadow-blur: 10
+shadow-spread: 0
+shadow-color: 0
+shadow-inset?: no
 
 draw-outset-shadow: func [
 	ctx			[draw-ctx!]
-	upper		[red-pair!]
-	lower		[red-pair!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
 	rad			[integer!]
+	/local
+		rect	[RECT_STRUCT value]
+		outer	[RECT_STRUCT value]
+		blur2	[integer!]
+		dc		[handle!]
+		bmp		[integer!]
+		gbmp	[integer!]
+		gfx		[integer!]
+		width	[integer!]
+		height	[integer!]
+		size	[integer!]
+		alpha	[byte!]
+		aData	[byte-ptr!]
+		blur	[INT_SIZE value]
+		spread	[INT_SIZE value]
 ][
+	rect-init :rect 0 0 right - left bottom - top
+	rect-inflate :rect shadow-blur shadow-blur
 
+	width: rect/right - rect/left
+	height: rect/bottom - rect/top
+	print-line ["width: " width " height:" height]
+	bmp: 0
+	gfx: 0
+	dc: new-dc ctx/dc width height :bmp :gfx
+	;BitBlt
+	;	dc
+	;	0
+	;	0
+	;	width
+	;	height
+	;	ctx/dc
+	;	rect/left
+	;	rect/top
+	;	SRCCOPY
+	draw-color-box
+		gfx
+		0
+		0
+		width
+		height
+		rad
+		shadow-color
+	gbmp: 0
+	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
+	alpha: as byte! (255 - (shadow-color >>> 24))
+	print-line as integer! alpha
+	size: width * height
+	aData: allocate size
+	set-memory aData alpha size
+	blur/width: shadow-blur
+	blur/height: shadow-blur
+	spread/width: shadow-spread
+	spread/height: shadow-spread
+	AlphaBoxBlur/Init rect blur spread null null
+	AlphaBoxBlur/blur aData
+	dump-hex aData
+
+	GdipDisposeImage gbmp
+	BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
+	free-dc dc bmp gfx
 ]
 
 OS-draw-box: func [
@@ -1348,19 +1469,19 @@ OS-draw-box: func [
 	]
 	if TYPE_OF(lower) = TYPE_BLOCK [
 		val: as red-integer! block/rs-head as red-block! lower
-		h-shadow: val/value
+		shadow-left: val/value
 		val: val + 1
-		v-shadow: val/value
+		shadow-top: val/value
 		val: val + 1
-		blur: val/value
+		shadow-blur: val/value
 		val: val + 1
-		spread: val/value
+		shadow-spread: val/value
 		val: val + 1
-		color: val/value
+		shadow-color: val/value
 		val: val + 1
-		inset?: either val/value = 0 [no][yes]
+		shadow-inset?: either val/value = 0 [no][yes]
 		lower:  lower - 1
-		print-line ["h-shadow: " h-shadow " v-shadow: " v-shadow " blur: " blur " spread: " spread " color: " color " inset?: " inset?]
+		print-line ["left: " shadow-left " right: " shadow-top " blur: " shadow-blur " spread: " shadow-spread " color: " shadow-color " inset?: " shadow-inset?]
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
@@ -1368,7 +1489,7 @@ OS-draw-box: func [
 		radius/value
 	][0]
 	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
-	unless inset? [draw-outset-shadow ctx upper lower rad * 2]
+	unless shadow-inset? [draw-outset-shadow ctx up-x up-y low-x low-y rad * 2]
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x

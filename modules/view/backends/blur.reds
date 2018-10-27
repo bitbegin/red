@@ -52,6 +52,19 @@ INT_SIZE: alias struct! [
 	height				[integer!]
 ]
 
+rect-init: func [
+	rc					[RECT_STRUCT]
+	left				[integer!]
+	top					[integer!]
+	right				[integer!]
+	bottom				[integer!]
+][
+	rc/left: left
+	rc/top: top
+	rc/right: right
+	rc/bottom: bottom
+]
+
 rect-offset: func [
 	rc					[RECT_STRUCT]
 	x					[integer!]
@@ -797,6 +810,28 @@ AlphaBoxBlur: context [
 		mStride: RoundUpToMultipleOf4 mRect/right - mRect/left
 		size: BufferSizeFromStrideAndHeight mStride mRect/bottom - mRect/top 3
 		if size <> 0 [mSurfaceAllocationSize: size]
+	]
+
+	new: func [
+		aRect				[RECT_STRUCT]
+		aStride				[integer!]
+		aSigmaX				[float!]
+		aSigmaY				[float!]
+		/local
+			minDataSize		[integer!]
+	][
+		rect-copy mRect aRect
+		mSpreadRadius/width: 0
+		mSpreadRadius/height: 0
+		calc-blur-radius aSigmaX aSigmaY mBlurRadius
+		mStride: aStride
+		mSurfaceAllocationSize: 0
+		mHasDirtyRect: false
+
+		minDataSize: BufferSizeFromStrideAndHeight aRect/right - aRect/left aRect/bottom - aRect/top 0
+		if minDataSize <> 0 [
+			mSurfaceAllocationSize: minDataSize
+		]
 	]
 
 	BoxBlur: func [
