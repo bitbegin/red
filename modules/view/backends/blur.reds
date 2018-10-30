@@ -65,14 +65,6 @@ INT_SIZE: alias struct! [
 	height				[integer!]
 ]
 
-;-- used for single file compile
-RECT_STRUCT: alias struct! [
-	left		[integer!]
-	top			[integer!]
-	right		[integer!]
-	bottom		[integer!]
-]
-
 #if debug? = yes [
 	dump-rect-radix: true
 	dump-rect: func [
