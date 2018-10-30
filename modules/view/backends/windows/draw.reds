@@ -1412,8 +1412,13 @@ draw-outset-shadow: func [
 		p		[byte-ptr!]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
-		temp	[integer!]
-		temp2	[integer!]
+		rate	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]
+		ftn		[integer!]
+		bf		[tagBLENDFUNCTION]
 ][
 	rect-init :rect 0 0 right - left bottom - top
 	blur/width: shadow-blur
@@ -1461,25 +1466,38 @@ draw-outset-shadow: func [
 	GdipCreateBitmapFromGraphics width height gfx :gbmp
 	bmpdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
 	scan0: as int-ptr! bmpdata/scan0
-	;dump-rect bmpdata/scan0 true width height dump-rect-radix
+	dump-rect bmpdata/scan0 true width height dump-rect-radix
 	end: scan0 + size
 	p: aData
 	while [scan0 < end][
-		temp: 255 - as integer! p/1
-		temp2: scan0/value and 00FFFFFFh
-		;temp2: shadow-color and 00FFFFFFh
-		scan0/value: temp2 or (temp << 24)
+		rate: as integer! p/1
+		b: (shadow-color >>> 16) and FFh
+		g: (shadow-color >>> 8) and FFh
+		r: shadow-color and FFh
+		r: r * rate / 255
+		g: g * rate / 255
+		b: b * rate / 255
+		scan0/value: (r << 16) or (g << 8) or b or FF000000h
 		p: p + 1
 		scan0: scan0 + 1
 	]
-	;dump-rect bmpdata/scan0 true width height dump-rect-radix
+	dump-rect bmpdata/scan0 true width height dump-rect-radix
 	;dump-rect aData false width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bmpdata
 	free aData
 	GdipDrawImageRectI gfx gbmp 0 0 width height
 	GdipDisposeImage gbmp
 
-	BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
+	;BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
+
+		ftn: 0
+		bf: as tagBLENDFUNCTION :ftn
+		bf/BlendOp: as-byte 0
+		bf/BlendFlags: as-byte 0
+		bf/SourceConstantAlpha: as-byte 255
+		bf/AlphaFormat: as-byte 1
+		AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
+
 	free-dc dc bmp gfx
 ]
 
