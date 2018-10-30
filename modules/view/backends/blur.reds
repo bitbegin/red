@@ -68,25 +68,39 @@ INT_SIZE: alias struct! [
 #if debug? = yes [
 	dump-rect-radix: true
 	dump-rect: func [
-		src		[byte-ptr!]
-		w		[integer!]
-		h		[integer!]
-		hex?	[logic!]
+		src			[byte-ptr!]
+		int?		[logic!]
+		w			[integer!]
+		h			[integer!]
+		hex?		[logic!]
 		/local
-			i	[integer!]
-			j	[integer!]
-			p	[byte-ptr!]
+			i		[integer!]
+			j		[integer!]
+			p		[byte-ptr!]
+			pi		[int-ptr!]
+			temp	[integer!]
 	][
 		i: 0
 		while [i < w][
 			j: 0
 			while [j < h][
-				p: src + (i * w) + j
+				either int? [
+					pi: as int-ptr! src
+					pi: pi + (i * w) + j
+					temp: pi/1
+				][
+					p: src + (i * w) + j
+					temp: as integer! p/1
+				]
 				j: j + 1
 				either hex? [
-					prin-hex-chars as integer! p/1 2
+					either int? [
+						prin-hex-chars temp 8
+					][
+						prin-hex-chars temp 2
+					]
 				][
-					print as integer! p/1
+					print temp
 				]
 				print " "
 			]

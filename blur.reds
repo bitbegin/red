@@ -36,7 +36,7 @@ rect-offset rect shadow-blur shadow-blur
 AlphaBoxBlur/set-rect-memory src rect 200
 AWidth: AlphaBoxBlur/GetWidth
 AHeight: AlphaBoxBlur/GetHeight
-dump-rect src AWidth AHeight dump-rect-radix
+dump-rect src false AWidth AHeight dump-rect-radix
 
 AlphaBoxBlur/blur src
-dump-rect src AWidth AHeight dump-rect-radix
+dump-rect src false AWidth AHeight dump-rect-radix
