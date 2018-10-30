@@ -799,6 +799,24 @@ AlphaBoxBlur: context [
 	mDirtyRect: declare RECT_STRUCT
 	mHasDirtyRect: false
 
+	GetWidth: func [
+		return:				[integer!]
+	][
+		mRect/right - mRect/left
+	]
+
+	GetHeight: func [
+		return:				[integer!]
+	][
+		mRect/bottom - mRect/top
+	]
+
+	GetSize: func [
+		return:				[integer!]
+	][
+		(mRect/right - mRect/left) * (mRect/bottom - mRect/top)
+	]
+
 	RoundUpToMultipleOf4: func [
 		aVal				[integer!]
 		return:				[integer!]
