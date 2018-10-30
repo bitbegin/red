@@ -29,24 +29,13 @@ spread/width: shadow-spread
 spread/height: shadow-spread
 AlphaBoxBlur/Init rect spread blur null null
 
-i: 0
-j: 0
-p: as byte-ptr! 0
 size: AlphaBoxBlur/GetSize
 src: allocate size
 set-memory src null-byte size
+rect-offset rect shadow-blur shadow-blur
+AlphaBoxBlur/set-rect-memory src rect 200
 AWidth: AlphaBoxBlur/GetWidth
 AHeight: AlphaBoxBlur/GetHeight
-i: shadow-blur
-while [i < (width + shadow-blur)][
-	j: shadow-blur
-	while [j < (height + shadow-blur)][
-		p: src + (i * AWidth) + j
-		p/1: as byte! 200
-		j: j + 1
-	]
-	i: i + 1
-]
 dump-rect src AWidth AHeight dump-rect-radix
 
 AlphaBoxBlur/blur src

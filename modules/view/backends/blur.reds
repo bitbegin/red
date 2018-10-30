@@ -809,6 +809,27 @@ AlphaBoxBlur: context [
 		(mRect/right - mRect/left) * (mRect/bottom - mRect/top)
 	]
 
+	set-rect-memory: func [
+		src					[byte-ptr!]
+		rect				[RECT_STRUCT]
+		value				[integer!]
+		/local
+			i				[integer!]
+			j				[integer!]
+			p				[byte-ptr!]
+	][
+		i: rect/left
+		while [i < rect/right][
+			j: rect/top
+			while [j < rect/bottom][
+				p: src + (i * GetWidth) + j
+				p/1: as byte! value
+				j: j + 1
+			]
+			i: i + 1
+		]
+	]
+
 	RoundUpToMultipleOf4: func [
 		aVal				[integer!]
 		return:				[integer!]
