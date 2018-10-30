@@ -2350,6 +2350,13 @@ XFORM!: alias struct! [
 			bitmap		[int-ptr!]
 			return:		[integer!]
 		]
+		GdipCreateBitmapFromGraphics: "GdipCreateBitmapFromGraphics" [
+			width		[integer!]
+			height		[integer!]
+			graphics	[integer!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [
 			hwnd		[handle!]
 			graphics	[GpGraphics!]

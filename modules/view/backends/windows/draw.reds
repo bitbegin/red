@@ -52,6 +52,15 @@ xform: declare XFORM!
 	free word
 ]
 
+	BitmapData!: alias struct! [
+		width		[integer!]
+		height		[integer!]
+		stride		[integer!]
+		pixelFormat	[integer!]
+		scan0		[byte-ptr!]
+		reserved	[integer!]
+	]
+
 draw-state!: alias struct! [
 	gstate		[integer!]
 	pen-clr		[integer!]
@@ -1395,17 +1404,35 @@ draw-outset-shadow: func [
 		width	[integer!]
 		height	[integer!]
 		size	[integer!]
-		alpha	[byte!]
+		bmpdata	[BitmapData!]
+		scan0	[int-ptr!]
+		end		[int-ptr!]
+		alpha	[integer!]
 		aData	[byte-ptr!]
+		p		[byte-ptr!]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
+		temp	[integer!]
+		temp2	[integer!]
 ][
 	rect-init :rect 0 0 right - left bottom - top
-	rect-inflate :rect shadow-blur shadow-blur
-
-	width: rect/right - rect/left
-	height: rect/bottom - rect/top
+	blur/width: shadow-blur
+	blur/height: shadow-blur
+	spread/width: shadow-spread
+	spread/height: shadow-spread
+	AlphaBoxBlur/Init rect spread blur null null
+	width: AlphaBoxBlur/GetWidth
+	height: AlphaBoxBlur/GetHeight
 	print-line ["width: " width " height:" height]
+	size: AlphaBoxBlur/GetSize
+	aData: allocate size
+	set-memory aData null-byte size
+	rect-offset rect shadow-blur shadow-blur
+	AlphaBoxBlur/set-rect-memory aData rect shadow-color >>> 24
+	;dump-rect aData width height dump-rect-radix
+	AlphaBoxBlur/blur aData
+	;dump-rect aData width height dump-rect-radix
+
 	bmp: 0
 	gfx: 0
 	dc: new-dc ctx/dc width height :bmp :gfx
@@ -1419,6 +1446,7 @@ draw-outset-shadow: func [
 	;	rect/left
 	;	rect/top
 	;	SRCCOPY
+
 	draw-color-box
 		gfx
 		0
@@ -1426,23 +1454,31 @@ draw-outset-shadow: func [
 		width
 		height
 		rad
-		shadow-color
-	gbmp: 0
-	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
-	alpha: as byte! (255 - (shadow-color >>> 24))
-	print-line as integer! alpha
-	size: width * height
-	aData: allocate size
-	set-memory aData alpha size
-	blur/width: shadow-blur
-	blur/height: shadow-blur
-	spread/width: shadow-spread
-	spread/height: shadow-spread
-	AlphaBoxBlur/Init rect blur spread null null
-	AlphaBoxBlur/blur aData
-	dump-hex aData
+		shadow-color and 00FFFFFFh
 
+	gbmp: 0
+	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp		;-- format issues with this api
+	GdipCreateBitmapFromGraphics width height gfx :gbmp
+	bmpdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
+	scan0: as int-ptr! bmpdata/scan0
+	;dump-rect bmpdata/scan0 true width height dump-rect-radix
+	end: scan0 + size
+	p: aData
+	while [scan0 < end][
+		temp: 255 - as integer! p/1
+		temp2: scan0/value and 00FFFFFFh
+		;temp2: shadow-color and 00FFFFFFh
+		scan0/value: temp2 or (temp << 24)
+		p: p + 1
+		scan0: scan0 + 1
+	]
+	;dump-rect bmpdata/scan0 true width height dump-rect-radix
+	;dump-rect aData false width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp as-integer bmpdata
+	free aData
+	GdipDrawImageRectI gfx gbmp 0 0 width height
 	GdipDisposeImage gbmp
+
 	BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
 	free-dc dc bmp gfx
 ]
@@ -1490,6 +1526,7 @@ OS-draw-box: func [
 	][0]
 	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	unless shadow-inset? [draw-outset-shadow ctx up-x up-y low-x low-y rad * 2]
+	comment {
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1530,6 +1567,7 @@ OS-draw-box: func [
 			Rectangle ctx/dc up-x up-y low-x low-y
 		]
 	]
+	}
 ]
 
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
