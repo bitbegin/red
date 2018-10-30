@@ -18,28 +18,41 @@ Red/System [
 #define GAUSSIAN_SCALE_FACTOR		2.819956808959875
 
 #define INIT_ITER [
-	alphaSum: alphaSum + as integer! src/1
+	temp: as integer! src/1
+	alphaSum: alphaSum + as float! temp
 	src: src + inputStep
 ]
 
 #define LEFT_ITER [
-	dst/1: as byte! ((alphaSum * reciprocal) >>> 24)
-	alphaSum: alphaSum + as integer! (src/1 - firstVal)
+	ft: alphaSum * reciprocal
+	ft: ft / 16777216.0		; ft >>> 24
+	temp: as integer! ft
+	dst/1: as byte! temp
+	temp: (as integer! src/1) - (as integer! firstVal)
+	alphaSum: alphaSum + as float! temp
 	dst: dst + outputStep
 	src: src + inputStep
 ]
 
 #define CENTER_ITER [
-	dst/1: as byte! ((alphaSum * reciprocal) >>> 24)
+	ft: alphaSum * reciprocal
+	ft: ft / 16777216.0		; ft >>> 24
+	temp: as integer! ft
+	dst/1: as byte! temp
 	p: src + boxStep
-	alphaSum: alphaSum + (as integer! p/1) - (as integer! src/1)
+	temp: (as integer! p/1) - (as integer! src/1)
+	alphaSum: alphaSum + as float! temp
 	dst: dst + outputStep
 	src: src + inputStep
 ]
 
 #define RIGHT_ITER [
-	dst/1: as byte! ((alphaSum * reciprocal) >>> 24)
-	alphaSum: alphaSum + (as integer! lastVal) - (as integer! src/1)
+	ft: alphaSum * reciprocal
+	ft: ft / 16777216.0		; ft >>> 24
+	temp: as integer! ft
+	dst/1: as byte! temp
+	temp: (as integer! lastVal) - (as integer! src/1)
+	alphaSum: alphaSum + as float! temp
 	dst: dst + outputStep
 	src: src + inputStep
 ]
@@ -50,6 +63,52 @@ Red/System [
 INT_SIZE: alias struct! [
 	width				[integer!]
 	height				[integer!]
+]
+
+;-- used for single file compile
+RECT_STRUCT: alias struct! [
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+]
+
+#if debug? = yes [
+	dump-rect-radix: true
+	dump-rect: func [
+		src		[byte-ptr!]
+		w		[integer!]
+		h		[integer!]
+		hex?	[logic!]
+		/local
+			i	[integer!]
+			j	[integer!]
+			p	[byte-ptr!]
+	][
+		i: 0
+		while [i < w][
+			j: 0
+			while [j < h][
+				p: src + (i * w) + j
+				j: j + 1
+				either hex? [
+					prin-hex-chars as integer! p/1 2
+				][
+					print as integer! p/1
+				]
+				print " "
+			]
+			print-line lf
+			i: i + 1
+		]
+		print-line ""
+	]
+
+	rect-print: func [
+		rc					[RECT_STRUCT]
+	][
+		print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
+	]
 ]
 
 rect-init: func [
@@ -186,12 +245,6 @@ rect-interior-equal?: func [
 	false
 ]
 
-rect-print: func [
-	rc					[RECT_STRUCT]
-][
-	print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
-]
-
 GetAlignedStride: func [
 	alignment			[integer!]
 	aWidth				[integer!]
@@ -284,8 +337,8 @@ box-blur-row: func [
 		inputStep		[integer!]
 		outputStep		[integer!]
 		boxSize			[integer!]
-		reciprocal		[integer!]
-		alphaSum		[integer!]
+		reciprocal		[float!]
+		alphaSum		[float!]
 		initLeft		[integer!]
 		initRight		[integer!]
 		temp			[integer!]
@@ -299,29 +352,29 @@ box-blur-row: func [
 		boxStep			[integer!]
 		firstLastDiff	[integer!]
 		lastVal			[byte!]
+		ft				[float!]
 ][
 	inputStep: either aTransposeInput [aStride][1]
 	outputStep: either aTransposeOutput [aStride][1]
 	boxSize: aLeftLobe + aRightLobe + 1
-	reciprocal: (1 << 24) / boxSize
-	alphaSum: (boxSize + 1) / 2
+	reciprocal: (as float! (1 << 24)) / as float! boxSize
+	alphaSum: as float! ((boxSize + 1) / 2)
 	initLeft: aStart - aLeftLobe
 	if initLeft < 0 [
-		temp: 0 - (initLeft * aInput/1)
-		alphaSum: alphaSum + temp
+		temp: initLeft * as integer! aInput/1
+		alphaSum: alphaSum - as float! temp
 		initLeft: 0
 	]
 	initRight: aStart + boxSize - aLeftLobe
 	if initRight > aWidth [
 		p: aInput + ((aWidth - 1) * inputStep)
 		temp: (initRight - aWidth) * as integer! p/1
-		alphaSum: alphaSum + temp
+		alphaSum: alphaSum + as float! temp
 		initRight: aWidth
 	]
 
 	src: aInput + (initLeft * inputStep)
 	iterEnd: aInput + (initRight * inputStep)
-
 	while [(src + (16 * inputStep)) <= iterEnd][
 		INIT_ITER INIT_ITER INIT_ITER INIT_ITER
 		INIT_ITER INIT_ITER INIT_ITER INIT_ITER
@@ -336,7 +389,7 @@ box-blur-row: func [
 	splitLeft: _MIN(temp aEnd)
 	temp: aWidth - (boxSize - aLeftLobe)
 	temp: _MAX(temp aStart)
-	splitRight: _MIN(temp aStart)
+	splitRight: _MIN(temp aEnd)
 	if boxSize > aWidth [
 		temp: splitLeft
 		splitLeft: splitRight
@@ -348,7 +401,6 @@ box-blur-row: func [
 	temp: (aStart + boxSize - aLeftLobe) * inputStep
 	src: aInput + temp
 	firstVal: aInput/1
-
 	while [(dst + (16 * outputStep)) <= iterEnd][
 		LEFT_ITER LEFT_ITER LEFT_ITER LEFT_ITER
 		LEFT_ITER LEFT_ITER LEFT_ITER LEFT_ITER
@@ -364,7 +416,6 @@ box-blur-row: func [
 		temp: (splitLeft - aLeftLobe) * inputStep
 		src: aInput + temp
 		boxStep: boxSize * inputStep
-
 		while [(dst + (16 * outputStep)) <= iterEnd][
 			CENTER_ITER CENTER_ITER CENTER_ITER CENTER_ITER
 			CENTER_ITER CENTER_ITER CENTER_ITER CENTER_ITER
@@ -379,8 +430,11 @@ box-blur-row: func [
 		firstLastDiff: (as integer! p/1) - (as integer! aInput/1)
 
 		while [dst < iterEnd][
-			dst/1: as byte! ((alphaSum * reciprocal) >>> 24)
-			alphaSum: alphaSum + firstLastDiff
+			ft: alphaSum * reciprocal
+			ft: ft / 16777216.0		; ft >>> 24
+			temp: as integer! ft
+			dst/1: as byte! temp
+			alphaSum: alphaSum + as float! firstLastDiff
 			dst: dst + outputStep
 		]
 	]
@@ -391,7 +445,6 @@ box-blur-row: func [
 	temp: (aWidth - 1) * inputStep
 	p: aInput + temp
 	lastVal: p/1
-
 	while [(dst + (16 * outputStep)) <= iterEnd][
 		RIGHT_ITER RIGHT_ITER RIGHT_ITER RIGHT_ITER
 		RIGHT_ITER RIGHT_ITER RIGHT_ITER RIGHT_ITER
@@ -432,6 +485,7 @@ box-blur: func [
 
 	tmpRow: allocate 2 * aWidth
 	if tmpRow = null [exit]
+	set-memory tmpRow null-byte 2 * aWidth
 	tmpRow2: tmpRow + aWidth
 
 	stride: either aTranspose [1][aStride]
@@ -744,7 +798,6 @@ AlphaBoxBlur: context [
 	mSpreadRadius: declare INT_SIZE
 	mDirtyRect: declare RECT_STRUCT
 	mHasDirtyRect: false
-	mSurfaceAllocationSize: 0
 
 	RoundUpToMultipleOf4: func [
 		aVal				[integer!]
@@ -778,13 +831,15 @@ AlphaBoxBlur: context [
 		rect-copy mRect aRect
 		width: aBlurRadius/width + aSpreadRadius/width
 		height: aBlurRadius/height + aSpreadRadius/height
-		rect-inflate mRect width height
+		mRect/right: mRect/right + (2 * width)
+		mRect/bottom: mRect/bottom + (2 * height)
 
 		either aDirtyRect <> null [
 			mHasDirtyRect: true
 			rect-copy mDirtyRect aDirtyRect
 			rect-intersect aDirtyRect mRect :requiredBlur
-			rect-inflate :requiredBlur width height
+			requiredBlur/right: requiredBlur/right + (2 * width)
+			requiredBlur/bottom: requiredBlur/bottom + (2 * height)
 			rect-intersect :requiredBlur mRect mRect
 		][
 			mHasDirtyRect: false
@@ -797,7 +852,8 @@ AlphaBoxBlur: context [
 
 		either aSkipRect <> null [
 			rect-copy mSkipRect aSkipRect
-			rect-inflate mSkipRect 0 - width 0 - height
+			mSkipRect/right: mSkipRect/right - (2 * width)
+			mSkipRect/bottom: mSkipRect/bottom - (2 * height)
 			rect-intersect mSkipRect mRect mSkipRect
 			if rect-interior-equal? mSkipRect mRect [exit]
 			rect-offset mSkipRect 0 - mRect/left 0 - mRect/top
@@ -807,9 +863,7 @@ AlphaBoxBlur: context [
 			mSkipRect/top: 0
 			mSkipRect/bottom: 0
 		]
-		mStride: RoundUpToMultipleOf4 mRect/right - mRect/left
-		size: BufferSizeFromStrideAndHeight mStride mRect/bottom - mRect/top 3
-		if size <> 0 [mSurfaceAllocationSize: size]
+		mStride: mRect/right - mRect/left
 	]
 
 	new: func [
@@ -825,13 +879,7 @@ AlphaBoxBlur: context [
 		mSpreadRadius/height: 0
 		calc-blur-radius aSigmaX aSigmaY mBlurRadius
 		mStride: aStride
-		mSurfaceAllocationSize: 0
 		mHasDirtyRect: false
-
-		minDataSize: BufferSizeFromStrideAndHeight aRect/right - aRect/left aRect/bottom - aRect/top 0
-		if minDataSize <> 0 [
-			mSurfaceAllocationSize: minDataSize
-		]
 	]
 
 	BoxBlur: func [
@@ -847,7 +895,7 @@ AlphaBoxBlur: context [
 			boxSize			[integer!]
 			stride32bit		[integer!]
 			leftInflation	[integer!]
-			reciprocal		[integer!]
+			reciprocal		[float!]
 			ft				[float!]
 			innerIntegral	[int-ptr!]
 			y				[integer!]
@@ -878,8 +926,7 @@ AlphaBoxBlur: context [
 
 		gen-integral-image leftInflation aRightLobe aTopLobe abottomLobe aIntegralImage aImageStride aData mStride :size
 
-		ft: 4294967296.0 / as float! boxSize
-		reciprocal: as integer! ft
+		reciprocal: 4294967296.0 / as float! boxSize
 		innerIntegral: aIntegralImage + (aTopLobe * stride32bit) + leftInflation
 
 		y: 0
@@ -916,7 +963,7 @@ AlphaBoxBlur: context [
 				value: bottomRight - topRight - bottomLeft
 				value: value + topLeft
 
-				ft: (as float! reciprocal) * as float! value
+				ft: reciprocal * as float! value
 				ft: ft + 2147483648.0
 				ft: ft / 4294967296.0
 				temp: as integer! ft
@@ -1000,7 +1047,7 @@ AlphaBoxBlur: context [
 		if bufLen = 0 [exit]
 		temp: bufLen / 4
 		temp: temp + either 0 = (bufLen % 4) [0][1]
-		integralImage: as int-ptr! allocate temp
+		integralImage: as int-ptr! allocate temp * 4
 		if integralImage = null [exit]
 		BoxBlur aData horizontalLobes/1 horizontalLobes/2 verticalLobes/1 verticalLobes/2 integralImage ImageStride
 		BoxBlur aData horizontalLobes/3 horizontalLobes/4 verticalLobes/3 verticalLobes/4 integralImage ImageStride
