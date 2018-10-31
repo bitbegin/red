@@ -1332,8 +1332,8 @@ draw-color-box: func [
 		brush	[integer!]
 		pen		[integer!]
 ][
-	print-line ["x: " x " y: " y " width: " width " height: " height]
 	color: to-gdiplus-color _color
+	print-line ["x: " x " y: " y " width: " width " height: " height " _color: " _color " color: " color]
 	brush: 0
 	pen: 0
 	GdipCreateSolidFill color :brush
@@ -1379,6 +1379,131 @@ free-dc: func [
 	DeleteDC dc
 ]
 
+create-blur-bitmap: func [
+	gfx			[integer!]
+	bmp			[integer!]
+	blur-color	[integer!]
+	return:		[integer!]
+	/local
+		width	[integer!]
+		height	[integer!]
+		size	[integer!]
+		acolor	[integer!]
+		rgb		[integer!]
+		alpha	[byte-ptr!]
+		gbmp1	[integer!]
+		gbmp2	[integer!]
+		bmp1	[BitmapData!]
+		bmp2	[BitmapData!]
+		scan1	[int-ptr!]
+		end1	[int-ptr!]
+		scan2	[int-ptr!]
+		end2	[int-ptr!]
+		p		[byte-ptr!]
+][
+	width: AlphaBoxBlur/GetWidth
+	height: AlphaBoxBlur/GetHeight
+	size: AlphaBoxBlur/GetSize
+	alpha: allocate size
+	acolor: blur-color >>> 24
+	rgb: (to-gdiplus-color blur-color) and 00FFFFFFh
+
+	gbmp1: 0
+	gbmp2: 0
+	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp1			;-- can't get alpha channel
+	GdipCreateBitmapFromGraphics width height gfx :gbmp2		;-- this create a empty bitmap
+	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB no
+	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB yes
+	;dump-rect bmp1/scan0 true width height dump-rect-radix
+	;dump-rect bmp2/scan0 true width height dump-rect-radix
+	scan1: as int-ptr! bmp1/scan0
+	end1: scan1 + size
+	p: alpha
+	while [scan1 < end1][
+		p/1: as byte! either (scan1/value and 00FFFFFFh) = 0 [0][acolor]
+		p: p + 1
+		scan1: scan1 + 1
+	]
+
+	AlphaBoxBlur/blur alpha
+	scan1: as int-ptr! bmp1/scan0
+	end1: scan1 + size
+	scan2: as int-ptr! bmp2/scan0
+	end2: scan2 + size
+	p: alpha
+	while [scan2 < end2][
+		scan2/value: rgb or ((as integer! p/1) << 24)
+		p: p + 1
+		scan1: scan1 + 1
+		scan2: scan2 + 1
+	]
+	;dump-rect bmp2/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
+	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
+
+	free alpha
+	GdipDisposeImage gbmp1
+	gbmp2
+]
+
+pixel-mix: func [
+	p1			[int-ptr!]
+	p2			[int-ptr!]
+	/local
+		a1		[integer!]
+		r1		[integer!]
+		g1		[integer!]
+		b1		[integer!]
+		a2		[integer!]
+		r2		[integer!]
+		g2		[integer!]
+		b2		[integer!]
+][
+	a1: p1/1 >>> 24
+	r1: (p1/1 >> 16) and FFh
+	g1: (p1/1 >> 8) and FFh
+	b1: p1/1 and FFh
+	a2: p2/1 >>> 24
+	r2: (p2/1 >> 16) and FFh
+	g2: (p2/1 >> 8) and FFh
+	b2: p2/1 and FFh
+	r2: (r1 * (255 - a2) / 255) + (r2 * a2 / 255)
+	g2: (g1 * (255 - a2) / 255) + (g2 * a2 / 255)
+	b2: (b1 * (255 - a2) / 255) + (b2 * a2 / 255)
+	p2/1: (a1 << 24) or (r2 << 16) or (g2 << 8) or b2
+]
+
+bitmap-mix: func [
+	gbmp1		[integer!]
+	gbmp2		[integer!]
+	width		[integer!]
+	height		[integer!]
+	/local
+		size	[integer!]
+		bmp1	[BitmapData!]
+		bmp2	[BitmapData!]
+		scan1	[int-ptr!]
+		end1	[int-ptr!]
+		scan2	[int-ptr!]
+		end2	[int-ptr!]
+][
+	size: width * height
+	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB no
+	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB yes
+	scan1: as int-ptr! bmp1/scan0
+	end1: scan1 + size
+	scan2: as int-ptr! bmp2/scan0
+	end2: scan2 + size
+	while [scan2 < end2][
+		pixel-mix scan1 scan2
+		scan1: scan1 + 1
+		scan2: scan2 + 1
+	]
+	dump-rect bmp1/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
+	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
+]
+
 shadow-left: 5
 shadow-top: 5
 shadow-blur: 10
@@ -1395,108 +1520,64 @@ draw-outset-shadow: func [
 	rad			[integer!]
 	/local
 		rect	[RECT_STRUCT value]
-		outer	[RECT_STRUCT value]
-		blur2	[integer!]
-		dc		[handle!]
-		bmp		[integer!]
-		gbmp	[integer!]
-		gfx		[integer!]
-		width	[integer!]
-		height	[integer!]
-		size	[integer!]
-		bmpdata	[BitmapData!]
-		scan0	[int-ptr!]
-		end		[int-ptr!]
-		alpha	[integer!]
-		aData	[byte-ptr!]
-		p		[byte-ptr!]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
-		rate	[integer!]
-		r		[integer!]
-		g		[integer!]
-		b		[integer!]
-		a		[integer!]
+		width	[integer!]
+		height	[integer!]
+		bmp		[integer!]
+		gfx		[integer!]
+		dc		[handle!]
+		gbmp1	[integer!]
+		gbmp2	[integer!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
 ][
+	print-line ["left: " left " top: " top " right: " right " bottom: " bottom]
 	rect-init :rect 0 0 right - left bottom - top
 	blur/width: shadow-blur
 	blur/height: shadow-blur
 	spread/width: shadow-spread
 	spread/height: shadow-spread
-	AlphaBoxBlur/Init rect spread blur null null
+	AlphaBoxBlur/Init :rect :spread :blur null null
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
-	print-line ["width: " width " height:" height]
-	size: AlphaBoxBlur/GetSize
-	aData: allocate size
-	set-memory aData null-byte size
-	rect-offset rect shadow-blur shadow-blur
-	AlphaBoxBlur/set-rect-memory aData rect shadow-color >>> 24
-	;dump-rect aData width height dump-rect-radix
-	AlphaBoxBlur/blur aData
-	;dump-rect aData width height dump-rect-radix
 
 	bmp: 0
 	gfx: 0
 	dc: new-dc ctx/dc width height :bmp :gfx
-	;BitBlt
-	;	dc
+	;draw-color-box
+	;	gfx
 	;	0
 	;	0
 	;	width
 	;	height
-	;	ctx/dc
-	;	rect/left
-	;	rect/top
-	;	SRCCOPY
+	;	0	;rad						;-- no need use rad for background ?
+	;	shadow-color or FF000000h		;-- background alpha = 0
 
 	draw-color-box
 		gfx
-		0
-		0
-		width
-		height
+		blur/width + spread/width
+		blur/height + spread/height
+		right - left - 1				;-- need to `- 1`, api bug?
+		bottom - top - 1
 		rad
-		shadow-color and 00FFFFFFh
-
-	gbmp: 0
-	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp		;-- format issues with this api
-	GdipCreateBitmapFromGraphics width height gfx :gbmp
-	bmpdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
-	scan0: as int-ptr! bmpdata/scan0
-	dump-rect bmpdata/scan0 true width height dump-rect-radix
-	end: scan0 + size
-	p: aData
-	while [scan0 < end][
-		rate: as integer! p/1
-		b: (shadow-color >>> 16) and FFh
-		g: (shadow-color >>> 8) and FFh
-		r: shadow-color and FFh
-		r: r * rate / 255
-		g: g * rate / 255
-		b: b * rate / 255
-		scan0/value: (r << 16) or (g << 8) or b or FF000000h
-		p: p + 1
-		scan0: scan0 + 1
-	]
-	dump-rect bmpdata/scan0 true width height dump-rect-radix
-	;dump-rect aData false width height dump-rect-radix
-	OS-image/unlock-bitmap-fmt gbmp as-integer bmpdata
-	free aData
-	GdipDrawImageRectI gfx gbmp 0 0 width height
-	GdipDisposeImage gbmp
+		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
+	;gbmp1: GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp1
+	gbmp2: create-blur-bitmap gfx bmp shadow-color
+	GdipDrawImageRectI gfx gbmp2 0 0 width height
+	GdipDisposeImage gbmp2
 
 	;BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
 
-		ftn: 0
-		bf: as tagBLENDFUNCTION :ftn
-		bf/BlendOp: as-byte 0
-		bf/BlendFlags: as-byte 0
-		bf/SourceConstantAlpha: as-byte 255
-		bf/AlphaFormat: as-byte 1
-		AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
+	;ftn: 0
+	;bf: as tagBLENDFUNCTION :ftn
+	;bf/BlendOp: as-byte 0
+	;bf/BlendFlags: as-byte 0
+	;bf/SourceConstantAlpha: as-byte 255
+	;bf/AlphaFormat: as-byte 1
+	;AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
+
+	;bitmap-mix
 
 	free-dc dc bmp gfx
 ]
