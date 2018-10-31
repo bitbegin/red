@@ -1381,6 +1381,7 @@ free-dc: func [
 
 premul-pixel: func [
 	pixel		[int-ptr!]
+	rgb			[integer!]
 	alpha		[integer!]
 	/local
 		a		[integer!]
@@ -1389,9 +1390,9 @@ premul-pixel: func [
 		b		[integer!]
 ][
 	a: alpha
-	r: (pixel/1 >>> 16) and 255
-	g: (pixel/1 >>> 8) and 255
-	b: pixel/1 and 255
+	r: (rgb >>> 16) and 255
+	g: (rgb >>> 8) and 255
+	b: rgb and 255
 	r: r * alpha / 255
 	g: g * alpha / 255
 	b: b * alpha / 255
@@ -1411,9 +1412,13 @@ create-blur-bitmap: func [
 		rgb		[integer!]
 		alpha	[byte-ptr!]
 		gbmp1	[integer!]
+		gbmp2	[integer!]
 		bmp1	[BitmapData!]
+		bmp2	[BitmapData!]
 		scan1	[int-ptr!]
 		end1	[int-ptr!]
+		scan2	[int-ptr!]
+		end2	[int-ptr!]
 		p		[byte-ptr!]
 ][
 	width: AlphaBoxBlur/GetWidth
@@ -1424,9 +1429,13 @@ create-blur-bitmap: func [
 	rgb: (to-gdiplus-color blur-color) and 00FFFFFFh
 
 	gbmp1: 0
+	gbmp2: 0
 	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp1			;-- can't get alpha channel
+	GdipCreateBitmapFromGraphics width height gfx :gbmp2		;-- this create a empty bitmap
 	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB no
+	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB yes
 	;dump-rect bmp1/scan0 true width height dump-rect-radix
+	;dump-rect bmp2/scan0 true width height dump-rect-radix
 	scan1: as int-ptr! bmp1/scan0
 	end1: scan1 + size
 	p: alpha
@@ -1437,21 +1446,25 @@ create-blur-bitmap: func [
 	]
 
 	AlphaBoxBlur/blur alpha
-
 	scan1: as int-ptr! bmp1/scan0
 	end1: scan1 + size
+	scan2: as int-ptr! bmp2/scan0
+	end2: scan2 + size
 	p: alpha
-	while [scan1 < end1][
-		;scan1/value: rgb or ((as integer! p/1) << 24)
-		premul-pixel scan1 as integer! p/1
+	while [scan2 < end2][
+		;scan2/value: rgb or ((as integer! p/1) << 24)
+		premul-pixel scan2 rgb as integer! p/1
 		p: p + 1
 		scan1: scan1 + 1
+		scan2: scan2 + 1
 	]
-	dump-rect bmp1/scan0 true width height dump-rect-radix
+	dump-rect bmp2/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
+	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
 
 	free alpha
-	gbmp1
+	GdipDisposeImage gbmp1
+	gbmp2
 ]
 
 shadow-left: 5
