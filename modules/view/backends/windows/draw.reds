@@ -1446,64 +1446,6 @@ create-blur-bitmap: func [
 	gbmp2
 ]
 
-pixel-mix: func [
-	p1			[int-ptr!]
-	p2			[int-ptr!]
-	/local
-		a1		[integer!]
-		r1		[integer!]
-		g1		[integer!]
-		b1		[integer!]
-		a2		[integer!]
-		r2		[integer!]
-		g2		[integer!]
-		b2		[integer!]
-][
-	a1: p1/1 >>> 24
-	r1: (p1/1 >> 16) and FFh
-	g1: (p1/1 >> 8) and FFh
-	b1: p1/1 and FFh
-	a2: p2/1 >>> 24
-	r2: (p2/1 >> 16) and FFh
-	g2: (p2/1 >> 8) and FFh
-	b2: p2/1 and FFh
-	r2: (r1 * (255 - a2) / 255) + (r2 * a2 / 255)
-	g2: (g1 * (255 - a2) / 255) + (g2 * a2 / 255)
-	b2: (b1 * (255 - a2) / 255) + (b2 * a2 / 255)
-	p2/1: (a1 << 24) or (r2 << 16) or (g2 << 8) or b2
-]
-
-bitmap-mix: func [
-	gbmp1		[integer!]
-	gbmp2		[integer!]
-	width		[integer!]
-	height		[integer!]
-	/local
-		size	[integer!]
-		bmp1	[BitmapData!]
-		bmp2	[BitmapData!]
-		scan1	[int-ptr!]
-		end1	[int-ptr!]
-		scan2	[int-ptr!]
-		end2	[int-ptr!]
-][
-	size: width * height
-	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB no
-	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB yes
-	scan1: as int-ptr! bmp1/scan0
-	end1: scan1 + size
-	scan2: as int-ptr! bmp2/scan0
-	end2: scan2 + size
-	while [scan2 < end2][
-		pixel-mix scan1 scan2
-		scan1: scan1 + 1
-		scan2: scan2 + 1
-	]
-	dump-rect bmp1/scan0 true width height dump-rect-radix
-	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
-	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
-]
-
 shadow-left: 5
 shadow-top: 5
 shadow-blur: 10
