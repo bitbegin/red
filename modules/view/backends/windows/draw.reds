@@ -1343,40 +1343,59 @@ draw-color-box: func [
 	GdipDeletePen pen
 ]
 
+CTX-INFO!: alias struct! [
+	dc			[handle!]
+	bmp			[integer!]
+	gfx			[integer!]
+	gbmp		[integer!]
+]
+
 new-dc: func [
 	src			[handle!]
 	w			[integer!]
 	h			[integer!]
-	bitmap		[int-ptr!]
-	graphics	[int-ptr!]
-	return:		[handle!]
+	info		[CTX-INFO!]
 	/local
-		hBitmap	[handle!]
+		bmp		[handle!]
 		dc		[handle!]
 		gfx		[integer!]
+		gbmp	[integer!]
 ][
-	hBitmap: CreateCompatibleBitmap src w h
+	bmp: CreateCompatibleBitmap src w h
 	dc: CreateCompatibleDC src
-	SelectObject dc hBitmap
+	SelectObject dc bmp
 	gfx: 0
 	GdipCreateFromHDC dc :gfx
-	SetGraphicsMode dc GM_ADVANCED
-	SetArcDirection dc AD_CLOCKWISE
-	SetBkMode dc BK_TRANSPARENT
-	SelectObject dc GetStockObject NULL_BRUSH
-	bitmap/value: as integer! hBitmap
-	graphics/value: gfx
-	dc
+	;SetGraphicsMode dc GM_ADVANCED
+	;SetArcDirection dc AD_CLOCKWISE
+	;SetBkMode dc BK_TRANSPARENT
+	;SelectObject dc GetStockObject NULL_BRUSH
+	gbmp: 0
+	GdipCreateBitmapFromHBITMAP bmp 0 :gbmp
+	info/dc: dc
+	info/bmp: as integer! bmp
+	info/gfx: gfx
+	info/gbmp: gbmp
 ]
 
 free-dc: func [
-	dc			[handle!]
-	bitmap		[integer!]
-	graphics	[integer!]
+	info		[CTX-INFO!]
 ][
-	GdipDeleteGraphics graphics
-	DeleteObject as handle! bitmap
-	DeleteDC dc
+	GdipDisposeImage info/gbmp
+	GdipDeleteGraphics info/gfx
+	DeleteObject as handle! info/bmp
+	DeleteDC info/dc
+]
+
+unpdate-gbmp: func [
+	info		[CTX-INFO!]
+	/local
+		gbmp	[integer!]
+][
+	GdipDisposeImage info/gbmp
+	gbmp: 0
+	GdipCreateBitmapFromHBITMAP as handle! info/bmp 0 :gbmp
+	info/gbmp: gbmp
 ]
 
 premul-pixel: func [
@@ -1399,9 +1418,32 @@ premul-pixel: func [
 	pixel/1: (a << 24) or (r << 16) or (g << 8) or b
 ]
 
+premul-pixel2: func [
+	pixel		[int-ptr!]
+	rgb			[integer!]
+	alpha		[integer!]
+	/local
+		a		[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+][
+	a: alpha
+	r: (rgb >>> 16) and 255
+	g: (rgb >>> 8) and 255
+	b: rgb and 255
+	r: r * alpha / 255
+	g: g * alpha / 255
+	b: b * alpha / 255
+	;if r = 0 [r: 255]
+	;if g = 0 [g: 255]
+	;if b = 0 [b: 255]
+	a: 255
+	pixel/1: (a << 24) or (r << 16) or (g << 8) or b
+]
+
 create-blur-bitmap: func [
-	gfx			[integer!]
-	bmp			[integer!]
+	info		[CTX-INFO!]
 	blur-color	[integer!]
 	return:		[integer!]
 	/local
@@ -1411,7 +1453,6 @@ create-blur-bitmap: func [
 		acolor	[integer!]
 		rgb		[integer!]
 		alpha	[byte-ptr!]
-		gbmp1	[integer!]
 		gbmp2	[integer!]
 		bmp1	[BitmapData!]
 		bmp2	[BitmapData!]
@@ -1420,6 +1461,7 @@ create-blur-bitmap: func [
 		scan2	[int-ptr!]
 		end2	[int-ptr!]
 		p		[byte-ptr!]
+		temp	[integer!]
 ][
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
@@ -1428,11 +1470,9 @@ create-blur-bitmap: func [
 	acolor: blur-color >>> 24
 	rgb: (to-gdiplus-color blur-color) and 00FFFFFFh
 
-	gbmp1: 0
 	gbmp2: 0
-	GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp1			;-- can't get alpha channel
-	GdipCreateBitmapFromGraphics width height gfx :gbmp2		;-- this create a empty bitmap
-	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB no
+	GdipCreateBitmapFromGraphics width height info/gfx :gbmp2		;-- this create a empty bitmap
+	bmp1: as BitmapData! OS-image/lock-bitmap-fmt info/gbmp PixelFormat32bppARGB no
 	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB yes
 	;dump-rect bmp1/scan0 true width height dump-rect-radix
 	;dump-rect bmp2/scan0 true width height dump-rect-radix
@@ -1452,19 +1492,37 @@ create-blur-bitmap: func [
 	end2: scan2 + size
 	p: alpha
 	while [scan2 < end2][
-		scan2/value: rgb or ((as integer! p/1) << 24)
-		;premul-pixel scan2 rgb as integer! p/1
+		temp: as integer! p/1
+		;either temp = 0 [
+		;	scan2/value: FFFFFFFFh
+		;][
+		;	scan2/value: rgb or ((as integer! p/1) << 24)
+		;]
+		scan2/value: rgb or (temp << 24)
+		;premul-pixel scan2 rgb temp
+		;premul-pixel2 scan2 rgb temp
 		p: p + 1
 		scan1: scan1 + 1
 		scan2: scan2 + 1
 	]
-	dump-rect bmp2/scan0 true width height dump-rect-radix
-	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
+	;dump-rect bmp2/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt info/gbmp as-integer bmp1
 	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
 
 	free alpha
-	GdipDisposeImage gbmp1
 	gbmp2
+]
+
+print-gbmp: func [
+	gbmp		[integer!]
+	width		[integer!]
+	height		[integer!]
+	/local
+		bd		[BitmapData!]
+][
+	bd: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB no
+	dump-rect bd/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp as-integer bd
 ]
 
 shadow-left: 5
@@ -1487,10 +1545,9 @@ draw-outset-shadow: func [
 		spread	[INT_SIZE value]
 		width	[integer!]
 		height	[integer!]
-		bmp		[integer!]
-		gfx		[integer!]
-		dc		[handle!]
-		gbmp1	[integer!]
+		binfo	[CTX-INFO! value]
+		minfo	[CTX-INFO! value]
+		mgbmp	[integer!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
 ][
@@ -1504,31 +1561,31 @@ draw-outset-shadow: func [
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
 
-	bmp: 0
-	gfx: 0
-	dc: new-dc ctx/dc width height :bmp :gfx
-	;draw-color-box
-	;	gfx
-	;	0
-	;	0
-	;	width
-	;	height
-	;	0	;rad						;-- no need use rad for background ?
-	;	shadow-color or FF000000h		;-- background alpha = 0
+	;-- backup background
+	new-dc ctx/dc width height :binfo
+	BitBlt
+		binfo/dc 0 0 width height
+		ctx/dc left top SRCCOPY
+	unpdate-gbmp binfo
+	print-gbmp binfo/gbmp width height
 
+	;-- draw alpha surface
+	new-dc ctx/dc width height :minfo
 	draw-color-box
-		gfx
+		minfo/gfx
 		blur/width + spread/width
 		blur/height + spread/height
 		right - left - 1				;-- need to `- 1`, api bug?
 		bottom - top - 1
 		rad
 		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
-	gbmp1: create-blur-bitmap gfx bmp shadow-color
-	GdipDrawImageRectI gfx gbmp1 0 0 width height
-	GdipDisposeImage gbmp1
+	unpdate-gbmp minfo
+	print-gbmp minfo/gbmp width height
 
-	BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
+	mgbmp: create-blur-bitmap minfo shadow-color
+	GdipDrawImageRectI minfo/gfx mgbmp 0 0 width height
+	print-gbmp mgbmp width height
+	GdipDisposeImage mgbmp
 
 	;ftn: 0
 	;bf: as tagBLENDFUNCTION :ftn
@@ -1536,11 +1593,15 @@ draw-outset-shadow: func [
 	;bf/BlendFlags: as-byte 0
 	;bf/SourceConstantAlpha: as-byte 255
 	;bf/AlphaFormat: as-byte 1
-	;AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
+	;AlphaBlend binfo/dc 0 0 width height minfo/dc 0 0 width height ftn
 
-	;bitmap-mix
+	;unpdate-gbmp binfo
+	;print-gbmp binfo/gbmp width height
 
-	free-dc dc bmp gfx
+	BitBlt ctx/dc left + shadow-left top + shadow-top width height minfo/dc 0 0 SRCCOPY
+
+	free-dc binfo
+	free-dc minfo
 ]
 
 OS-draw-box: func [

@@ -561,6 +561,8 @@ Red/System [
 #define BASE_FACE_D2D		4
 #define BASE_FACE_IME		8
 
+#define OBJ_BITMAP					7
+
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
 	left		[integer!]
@@ -1670,6 +1672,11 @@ XFORM!: alias struct! [
 			width		[integer!]
 			height		[integer!]
 			return:		[handle!]
+		]
+		GetCurrentObject: "GetCurrentObject" [
+			hDC			[handle!]
+			type		[integer!]
+			return:		[integer!]
 		]
 		DeleteDC: "DeleteDC" [
 			hdc			[handle!]
