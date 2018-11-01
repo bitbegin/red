@@ -2390,6 +2390,13 @@ XFORM!: alias struct! [
 			pen-ptr		[int-ptr!]
 			return:		[integer!]
 		]
+		GdipCreatePen2: "GdipCreatePen2" [
+			brush		[integer!]
+			width		[float32!]
+			unit		[integer!]
+			pen-ptr		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipDeletePen: "GdipDeletePen" [
 			pen			[integer!]
 			return:		[integer!]

@@ -399,7 +399,7 @@ draw-begin: func [
 	GdipCreatePen1
 		to-gdiplus-color ctx/pen-color
 		ctx/pen-width
-		GDIPLUS_UNIT_WORLD
+		GDIPLUS_UNIT_PIXEL
 		:graphics
 	ctx/gp-pen: graphics
 	OS-draw-anti-alias ctx yes
@@ -490,6 +490,26 @@ to-gdiplus-color: func [
 	blue: color >> 16 and FFh
 	alpha: (255 - (color >>> 24)) << 24
 	red or green or blue or alpha
+]
+
+;-- we need premul color
+to-premul-color: func [
+	color	[integer!]
+	return:	[integer!]
+	/local
+		r	[integer!]
+		g	[integer!]
+		b	[integer!]
+		a	[integer!]
+][
+	r: color and FFh
+	g: (color >>> 8) and FFh
+	b: (color >>> 16) and FFh
+	a: 255 - (color >>> 24)
+	r: r * a / 255
+	g: g * a / 255
+	b: b * a / 255
+	(255 << 24) or (r << 16) or (g << 8) or b
 ]
 
 radian-to-degrees: func [
@@ -1274,7 +1294,9 @@ gdiplus-draw-roundbox: func [
 	if brush <> 0 [
 		GdipFillPath graphics brush path
 	]
-	GdipDrawPath graphics pen path
+	if pen <> 0 [
+		GdipDrawPath graphics pen path
+	]
 	GdipDeletePath path
 ]
 
@@ -1293,8 +1315,8 @@ gdiplus-draw-box: func [
 			graphics
 			x
 			y
-			width
-			height
+			width - 1
+			height - 1
 			radius
 			pen
 			brush
@@ -1310,13 +1332,15 @@ gdiplus-draw-box: func [
 			height
 	]
 
-	GdipDrawRectangleI
-		graphics
-		pen
-		x
-		y
-		width
-		height
+	if pen <> 0 [
+		GdipDrawRectangleI
+			graphics
+			pen
+			x
+			y
+			width - 1
+			height - 1
+	]
 ]
 
 draw-color-box: func [
@@ -1330,17 +1354,13 @@ draw-color-box: func [
 	/local
 		color	[integer!]
 		brush	[integer!]
-		pen		[integer!]
 ][
 	color: to-gdiplus-color _color
 	print-line ["x: " x " y: " y " width: " width " height: " height " _color: " _color " color: " color]
 	brush: 0
-	pen: 0
 	GdipCreateSolidFill color :brush
-	GdipCreatePen1 color as float32! 1 GDIPLUS_UNIT_WORLD :pen
-	gdiplus-draw-box graphics x y width height radius pen brush
+	gdiplus-draw-box graphics x y width height radius 0 brush
 	GdipDeleteBrush brush
-	GdipDeletePen pen
 ]
 
 CTX-INFO!: alias struct! [
@@ -1348,6 +1368,8 @@ CTX-INFO!: alias struct! [
 	bmp			[integer!]
 	gfx			[integer!]
 	gbmp		[integer!]
+	width		[integer!]
+	height		[integer!]
 ]
 
 new-dc: func [
@@ -1376,6 +1398,8 @@ new-dc: func [
 	info/bmp: as integer! bmp
 	info/gfx: gfx
 	info/gbmp: gbmp
+	info/width: w
+	info/height: h
 ]
 
 free-dc: func [
@@ -1418,30 +1442,6 @@ premul-pixel: func [
 	pixel/1: (a << 24) or (r << 16) or (g << 8) or b
 ]
 
-premul-pixel2: func [
-	pixel		[int-ptr!]
-	rgb			[integer!]
-	alpha		[integer!]
-	/local
-		a		[integer!]
-		r		[integer!]
-		g		[integer!]
-		b		[integer!]
-][
-	a: alpha
-	r: (rgb >>> 16) and 255
-	g: (rgb >>> 8) and 255
-	b: rgb and 255
-	r: r * alpha / 255
-	g: g * alpha / 255
-	b: b * alpha / 255
-	;if r = 0 [r: 255]
-	;if g = 0 [g: 255]
-	;if b = 0 [b: 255]
-	a: 255
-	pixel/1: (a << 24) or (r << 16) or (g << 8) or b
-]
-
 create-blur-bitmap: func [
 	info		[CTX-INFO!]
 	blur-color	[integer!]
@@ -1463,9 +1463,9 @@ create-blur-bitmap: func [
 		p		[byte-ptr!]
 		temp	[integer!]
 ][
-	width: AlphaBoxBlur/GetWidth
-	height: AlphaBoxBlur/GetHeight
-	size: AlphaBoxBlur/GetSize
+	width: info/width
+	height: info/height
+	size: width * height
 	alpha: allocate size
 	acolor: blur-color >>> 24
 	rgb: (to-gdiplus-color blur-color) and 00FFFFFFh
@@ -1486,6 +1486,7 @@ create-blur-bitmap: func [
 	]
 
 	AlphaBoxBlur/blur alpha
+	;dump-rect alpha false width height dump-rect-radix
 	scan1: as int-ptr! bmp1/scan0
 	end1: scan1 + size
 	scan2: as int-ptr! bmp2/scan0
@@ -1493,14 +1494,8 @@ create-blur-bitmap: func [
 	p: alpha
 	while [scan2 < end2][
 		temp: as integer! p/1
-		;either temp = 0 [
-		;	scan2/value: FFFFFFFFh
-		;][
-		;	scan2/value: rgb or ((as integer! p/1) << 24)
-		;]
 		scan2/value: rgb or (temp << 24)
 		;premul-pixel scan2 rgb temp
-		;premul-pixel2 scan2 rgb temp
 		p: p + 1
 		scan1: scan1 + 1
 		scan2: scan2 + 1
@@ -1511,6 +1506,73 @@ create-blur-bitmap: func [
 
 	free alpha
 	gbmp2
+]
+
+mix-pixel: func [
+	p1			[int-ptr!]
+	p2			[int-ptr!]
+	/local
+		a1		[integer!]
+		r1		[integer!]
+		g1		[integer!]
+		b1		[integer!]
+		a2		[integer!]
+		r2		[integer!]
+		g2		[integer!]
+		b2		[integer!]
+		temp1	[integer!]
+		temp2	[integer!]
+][
+	a1: p1/1 >>> 24
+	r1: (p1/1 >>> 16) and FFh
+	g1: (p1/1 >>> 8) and FFh
+	b1: p1/1 and FFh
+	a2: p2/1 >>> 24
+	r2: (p2/1 >>> 16) and FFh
+	g2: (p2/1 >>> 8) and FFh
+	b2: p2/1 and FFh
+	temp1: r1 * (255 - a2) / 255
+	temp2: r2 * a2 / 255
+	r1: temp1 + temp2
+	temp1: g1 * (255 - a2) / 255
+	temp2: g2 * a2 / 255
+	g1: temp1 + temp2
+	temp1: b1 * (255 - a2) / 255
+	temp2: b2 * a2 / 255
+	b1: temp1 + temp2
+	p1/1: (255 << 24) or (r1 << 16) or (g1 << 8) or b1
+]
+
+alpha-blend: func [
+	gbmp1		[integer!]
+	gbmp2		[integer!]
+	width		[integer!]
+	height		[integer!]
+	/local
+		size	[integer!]
+		bmp1	[BitmapData!]
+		bmp2	[BitmapData!]
+		scan1	[int-ptr!]
+		end1	[int-ptr!]
+		scan2	[int-ptr!]
+		end2	[int-ptr!]
+		i		[integer!]
+		j		[integer!]
+][
+	size: width * height
+	bmp1: as BitmapData! OS-image/lock-bitmap-fmt gbmp1 PixelFormat32bppARGB yes
+	bmp2: as BitmapData! OS-image/lock-bitmap-fmt gbmp2 PixelFormat32bppARGB no
+	scan1: as int-ptr! bmp1/scan0
+	end1: scan1 + size
+	scan2: as int-ptr! bmp2/scan0
+	end2: scan2 + size
+	while [scan1 < end1][
+		mix-pixel scan1 scan2
+		scan1: scan1 + 1
+		scan2: scan2 + 1
+	]
+	OS-image/unlock-bitmap-fmt gbmp1 as-integer bmp1
+	OS-image/unlock-bitmap-fmt gbmp2 as-integer bmp2
 ]
 
 print-gbmp: func [
@@ -1567,38 +1629,33 @@ draw-outset-shadow: func [
 		binfo/dc 0 0 width height
 		ctx/dc left top SRCCOPY
 	unpdate-gbmp binfo
-	print-gbmp binfo/gbmp width height
+	;print-gbmp binfo/gbmp width height
 
 	;-- draw alpha surface
 	new-dc ctx/dc width height :minfo
+	;print-gbmp minfo/gbmp width height
 	draw-color-box
 		minfo/gfx
 		blur/width + spread/width
 		blur/height + spread/height
-		right - left - 1				;-- need to `- 1`, api bug?
-		bottom - top - 1
+		right - left
+		bottom - top
 		rad
-		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
+		shadow-color ;and 00FFFFFFh		;-- core rect region alpha = 255
 	unpdate-gbmp minfo
-	print-gbmp minfo/gbmp width height
+	;print-gbmp minfo/gbmp width height
 
 	mgbmp: create-blur-bitmap minfo shadow-color
-	GdipDrawImageRectI minfo/gfx mgbmp 0 0 width height
-	print-gbmp mgbmp width height
+
+	alpha-blend binfo/gbmp mgbmp width height
+	;print-gbmp binfo/gbmp width height
+	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 	GdipDisposeImage mgbmp
 
-	;ftn: 0
-	;bf: as tagBLENDFUNCTION :ftn
-	;bf/BlendOp: as-byte 0
-	;bf/BlendFlags: as-byte 0
-	;bf/SourceConstantAlpha: as-byte 255
-	;bf/AlphaFormat: as-byte 1
-	;AlphaBlend binfo/dc 0 0 width height minfo/dc 0 0 width height ftn
-
-	;unpdate-gbmp binfo
+	unpdate-gbmp binfo
 	;print-gbmp binfo/gbmp width height
 
-	BitBlt ctx/dc left + shadow-left top + shadow-top width height minfo/dc 0 0 SRCCOPY
+	BitBlt ctx/dc left + shadow-left top + shadow-top width height binfo/dc 0 0 SRCCOPY
 
 	free-dc binfo
 	free-dc minfo
@@ -1647,7 +1704,6 @@ OS-draw-box: func [
 	][0]
 	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	unless shadow-inset? [draw-outset-shadow ctx up-x up-y low-x low-y rad * 2]
-	comment {
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1688,7 +1744,6 @@ OS-draw-box: func [
 			Rectangle ctx/dc up-x up-y low-x low-y
 		]
 	]
-	}
 ]
 
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
