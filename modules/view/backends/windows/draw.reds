@@ -1452,8 +1452,8 @@ create-blur-bitmap: func [
 	end2: scan2 + size
 	p: alpha
 	while [scan2 < end2][
-		;scan2/value: rgb or ((as integer! p/1) << 24)
-		premul-pixel scan2 rgb as integer! p/1
+		scan2/value: rgb or ((as integer! p/1) << 24)
+		;premul-pixel scan2 rgb as integer! p/1
 		p: p + 1
 		scan1: scan1 + 1
 		scan2: scan2 + 1
@@ -1528,15 +1528,15 @@ draw-outset-shadow: func [
 	GdipDrawImageRectI gfx gbmp1 0 0 width height
 	GdipDisposeImage gbmp1
 
-	;BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
+	BitBlt ctx/dc left + shadow-left top + shadow-top width height dc 0 0 SRCCOPY
 
-	ftn: 0
-	bf: as tagBLENDFUNCTION :ftn
-	bf/BlendOp: as-byte 0
-	bf/BlendFlags: as-byte 0
-	bf/SourceConstantAlpha: as-byte 255
-	bf/AlphaFormat: as-byte 1
-	AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
+	;ftn: 0
+	;bf: as tagBLENDFUNCTION :ftn
+	;bf/BlendOp: as-byte 0
+	;bf/BlendFlags: as-byte 0
+	;bf/SourceConstantAlpha: as-byte 255
+	;bf/AlphaFormat: as-byte 1
+	;AlphaBlend ctx/dc left + shadow-left top + shadow-top width height dc 0 0 width height ftn
 
 	;bitmap-mix
 
