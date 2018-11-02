@@ -113,6 +113,9 @@ INT_SIZE: alias struct! [
 	rect-print: func [
 		rc					[RECT_STRUCT]
 	][
+		print "rc: "
+		prin-hex-chars as integer! rc 8
+		print lf
 		print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
 	]
 ]

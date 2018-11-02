@@ -1356,7 +1356,12 @@ draw-color-box: func [
 		brush	[integer!]
 ][
 	color: to-gdiplus-color _color
-	print-line ["x: " x " y: " y " width: " width " height: " height " _color: " _color " color: " color]
+	print-line ["x: " x " y: " y " width: " width " height: " height]
+	print " _color: "
+	prin-hex-chars _color 8
+	print " color: "
+	prin-hex-chars color 8
+	print lf
 	brush: 0
 	GdipCreateSolidFill color :brush
 	gdiplus-draw-box graphics x y width height radius 0 brush
@@ -1450,6 +1455,7 @@ create-blur-bitmap: func [
 		width	[integer!]
 		height	[integer!]
 		size	[integer!]
+		color	[integer!]
 		acolor	[integer!]
 		rgb		[integer!]
 		alpha	[byte-ptr!]
@@ -1467,8 +1473,9 @@ create-blur-bitmap: func [
 	height: info/height
 	size: width * height
 	alpha: allocate size
-	acolor: blur-color >>> 24
-	rgb: (to-gdiplus-color blur-color) and 00FFFFFFh
+	color: to-gdiplus-color blur-color
+	acolor: color >>> 24
+	rgb: color and 00FFFFFFh
 
 	gbmp2: 0
 	GdipCreateBitmapFromGraphics width height info/gfx :gbmp2		;-- this create a empty bitmap
