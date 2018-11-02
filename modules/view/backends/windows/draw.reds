@@ -1394,10 +1394,10 @@ new-dc: func [
 	SelectObject dc bmp
 	gfx: 0
 	GdipCreateFromHDC dc :gfx
-	;SetGraphicsMode dc GM_ADVANCED
-	;SetArcDirection dc AD_CLOCKWISE
-	;SetBkMode dc BK_TRANSPARENT
-	;SelectObject dc GetStockObject NULL_BRUSH
+	SetGraphicsMode dc GM_ADVANCED
+	SetArcDirection dc AD_CLOCKWISE
+	SetBkMode dc BK_TRANSPARENT
+	SelectObject dc GetStockObject NULL_BRUSH
 	gbmp: 0
 	GdipCreateBitmapFromHBITMAP bmp 0 :gbmp
 	info/dc: dc
