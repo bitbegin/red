@@ -1641,7 +1641,7 @@ draw-outset-shadow: func [
 		right - left
 		bottom - top
 		rad
-		shadow-color ;and 00FFFFFFh		;-- core rect region alpha = 255
+		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
 	unpdate-gbmp minfo
 	;print-gbmp minfo/gbmp width height
 
@@ -1655,7 +1655,9 @@ draw-outset-shadow: func [
 	unpdate-gbmp binfo
 	;print-gbmp binfo/gbmp width height
 
-	BitBlt ctx/dc left + shadow-left top + shadow-top width height binfo/dc 0 0 SRCCOPY
+	BitBlt ctx/dc left + shadow-left - shadow-blur - shadow-spread
+		top + shadow-top - shadow-blur - shadow-spread
+		width height binfo/dc 0 0 SRCCOPY
 
 	free-dc binfo
 	free-dc minfo
@@ -1695,6 +1697,8 @@ OS-draw-box: func [
 		val: val + 1
 		shadow-inset?: either val/value = 0 [no][yes]
 		lower:  lower - 1
+		if shadow-blur <= 0 [shadow-blur: 0]
+		if shadow-spread <= 0 [shadow-spread: 0]
 		print-line ["left: " shadow-left " right: " shadow-top " blur: " shadow-blur " spread: " shadow-spread " color: " shadow-color " inset?: " shadow-inset?]
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
