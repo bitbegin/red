@@ -10,9 +10,49 @@ RECT_STRUCT: alias struct! [
 
 #include %modules/view/backends/blur.reds
 
-width: 40
-height: 40
-shadow-blur: 10
+tagSYSTEMTIME: alias struct! [
+	year-month	[integer!]
+	week-day	[integer!]
+	hour-minute	[integer!]
+	second		[integer!]
+]
+
+#import [
+	"kernel32.dll" stdcall [
+		GetSystemTime: "GetSystemTime" [
+			time			[tagSYSTEMTIME]
+		]
+	]
+]
+
+get-time: func [
+	utc?	 [logic!]
+	precise? [logic!]
+	return:  [float!]
+	/local
+		tm	[tagSYSTEMTIME value]
+		h		[integer!]
+		m		[integer!]
+		sec		[integer!]
+		milli	[integer!]
+		t		[float!]
+		mi		[float!]
+][
+	GetSystemTime tm
+	h: tm/hour-minute and FFFFh
+	m: tm/hour-minute >>> 16
+	sec: tm/second and FFFFh
+	milli: either precise? [tm/second >>> 16][0]
+	mi: as float! milli
+	mi: mi / 1000.0
+	t: as-float h * 3600 + (m * 60) + sec
+	t: t + mi
+	t
+]
+
+width: 400
+height: 400
+shadow-blur: 40
 shadow-spread: 0
 
 rect: declare RECT_STRUCT
@@ -36,7 +76,11 @@ rect-offset rect shadow-blur shadow-blur
 AlphaBoxBlur/set-rect-memory src rect 200
 AWidth: AlphaBoxBlur/GetWidth
 AHeight: AlphaBoxBlur/GetHeight
-dump-rect src false AWidth AHeight dump-rect-radix
+;dump-rect src false AWidth AHeight dump-rect-radix
+
+tm1: get-time yes yes
 
 AlphaBoxBlur/blur src
-dump-rect src false AWidth AHeight dump-rect-radix
+;dump-rect src false AWidth AHeight dump-rect-radix
+	tm2: get-time yes yes
+print-line ["time: " tm2 - tm1]
