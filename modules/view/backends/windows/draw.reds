@@ -1350,16 +1350,12 @@ draw-color-box: func [
 	width		[integer!]
 	height		[integer!]
 	radius		[integer!]
-	_color		[integer!]
+	color		[integer!]
 	/local
-		color	[integer!]
 		brush	[integer!]
 ][
-	color: to-gdiplus-color _color
 	print-line "draw-color-box:"
 	print ["	x: " x " y: " y " width: " width " height: " height]
-	print " _color: "
-	prin-hex-chars _color 8
 	print " color: "
 	prin-hex-chars color 8
 	print lf
@@ -1551,25 +1547,29 @@ shadow-top: 5
 shadow-blur: 10
 shadow-spread: 0
 shadow-color: 0
-shadow-inset?: no
+shadow-mode: 0
 
-draw-outset-shadow: func [
+draw-outset-box-shadow: func [
 	ctx			[draw-ctx!]
-	left		[integer!]
-	top			[integer!]
-	right		[integer!]
-	bottom		[integer!]
+	upper		[red-pair!]
+	lower		[red-pair!]
 	rad			[integer!]
 	/local
+		left	[integer!]
+		top		[integer!]
+		right	[integer!]
+		bottom	[integer!]
 		rect	[RECT_STRUCT value]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
 		width	[integer!]
 		height	[integer!]
+		bcolor	[integer!]
 		binfo	[CTX-INFO! value]
 		minfo	[CTX-INFO! value]
-		bcolor	[integer!]
 ][
+	left: upper/x right: lower/x
+	top: upper/y bottom: lower/y
 	rect-init :rect 0 0 right - left bottom - top
 	blur/width: shadow-blur
 	blur/height: shadow-blur
@@ -1597,7 +1597,7 @@ draw-outset-shadow: func [
 		right - left
 		bottom - top
 		rad
-		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
+		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
 	;print-gbmp minfo/gbmp width height
 
@@ -1615,6 +1615,122 @@ draw-outset-shadow: func [
 	free-dc minfo
 ]
 
+draw-inset-box-shadow: func [
+	ctx			[draw-ctx!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+	rad			[integer!]
+	/local
+		left	[integer!]
+		top		[integer!]
+		right	[integer!]
+		bottom	[integer!]
+		rect	[RECT_STRUCT value]
+		blur	[INT_SIZE value]
+		spread	[INT_SIZE value]
+		width	[integer!]
+		height	[integer!]
+		bcolor	[integer!]
+		pcolor	[integer!]
+		binfo	[CTX-INFO! value]
+		minfo	[CTX-INFO! value]
+][
+	left: upper/x right: lower/x
+	top: upper/y bottom: lower/y
+	rect-init :rect 0 0 right - left bottom - top
+	blur/width: shadow-blur
+	blur/height: shadow-blur
+	spread/width: shadow-spread
+	spread/height: shadow-spread
+	AlphaBoxBlur/Init :rect :spread :blur null null
+	width: AlphaBoxBlur/GetWidth
+	height: AlphaBoxBlur/GetHeight
+	bcolor: to-gdiplus-color shadow-color
+	pcolor: to-premul-color shadow-color
+
+	;-- use shadow-color for background
+	new-dc ctx/dc width height :binfo
+	draw-color-box
+		binfo/gfx
+		0
+		0
+		width
+		height
+		rad
+		pcolor
+	unpdate-gbmp binfo
+	print-gbmp binfo/gbmp width height
+
+	;-- draw alpha surface
+	new-dc ctx/dc width height :minfo
+	draw-color-box
+		minfo/gfx
+		blur/width + spread/width
+		blur/height + spread/height
+		right - left
+		bottom - top
+		rad
+		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
+	unpdate-gbmp minfo
+	;print-gbmp minfo/gbmp width height
+]
+
+draw-box-on-surface: func [
+	dc			[handle!]
+	gfx			[integer!]
+	pen			[integer!]
+	brush		[integer!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+	rad			[integer!]
+	/local
+		t		[integer!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
+		width	[integer!]
+		height	[integer!]
+][
+	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	either positive? rad [
+		rad: rad * 2
+		width: low-x - up-x
+		height: low-y - up-y
+		t: either width > height [height][width]
+		rad: either rad > t [t][rad]
+		either dc = null [
+			gdiplus-draw-box
+				gfx
+				up-x
+				up-y
+				width
+				height
+				rad
+				pen
+				brush
+		][
+			RoundRect dc up-x up-y low-x low-y rad rad
+		]
+	][
+		either dc = null [
+			if up-x > low-x [t: up-x up-x: low-x low-x: t]
+			if up-y > low-y [t: up-y up-y: low-y low-y: t]
+			gdiplus-draw-box
+				gfx
+				up-x
+				up-y
+				low-x - up-x
+				low-y - up-y
+				rad
+				pen
+				brush
+		][
+			Rectangle dc up-x up-y low-x low-y
+		]
+	]
+]
+
 OS-draw-box: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
@@ -1623,18 +1739,14 @@ OS-draw-box: func [
 		t		[integer!]
 		radius	[red-integer!]
 		rad		[integer!]
-		up-x	[integer!]
-		up-y	[integer!]
-		low-x	[integer!]
-		low-y	[integer!]
-		width	[integer!]
-		height	[integer!]
 		val		[red-integer!]
+		brush	[integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
 		exit
 	]
+	shadow-mode: 0
 	if TYPE_OF(lower) = TYPE_BLOCK [
 		val: as red-integer! block/rs-head as red-block! lower
 		shadow-left: val/value
@@ -1647,60 +1759,35 @@ OS-draw-box: func [
 		val: val + 1
 		shadow-color: val/value
 		val: val + 1
-		shadow-inset?: either val/value = 0 [no][yes]
+		shadow-mode: either val/value = 0 [1][2]
 		lower:  lower - 1
 		if shadow-blur <= 0 [shadow-blur: 0]
 		if shadow-spread <= 0 [shadow-spread: 0]
 		print-line "shadow configs:"
 		print ["	left: " shadow-left " right: " shadow-top " blur: " shadow-blur " spread: " shadow-spread " color: "]
 		prin-hex-chars shadow-color 8
-		print-line [" inset?: " shadow-inset?]
+		print-line [" mode: " shadow-mode]
 	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
 		radius/value
 	][0]
-	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
-	unless shadow-inset? [draw-outset-shadow ctx up-x up-y low-x low-y rad * 2]
-	either positive? rad [
-		rad: rad * 2
-		width: low-x - up-x
-		height: low-y - up-y
-		t: either width > height [height][width]
-		rad: either rad > t [t][rad]
+
+	brush: either ctx/brush? [ctx/gp-brush][0]
+	if shadow-mode = 1 [
+		draw-outset-box-shadow ctx upper lower rad * 2
+	]
+	if shadow-mode = 2 [
+		draw-inset-box-shadow ctx upper lower rad * 2
+	]
+	if shadow-mode <> 2 [
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			gdiplus-draw-box
-				ctx/graphics
-				up-x
-				up-y
-				width
-				height
-				rad
-				ctx/gp-pen
-				either ctx/brush? [ctx/gp-brush][0]
+			draw-box-on-surface null ctx/graphics ctx/gp-pen brush upper lower rad
 		][
-			RoundRect ctx/dc up-x up-y low-x low-y rad rad
-		]
-	][
-		either ctx/other/GDI+? [
-			if up-x > low-x [t: up-x up-x: low-x low-x: t]
-			if up-y > low-y [t: up-y up-y: low-y low-y: t]
-			check-gradient-box ctx upper lower
-			check-texture-box ctx upper
-			gdiplus-draw-box
-				ctx/graphics
-				up-x
-				up-y
-				low-x - up-x
-				low-y - up-y
-				rad
-				ctx/gp-pen
-				either ctx/brush? [ctx/gp-brush][0]
-		][
-			Rectangle ctx/dc up-x up-y low-x low-y
+			draw-box-on-surface ctx/dc 0 ctx/gp-pen brush upper lower rad
 		]
 	]
 ]
