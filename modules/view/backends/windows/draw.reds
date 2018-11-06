@@ -1424,7 +1424,7 @@ unpdate-gbmp: func [
 	info/gbmp: gbmp
 ]
 
-get-alpha-mask: func [
+blur-alpha-mask: func [
 	gbmp		[integer!]
 	width		[integer!]
 	height		[integer!]
@@ -1517,17 +1517,33 @@ alpha-blend: func [
 	free mask
 ]
 
-blur-bitmap: func [
-	bg			[integer!]
-	fg			[integer!]
+alpha-blend2: func [
+	gbmp		[integer!]
+	mask		[byte-ptr!]
 	width		[integer!]
 	height		[integer!]
-	color		[integer!]
+	rgb			[int-ptr!]
 	/local
-		mask	[byte-ptr!]
+		size	[integer!]
+		bdata	[BitmapData!]
+		scan0	[int-ptr!]
+		end		[int-ptr!]
+		p		[byte-ptr!]
 ][
-	mask: get-alpha-mask fg width height color >>> 24
-	alpha-blend bg mask width height color and 00FFFFFFh
+	size: width * height
+	bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
+	scan0: as int-ptr! bdata/scan0
+	end: scan0 + size
+	p: mask
+	while [scan0 < end][
+		pixel-blend scan0 as integer! p/1 rgb/1
+		scan0: scan0 + 1
+		p: p + 1
+		rgb: rgb + 1
+	]
+	dump-rect bdata/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
+	free mask
 ]
 
 print-gbmp: func [
@@ -1567,6 +1583,7 @@ draw-outset-box-shadow: func [
 		bcolor	[integer!]
 		binfo	[CTX-INFO! value]
 		minfo	[CTX-INFO! value]
+		mask	[byte-ptr!]
 ][
 	left: upper/x right: lower/x
 	top: upper/y bottom: lower/y
@@ -1601,7 +1618,8 @@ draw-outset-box-shadow: func [
 	unpdate-gbmp minfo
 	;print-gbmp minfo/gbmp width height
 
-	blur-bitmap binfo/gbmp minfo/gbmp width height bcolor
+	mask: blur-alpha-mask minfo/gbmp width height bcolor >>> 24
+	alpha-blend binfo/gbmp mask width height bcolor and 00FFFFFFh
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 
 	unpdate-gbmp binfo
@@ -1634,6 +1652,12 @@ draw-inset-box-shadow: func [
 		pcolor	[integer!]
 		binfo	[CTX-INFO! value]
 		minfo	[CTX-INFO! value]
+		tinfo	[CTX-INFO! value]
+		mask	[byte-ptr!]
+		bmp		[integer!]
+		gbmp	[integer!]
+		bdata	[BitmapData!]
+		scan0	[int-ptr!]
 ][
 	left: upper/x right: lower/x
 	top: upper/y bottom: lower/y
@@ -1647,6 +1671,21 @@ draw-inset-box-shadow: func [
 	height: AlphaBoxBlur/GetHeight
 	bcolor: to-gdiplus-color shadow-color
 	pcolor: to-premul-color shadow-color
+
+	;-- box-draw
+	new-dc ctx/dc width height :tinfo
+	BitBlt
+		tinfo/dc
+		blur/width + spread/width
+		blur/height + spread/height
+		right - left
+		bottom - top
+		ctx/dc
+		left
+		right
+		SRCCOPY
+	unpdate-gbmp tinfo
+	print-gbmp tinfo/gbmp width height
 
 	;-- use shadow-color for background
 	new-dc ctx/dc width height :binfo
@@ -1670,9 +1709,42 @@ draw-inset-box-shadow: func [
 		right - left
 		bottom - top
 		rad
-		shadow-color and 00FFFFFFh		;-- core rect region alpha = 255
+		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
-	;print-gbmp minfo/gbmp width height
+	print-gbmp minfo/gbmp width height
+
+	mask: blur-alpha-mask minfo/gbmp width height bcolor >>> 24
+	dump-rect mask false width height dump-rect-radix
+
+	;bmp: GetCurrentObject ctx/dc OBJ_BITMAP
+	;gbmp: 0
+	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
+	;bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB no
+	;OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
+	;GdipDisposeImage gbmp
+
+
+	bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB yes
+	scan0: as int-ptr! bdata/scan0
+	alpha-blend2 binfo/gbmp mask width height scan0
+	OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
+
+	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
+
+	unpdate-gbmp binfo
+	print-gbmp binfo/gbmp width height
+
+	BitBlt
+		ctx/dc
+		left
+		top
+		right - left
+		bottom - top
+		binfo/dc 0 0 SRCCOPY
+
+	free-dc binfo
+	free-dc minfo
+	free-dc tinfo
 ]
 
 draw-box-on-surface: func [
@@ -1680,19 +1752,16 @@ draw-box-on-surface: func [
 	gfx			[integer!]
 	pen			[integer!]
 	brush		[integer!]
-	upper		[red-pair!]
-	lower		[red-pair!]
+	up-x		[integer!]
+	up-y		[integer!]
+	low-x		[integer!]
+	low-y		[integer!]
 	rad			[integer!]
 	/local
 		t		[integer!]
-		up-x	[integer!]
-		up-y	[integer!]
-		low-x	[integer!]
-		low-y	[integer!]
 		width	[integer!]
 		height	[integer!]
 ][
-	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1778,17 +1847,15 @@ OS-draw-box: func [
 	if shadow-mode = 1 [
 		draw-outset-box-shadow ctx upper lower rad * 2
 	]
+	either ctx/other/GDI+? [
+		check-gradient-box ctx upper lower
+		check-texture-box ctx upper
+		draw-box-on-surface null ctx/graphics ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
+	][
+		draw-box-on-surface ctx/dc 0 ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
+	]
 	if shadow-mode = 2 [
 		draw-inset-box-shadow ctx upper lower rad * 2
-	]
-	if shadow-mode <> 2 [
-		either ctx/other/GDI+? [
-			check-gradient-box ctx upper lower
-			check-texture-box ctx upper
-			draw-box-on-surface null ctx/graphics ctx/gp-pen brush upper lower rad
-		][
-			draw-box-on-surface ctx/dc 0 ctx/gp-pen brush upper lower rad
-		]
 	]
 ]
 
