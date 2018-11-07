@@ -2010,6 +2010,12 @@ XFORM!: alias struct! [
 			attr		[integer!]
 			return:		[integer!]
 		]
+		GdipGetImageDimension: "GdipGetImageDimension" [
+			image		[integer!]
+			width		[pointer! [float32!]]
+			height		[pointer! [float32!]]
+			return:		[integer!]
+		]
 		GdipSetImageAttributesColorKeys: "GdipSetImageAttributesColorKeys" [
 			attr		[integer!]
 			type		[integer!]
