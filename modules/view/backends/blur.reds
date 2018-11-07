@@ -879,8 +879,8 @@ AlphaBoxBlur: context [
 		rect-copy mRect aRect
 		width: aBlurRadius/width + aSpreadRadius/width
 		height: aBlurRadius/height + aSpreadRadius/height
-		mRect/right: mRect/right + (2 * width)
-		mRect/bottom: mRect/bottom + (2 * height)
+		;mRect/right: mRect/right + (2 * width)
+		;mRect/bottom: mRect/bottom + (2 * height)
 
 		either aDirtyRect <> null [
 			mHasDirtyRect: true

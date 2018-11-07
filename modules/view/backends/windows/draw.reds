@@ -1549,6 +1549,45 @@ alpha-blend2: func [
 	free mask
 ]
 
+alpha-blend3: func [
+	gbmp		[integer!]
+	mask		[byte-ptr!]
+	width		[integer!]
+	height		[integer!]
+	left		[integer!]
+	top			[integer!]
+	w			[integer!]
+	h			[integer!]
+	rgb			[int-ptr!]
+	/local
+		bdata	[BitmapData!]
+		scan0	[int-ptr!]
+		i		[integer!]
+		j		[integer!]
+		pm		[byte-ptr!]
+		pfg		[int-ptr!]
+		pbg		[int-ptr!]
+][
+	print-line ["width: " width " height: " height " left: " left " top: " top " w: " w " h: " h]
+	bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
+	scan0: as int-ptr! bdata/scan0
+	i: left
+	while [i < w][
+		j: top
+		while [j < h][
+			pm: mask + ((i - left) * width) + (j - top)
+			pfg: rgb + ((i - left) * width) + (j - top)
+			pbg: scan0 + (i * width) + j
+			pixel-blend pbg as integer! pm/1 pfg/1
+			j: j + 1
+		]
+		i: i + 1
+	]
+	;dump-rect bdata/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
+	free mask
+]
+
 print-gbmp: func [
 	gbmp		[integer!]
 	width		[integer!]
@@ -1590,11 +1629,11 @@ draw-outset-box-shadow: func [
 ][
 	left: upper/x right: lower/x
 	top: upper/y bottom: lower/y
-	rect-init :rect 0 0 right - left bottom - top
 	blur/width: shadow-blur
 	blur/height: shadow-blur
 	spread/width: shadow-spread
 	spread/height: shadow-spread
+	rect-init :rect 0 0 right - left + (2 * (blur/width + spread/width)) bottom - top + (2 * (blur/height + spread/height))
 	AlphaBoxBlur/Init :rect :spread :blur null null
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
@@ -1734,7 +1773,7 @@ draw-inset-box-shadow: func [
 
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB yes
 	scan0: as int-ptr! bdata/scan0
-	alpha-blend2 binfo/gbmp mask width height scan0
+	alpha-blend3 binfo/gbmp mask width height shadow-left shadow-top right - left bottom - top scan0
 	OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
 
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
