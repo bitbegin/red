@@ -1731,10 +1731,10 @@ draw-inset-box-shadow: func [
 	new-dc ctx/dc width height :tinfo
 	BitBlt
 		tinfo/dc
-		blur/width + spread/width
-		blur/height + spread/height
-		right - left
-		bottom - top
+		0
+		0
+		width
+		height
 		ctx/dc
 		left
 		top
@@ -1761,8 +1761,8 @@ draw-inset-box-shadow: func [
 		minfo/gfx
 		blur/width + spread/width
 		blur/height + spread/height
-		right - left
-		bottom - top
+		width - (2 * (blur/width + spread/width))
+		height - (2 * (blur/height + spread/height))
 		rad
 		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
@@ -1773,7 +1773,7 @@ draw-inset-box-shadow: func [
 
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB yes
 	scan0: as int-ptr! bdata/scan0
-	alpha-blend3 binfo/gbmp mask width height shadow-left shadow-top right - left bottom - top scan0
+	alpha-blend3 binfo/gbmp mask width height shadow-left shadow-top width height scan0
 	OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
 
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
@@ -1785,9 +1785,19 @@ draw-inset-box-shadow: func [
 		ctx/dc
 		left
 		top
-		right - left
-		bottom - top
+		width
+		height
 		binfo/dc 0 0 SRCCOPY
+
+	;rect-print client-rect
+	;print-line "begin print dc:"
+	;bmp: GetCurrentObject ctx/dc OBJ_BITMAP
+	;gbmp: 0
+	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
+	;bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB no
+	;dump-rect bdata/scan0 true client-rect/right - client-rect/left client-rect/bottom - client-rect/top dump-rect-radix
+	;OS-image/unlock-bitmap-fmt gbmp as-integer bdata
+	;GdipDisposeImage gbmp
 
 	free-dc binfo
 	free-dc minfo
