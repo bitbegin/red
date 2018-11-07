@@ -116,7 +116,7 @@ INT_SIZE: alias struct! [
 		print "rc: "
 		prin-hex-chars as integer! rc 8
 		print lf
-		print-line ["left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
+		print-line ["	left: " rc/left " top: " rc/top " right: " rc/right " bottom: " rc/bottom]
 	]
 ]
 

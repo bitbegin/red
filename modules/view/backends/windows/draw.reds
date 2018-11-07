@@ -279,6 +279,8 @@ update-modes: func [
 	]
 ]
 
+client-rect: declare RECT_STRUCT
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -361,6 +363,7 @@ draw-begin: func [
 			either null? img [
 				dc: either paint? [BeginPaint hWnd ctx/other/paint][hScreen]
 				GetClientRect hWnd rect
+				rect-copy client-rect rect
 				width: rect/right - rect/left
 				height: rect/bottom - rect/top
 				hBitmap: CreateCompatibleBitmap dc width height
@@ -1541,7 +1544,7 @@ alpha-blend2: func [
 		p: p + 1
 		rgb: rgb + 1
 	]
-	dump-rect bdata/scan0 true width height dump-rect-radix
+	;dump-rect bdata/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
 	free mask
 ]
@@ -1672,6 +1675,19 @@ draw-inset-box-shadow: func [
 	bcolor: to-gdiplus-color shadow-color
 	pcolor: to-premul-color shadow-color
 
+	;print-line ["width: " width " height: " height]
+	;rect-print client-rect
+	;print-line "begin print dc:"
+	;bmp: GetCurrentObject ctx/dc OBJ_BITMAP
+	;gbmp: 0
+	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
+	;bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB no
+	;dump-rect bdata/scan0 true client-rect/right - client-rect/left client-rect/bottom - client-rect/top dump-rect-radix
+	;OS-image/unlock-bitmap-fmt gbmp as-integer bdata
+	;GdipDisposeImage gbmp
+
+	;print-line ["l: " blur/width + spread/width " t: " blur/height + spread/height " w: " right - left " h: " bottom - top " r2: " right " t2: " top]
+
 	;-- box-draw
 	new-dc ctx/dc width height :tinfo
 	BitBlt
@@ -1682,10 +1698,10 @@ draw-inset-box-shadow: func [
 		bottom - top
 		ctx/dc
 		left
-		right
+		top
 		SRCCOPY
 	unpdate-gbmp tinfo
-	print-gbmp tinfo/gbmp width height
+	;print-gbmp tinfo/gbmp width height
 
 	;-- use shadow-color for background
 	new-dc ctx/dc width height :binfo
@@ -1698,7 +1714,7 @@ draw-inset-box-shadow: func [
 		rad
 		pcolor
 	unpdate-gbmp binfo
-	print-gbmp binfo/gbmp width height
+	;print-gbmp binfo/gbmp width height
 
 	;-- draw alpha surface
 	new-dc ctx/dc width height :minfo
@@ -1711,18 +1727,10 @@ draw-inset-box-shadow: func [
 		rad
 		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
-	print-gbmp minfo/gbmp width height
+	;print-gbmp minfo/gbmp width height
 
 	mask: blur-alpha-mask minfo/gbmp width height bcolor >>> 24
-	dump-rect mask false width height dump-rect-radix
-
-	;bmp: GetCurrentObject ctx/dc OBJ_BITMAP
-	;gbmp: 0
-	;GdipCreateBitmapFromHBITMAP as handle! bmp 0 :gbmp
-	;bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB no
-	;OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
-	;GdipDisposeImage gbmp
-
+	;dump-rect mask false width height dump-rect-radix
 
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB yes
 	scan0: as int-ptr! bdata/scan0
@@ -1732,7 +1740,7 @@ draw-inset-box-shadow: func [
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 
 	unpdate-gbmp binfo
-	print-gbmp binfo/gbmp width height
+	;print-gbmp binfo/gbmp width height
 
 	BitBlt
 		ctx/dc
@@ -1758,10 +1766,13 @@ draw-box-on-surface: func [
 	low-y		[integer!]
 	rad			[integer!]
 	/local
+		bkmode	[integer!]
 		t		[integer!]
 		width	[integer!]
 		height	[integer!]
 ][
+	bkmode: GetBkMode dc
+	SetBkMode dc BK_OPAQUE
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1798,6 +1809,7 @@ draw-box-on-surface: func [
 			Rectangle dc up-x up-y low-x low-y
 		]
 	]
+	SetBkMode dc bkmode
 ]
 
 OS-draw-box: func [

@@ -1719,6 +1719,10 @@ XFORM!: alias struct! [
 			iBkMode		[integer!]
 			return:		[integer!]
 		]
+		GetBkMode: "GetBkMode" [
+			hdc			[handle!]
+			return:		[integer!]
+		]
 		TextOut: "TextOutW" [
 			hdc			[handle!]
 			nXStart		[integer!]
