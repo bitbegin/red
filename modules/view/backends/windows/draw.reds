@@ -1426,7 +1426,6 @@ unpdate-gbmp: func [
 blur-alpha-mask: func [
 	gbmp		[integer!]
 	alpha		[integer!]
-	return:		[byte-ptr!]
 	/local
 		f1		[float32!]
 		f2		[float32!]
@@ -1457,10 +1456,19 @@ blur-alpha-mask: func [
 		p: p + 1
 		scan0: scan0 + 1
 	]
-	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
 	AlphaBoxBlur/blur mask
 	;dump-rect mask false width height dump-rect-radix
-	mask
+	scan0: as int-ptr! bdata/scan0
+	end: scan0 + size
+	p: mask
+	while [scan0 < end][
+		scan0/value: as integer! p/1				;-- save alpha to lower byte because of winapi not support
+		p: p + 1
+		scan0: scan0 + 1
+	]
+	;dump-rect bdata/scan0 true width height dump-rect-radix
+	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
+	free mask
 ]
 
 pixel-blend: func [
@@ -1497,7 +1505,7 @@ pixel-blend: func [
 
 alpha-blend: func [
 	gbmp		[integer!]
-	mask		[byte-ptr!]
+	mgbmp		[integer!]
 	rgb			[integer!]
 	/local
 		f1		[float32!]
@@ -1508,7 +1516,8 @@ alpha-blend: func [
 		bdata	[BitmapData!]
 		scan0	[int-ptr!]
 		end		[int-ptr!]
-		p		[byte-ptr!]
+		mbdata	[BitmapData!]
+		mscan0	[int-ptr!]
 ][
 	f1: as float32! 0.0
 	f2: as float32! 0.0
@@ -1517,27 +1526,26 @@ alpha-blend: func [
 	height: as integer! f2
 	size: width * height
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
+	mbdata: as BitmapData! OS-image/lock-bitmap-fmt mgbmp PixelFormat32bppARGB no
 	scan0: as int-ptr! bdata/scan0
 	end: scan0 + size
-	p: mask
+	mscan0: as int-ptr! mbdata/scan0
 	while [scan0 < end][
-		pixel-blend scan0 as integer! p/1 rgb
+		pixel-blend scan0 mscan0/1 rgb
 		scan0: scan0 + 1
-		p: p + 1
+		mscan0: mscan0 + 1
 	]
 	;dump-rect bdata/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
-	free mask
+	OS-image/unlock-bitmap-fmt mgbmp as-integer mbdata
 ]
 
-alpha-blend3: func [
+alpha-mix-blend: func [
 	gbmp		[integer!]
-	mask		[byte-ptr!]
+	mgbmp		[integer!]
+	cgbmp		[integer!]
 	left		[integer!]
 	top			[integer!]
-	w			[integer!]
-	h			[integer!]
-	rgb			[int-ptr!]
 	/local
 		f1		[float32!]
 		f2		[float32!]
@@ -1545,9 +1553,13 @@ alpha-blend3: func [
 		height	[integer!]
 		bdata	[BitmapData!]
 		scan0	[int-ptr!]
+		mbdata	[BitmapData!]
+		mscan0	[int-ptr!]
+		cbdata	[BitmapData!]
+		cscan0	[int-ptr!]
 		i		[integer!]
 		j		[integer!]
-		pm		[byte-ptr!]
+		pm		[int-ptr!]
 		pfg		[int-ptr!]
 		pbg		[int-ptr!]
 ][
@@ -1556,24 +1568,28 @@ alpha-blend3: func [
 	GdipGetImageDimension gbmp :f1 :f2
 	width: as integer! f1
 	height: as integer! f2
-	print-line ["width: " width " height: " height " left: " left " top: " top " w: " w " h: " h]
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
+	mbdata: as BitmapData! OS-image/lock-bitmap-fmt mgbmp PixelFormat32bppARGB no
+	cbdata: as BitmapData! OS-image/lock-bitmap-fmt cgbmp PixelFormat32bppARGB no
 	scan0: as int-ptr! bdata/scan0
+	mscan0: as int-ptr! mbdata/scan0
+	cscan0: as int-ptr! cbdata/scan0
 	i: left
-	while [i < w][
+	while [i < width][
 		j: top
-		while [j < h][
-			pm: mask + ((i - left) * width) + (j - top)
-			pfg: rgb + ((i - left) * width) + (j - top)
+		while [j < height][
+			pm: mscan0 + ((i - left) * width) + (j - top)
+			pfg: cscan0 + ((i - left) * width) + (j - top)
 			pbg: scan0 + (i * width) + j
-			pixel-blend pbg as integer! pm/1 pfg/1
+			pixel-blend pbg pm/1 pfg/1
 			j: j + 1
 		]
 		i: i + 1
 	]
 	;dump-rect bdata/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
-	free mask
+	OS-image/unlock-bitmap-fmt mgbmp as-integer mbdata
+	OS-image/unlock-bitmap-fmt cgbmp as-integer cbdata
 ]
 
 print-gbmp: func [
@@ -1626,23 +1642,29 @@ draw-outset-box-shadow: func [
 		top		[integer!]
 		right	[integer!]
 		bottom	[integer!]
+		oriW	[integer!]
+		oriH	[integer!]
 		rect	[RECT_STRUCT value]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
+		extW	[integer!]
+		extH	[integer!]
 		width	[integer!]
 		height	[integer!]
 		bcolor	[integer!]
 		binfo	[CTX-INFO! value]
 		minfo	[CTX-INFO! value]
-		mask	[byte-ptr!]
 ][
 	left: upper/x right: lower/x
 	top: upper/y bottom: lower/y
+	oriW: right - left oriH: bottom - top
 	blur/width: shadow-blur
 	blur/height: shadow-blur
 	spread/width: shadow-spread
 	spread/height: shadow-spread
-	rect-init :rect 0 0 right - left + (2 * (blur/width + spread/width)) bottom - top + (2 * (blur/height + spread/height))
+	extW: blur/width + spread/width
+	extH: blur/height + spread/height
+	rect-init :rect 0 0 oriW + (2 * extW) oriH + (2 * extH)
 	AlphaBoxBlur/Init :rect :spread :blur null null
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
@@ -1660,24 +1682,25 @@ draw-outset-box-shadow: func [
 	new-dc ctx/dc width height :minfo
 	draw-color-box
 		minfo/gfx
-		blur/width + spread/width
-		blur/height + spread/height
-		right - left
-		bottom - top
+		extW
+		extH
+		oriW
+		oriH
 		rad
 		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
 	;print-gbmp minfo/gbmp
 
-	mask: blur-alpha-mask minfo/gbmp bcolor >>> 24
-	alpha-blend binfo/gbmp mask bcolor and 00FFFFFFh
+	blur-alpha-mask minfo/gbmp bcolor >>> 24
+	;print-gbmp minfo/gbmp
+	alpha-blend binfo/gbmp minfo/gbmp bcolor and 00FFFFFFh
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 
 	unpdate-gbmp binfo
 	;print-gbmp binfo/gbmp
 
-	BitBlt ctx/dc left + shadow-left - shadow-blur - shadow-spread
-		top + shadow-top - shadow-blur - shadow-spread
+	BitBlt ctx/dc left + shadow-left - extW
+		top + shadow-top - extH
 		width height binfo/dc 0 0 SRCCOPY
 
 	free-dc binfo
@@ -1694,9 +1717,13 @@ draw-inset-box-shadow: func [
 		top		[integer!]
 		right	[integer!]
 		bottom	[integer!]
+		oriW	[integer!]
+		oriH	[integer!]
 		rect	[RECT_STRUCT value]
 		blur	[INT_SIZE value]
 		spread	[INT_SIZE value]
+		extW	[integer!]
+		extH	[integer!]
 		width	[integer!]
 		height	[integer!]
 		bcolor	[integer!]
@@ -1704,17 +1731,17 @@ draw-inset-box-shadow: func [
 		binfo	[CTX-INFO! value]
 		minfo	[CTX-INFO! value]
 		tinfo	[CTX-INFO! value]
-		mask	[byte-ptr!]
-		bdata	[BitmapData!]
-		scan0	[int-ptr!]
 ][
 	left: upper/x right: lower/x
 	top: upper/y bottom: lower/y
-	rect-init :rect 0 0 right - left bottom - top
+	oriW: right - left oriH: bottom - top
 	blur/width: shadow-blur
 	blur/height: shadow-blur
 	spread/width: shadow-spread
 	spread/height: shadow-spread
+	extW: blur/width + spread/width
+	extH: blur/height + spread/height
+	rect-init :rect 0 0 oriW + (2 * extW) oriH + (2 * extH)
 	AlphaBoxBlur/Init :rect :spread :blur null null
 	width: AlphaBoxBlur/GetWidth
 	height: AlphaBoxBlur/GetHeight
@@ -1723,7 +1750,7 @@ draw-inset-box-shadow: func [
 
 	print-dc ctx/dc
 
-	;-- box-draw
+	;-- draw origin box
 	new-dc ctx/dc width height :tinfo
 	BitBlt
 		tinfo/dc
@@ -1755,22 +1782,19 @@ draw-inset-box-shadow: func [
 	new-dc ctx/dc width height :minfo
 	draw-color-box
 		minfo/gfx
-		blur/width + spread/width
-		blur/height + spread/height
-		width - (2 * (blur/width + spread/width))
-		height - (2 * (blur/height + spread/height))
+		extW
+		extH
+		oriW
+		oriH
 		rad
 		bcolor or FF000000h			;-- core rect region alpha = 255
 	unpdate-gbmp minfo
 	;print-gbmp minfo/gbmp
 
-	mask: blur-alpha-mask minfo/gbmp bcolor >>> 24
-	;dump-rect mask false width height dump-rect-radix
+	blur-alpha-mask minfo/gbmp bcolor >>> 24
+	print-gbmp minfo/gbmp
 
-	bdata: as BitmapData! OS-image/lock-bitmap-fmt tinfo/gbmp PixelFormat32bppARGB yes
-	scan0: as int-ptr! bdata/scan0
-	alpha-blend3 binfo/gbmp mask shadow-left shadow-top width height scan0
-	OS-image/unlock-bitmap-fmt tinfo/gbmp as-integer bdata
+	alpha-mix-blend binfo/gbmp minfo/gbmp tinfo/gbmp shadow-left shadow-top
 
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 
@@ -1781,9 +1805,9 @@ draw-inset-box-shadow: func [
 		ctx/dc
 		left
 		top
-		width
-		height
-		binfo/dc 0 0 SRCCOPY
+		oriW
+		oriH
+		binfo/dc extW extH SRCCOPY
 
 	print-dc ctx/dc
 
