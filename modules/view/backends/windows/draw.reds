@@ -1313,6 +1313,7 @@ gdiplus-draw-box: func [
 	pen			[integer!]
 	brush		[integer!]
 ][
+	print-line ["gdiplus-draw-box	x: " x " y: " y " width: " width " height: " height]
 	if radius > 0 [
 		gdiplus-draw-roundbox
 			graphics
@@ -1357,9 +1358,7 @@ draw-color-box: func [
 	/local
 		brush	[integer!]
 ][
-	print-line "draw-color-box:"
-	print ["	x: " x " y: " y " width: " width " height: " height]
-	print " color: "
+	print "draw-color-box	color: "
 	prin-hex-chars color 8
 	print lf
 	brush: 0
@@ -1531,7 +1530,7 @@ alpha-blend: func [
 	end: scan0 + size
 	mscan0: as int-ptr! mbdata/scan0
 	while [scan0 < end][
-		pixel-blend scan0 mscan0/1 rgb
+		pixel-blend scan0 mscan0/1 and FFh rgb
 		scan0: scan0 + 1
 		mscan0: mscan0 + 1
 	]
@@ -1581,7 +1580,7 @@ alpha-mix-blend: func [
 			pm: mscan0 + ((i - left) * width) + (j - top)
 			pfg: cscan0 + ((i - left) * width) + (j - top)
 			pbg: scan0 + (i * width) + j
-			pixel-blend pbg pm/1 pfg/1
+			pixel-blend pbg pm/1 and FFh pfg/1
 			j: j + 1
 		]
 		i: i + 1
@@ -1807,7 +1806,7 @@ draw-inset-box-shadow: func [
 		top
 		oriW
 		oriH
-		binfo/dc extW extH SRCCOPY
+		binfo/dc 0 0 SRCCOPY
 
 	print-dc ctx/dc
 
