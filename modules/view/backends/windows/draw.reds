@@ -1543,47 +1543,38 @@ alpha-mix-blend: func [
 	gbmp		[integer!]
 	mgbmp		[integer!]
 	cgbmp		[integer!]
-	left		[integer!]
-	top			[integer!]
 	/local
 		f1		[float32!]
 		f2		[float32!]
 		width	[integer!]
 		height	[integer!]
+		size	[integer!]
 		bdata	[BitmapData!]
 		scan0	[int-ptr!]
+		end		[int-ptr!]
 		mbdata	[BitmapData!]
 		mscan0	[int-ptr!]
 		cbdata	[BitmapData!]
 		cscan0	[int-ptr!]
-		i		[integer!]
-		j		[integer!]
-		pm		[int-ptr!]
-		pfg		[int-ptr!]
-		pbg		[int-ptr!]
 ][
 	f1: as float32! 0.0
 	f2: as float32! 0.0
 	GdipGetImageDimension gbmp :f1 :f2
 	width: as integer! f1
 	height: as integer! f2
+	size: width * height
 	bdata: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB yes
 	mbdata: as BitmapData! OS-image/lock-bitmap-fmt mgbmp PixelFormat32bppARGB no
 	cbdata: as BitmapData! OS-image/lock-bitmap-fmt cgbmp PixelFormat32bppARGB no
 	scan0: as int-ptr! bdata/scan0
+	end: scan0 + size
 	mscan0: as int-ptr! mbdata/scan0
 	cscan0: as int-ptr! cbdata/scan0
-	i: left
-	while [i < width][
-		j: top
-		while [j < height][
-			pm: mscan0 + ((i - left) * width) + (j - top)
-			pfg: cscan0 + ((i - left) * width) + (j - top)
-			pbg: scan0 + (i * width) + j
-			pixel-blend pbg pm/1 and FFh pfg/1
-			j: j + 1
-		]
-		i: i + 1
+	while [scan0 < end][
+		pixel-blend scan0 mscan0/1 and FFh cscan0/1
+		scan0: scan0 + 1
+		mscan0: mscan0 + 1
+		cscan0: cscan0 + 1
 	]
 	;dump-rect bdata/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bdata
@@ -1600,12 +1591,12 @@ print-gbmp: func [
 		height	[integer!]
 		bd		[BitmapData!]
 ][
-	print-line ["gbmp: " gbmp]
 	f1: as float32! 0.0
 	f2: as float32! 0.0
 	GdipGetImageDimension gbmp :f1 :f2
 	width: as integer! f1
 	height: as integer! f2
+	print-line ["gbmp: " gbmp " width: " width " height: " height]
 	bd: as BitmapData! OS-image/lock-bitmap-fmt gbmp PixelFormat32bppARGB no
 	dump-rect bd/scan0 true width height dump-rect-radix
 	OS-image/unlock-bitmap-fmt gbmp as-integer bd
@@ -1747,7 +1738,7 @@ draw-inset-box-shadow: func [
 	bcolor: to-gdiplus-color shadow-color
 	pcolor: to-premul-color shadow-color
 
-	print-dc ctx/dc
+	;print-dc ctx/dc
 
 	;-- draw origin box
 	new-dc ctx/dc width height :tinfo
@@ -1793,12 +1784,10 @@ draw-inset-box-shadow: func [
 	blur-alpha-mask minfo/gbmp bcolor >>> 24
 	print-gbmp minfo/gbmp
 
-	alpha-mix-blend binfo/gbmp minfo/gbmp tinfo/gbmp shadow-left shadow-top
-
+	alpha-mix-blend binfo/gbmp minfo/gbmp tinfo/gbmp
+	print-gbmp binfo/gbmp
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
-
 	unpdate-gbmp binfo
-	;print-gbmp binfo/gbmp
 
 	BitBlt
 		ctx/dc
@@ -1806,7 +1795,7 @@ draw-inset-box-shadow: func [
 		top
 		oriW
 		oriH
-		binfo/dc 0 0 SRCCOPY
+		binfo/dc shadow-left + extW shadow-top + extH SRCCOPY
 
 	print-dc ctx/dc
 
