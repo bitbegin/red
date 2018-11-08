@@ -1742,16 +1742,12 @@ draw-inset-box-shadow: func [
 
 	;-- draw origin box
 	new-dc ctx/dc width height :tinfo
-	BitBlt
-		tinfo/dc
-		0
-		0
-		width
-		height
-		ctx/dc
-		left
-		top
-		SRCCOPY
+	draw-box-on-surface
+		null
+		tinfo/gfx
+		ctx/gp-pen
+		either ctx/brush? [ctx/gp-brush][0]
+		0 0 width height rad
 	unpdate-gbmp tinfo
 	;print-gbmp tinfo/gbmp
 
@@ -1782,12 +1778,33 @@ draw-inset-box-shadow: func [
 	;print-gbmp minfo/gbmp
 
 	blur-alpha-mask minfo/gbmp bcolor >>> 24
-	print-gbmp minfo/gbmp
+	;print-gbmp minfo/gbmp
 
 	alpha-mix-blend binfo/gbmp minfo/gbmp tinfo/gbmp
-	print-gbmp binfo/gbmp
+	;print-gbmp binfo/gbmp
 	GdipDrawImageRectI binfo/gfx binfo/gbmp 0 0 width height
 	unpdate-gbmp binfo
+
+	free-dc tinfo
+	;-- draw origin box
+	new-dc ctx/dc oriW oriH :tinfo
+	draw-color-box
+		tinfo/gfx
+		0
+		0
+		oriW
+		oriH
+		rad
+		pcolor
+	unpdate-gbmp tinfo
+
+	BitBlt
+		tinfo/dc
+		shadow-left - extW
+		shadow-top - extH
+		oriW + extW - shadow-left
+		oriH + extH - shadow-top
+		binfo/dc 0 0 SRCCOPY
 
 	BitBlt
 		ctx/dc
@@ -1795,9 +1812,9 @@ draw-inset-box-shadow: func [
 		top
 		oriW
 		oriH
-		binfo/dc shadow-left + extW shadow-top + extH SRCCOPY
+		tinfo/dc 0 0 SRCCOPY
 
-	print-dc ctx/dc
+	;print-dc ctx/dc
 
 	free-dc binfo
 	free-dc minfo
@@ -1907,13 +1924,13 @@ OS-draw-box: func [
 	brush: either ctx/brush? [ctx/gp-brush][0]
 	if shadow-mode = 1 [
 		draw-outset-box-shadow ctx upper lower rad * 2
-	]
-	either ctx/other/GDI+? [
-		check-gradient-box ctx upper lower
-		check-texture-box ctx upper
-		draw-box-on-surface null ctx/graphics ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
-	][
-		draw-box-on-surface ctx/dc 0 ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
+		either ctx/other/GDI+? [
+			check-gradient-box ctx upper lower
+			check-texture-box ctx upper
+			draw-box-on-surface null ctx/graphics ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
+		][
+			draw-box-on-surface ctx/dc 0 ctx/gp-pen brush upper/x upper/y lower/x lower/y rad
+		]
 	]
 	if shadow-mode = 2 [
 		draw-inset-box-shadow ctx upper lower rad * 2
