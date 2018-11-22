@@ -224,7 +224,7 @@ red-bigint: context [
 				head: (as byte-ptr! sbin/offset) + bin/head
 				tail: as byte-ptr! sbin/tail
 				size: as-integer tail - head
-				bint: bigint/load-str as c-string! head size 16
+				bint: bigint/load-bin head size
 			]
 			TYPE_HEX [
 				big: as red-bigint! spec
