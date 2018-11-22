@@ -44,7 +44,7 @@ red-bigint: context [
 		unless ret [fire [TO_ERROR(math overflow)]]
 		buf: as byte-ptr! ibuf
 		pos: 1
-		if ilen > 32 [n: ilen / 32 + ilen + 4]
+		if ilen > 64 [n: ilen / 64 + ilen + 4]
 
 		s: GET_BUFFER(buffer)
 		s: expand-series s s/size + n				;-- allocate enough memory
@@ -65,7 +65,7 @@ red-bigint: context [
 		loop ilen [
 			string/append-char GET_BUFFER(buffer) as-integer buf/pos
 			bytes: bytes + 1
-			if bytes % 32 = 0 [
+			if bytes % 64 = 0 [
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
@@ -73,7 +73,7 @@ red-bigint: context [
 			if all [OPTION?(arg) part <= 0][free buf return part]
 			pos: pos + 1
 		]
-		if all [ilen > 30 bytes % 32 <> 0] [
+		if all [ilen > 62 bytes % 64 <> 0] [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
