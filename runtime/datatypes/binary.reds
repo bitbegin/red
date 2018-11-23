@@ -73,7 +73,7 @@ binary: context [
 	][
 		_series/get-length as red-series! bin no
 	]
-	
+
 	rs-skip: func [
 		bin 	[red-binary!]
 		len		[integer!]
@@ -81,14 +81,14 @@ binary: context [
 	][
 		_series/rs-skip as red-series! bin len
 	]
-	
+
 	rs-next: func [
 		bin 	[red-binary!]
 		return: [logic!]
 	][
 		_series/rs-skip as red-series! bin 1
 	]
-	
+
 	rs-head: func [
 		bin	    [red-binary!]
 		return: [byte-ptr!]
@@ -98,7 +98,7 @@ binary: context [
 		s: GET_BUFFER(bin)
 		(as byte-ptr! s/offset) + bin/head
 	]
-	
+
 	rs-tail: func [
 		bin	    [red-binary!]
 		return: [byte-ptr!]
@@ -118,7 +118,7 @@ binary: context [
 		s: GET_BUFFER(bin)
 		(as byte-ptr! s/offset) + bin/head >= as byte-ptr! s/tail
 	]
-	
+
 	rs-abs-at: func [
 		bin	    [red-binary!]
 		pos  	[integer!]
@@ -239,10 +239,10 @@ binary: context [
 		str/head: 0								;-- /head = -1 (casted from symbol!)
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		
+
 		bin/head: 0
 		bin/header: TYPE_UNSET
-		bin/node: decode-16 
+		bin/node: decode-16
 			(as byte-ptr! s/offset) + (str/head << (log-b unit))
 			string/rs-length? str
 			unit
@@ -321,7 +321,7 @@ binary: context [
 		]
 		SIGN_COMPARE_RESULT(len1 len2)
 	]
-	
+
 	match-bitset?: func [
 		bin		[red-binary!]
 		bits	[red-bitset!]
@@ -346,7 +346,7 @@ binary: context [
 			match?
 		]
 	]
-	
+
 	match?: func [
 		bin		[red-binary!]
 		value	[red-value!]							;-- char! value
@@ -618,7 +618,7 @@ binary: context [
 					bin/value: as byte! accum
 					bin: bin + 1
 					count: 0
-					accum: 0	
+					accum: 0
 				]
 			]
 			p: p + unit
@@ -886,7 +886,7 @@ binary: context [
 		slot	[red-value!]
 		size 	[integer!]								;-- number of bytes to pre-allocate
 		return:	[red-binary!]
-		/local 
+		/local
 			bin	[red-binary!]
 	][
 		bin: as red-binary! slot
@@ -903,7 +903,7 @@ binary: context [
 		return: [red-binary!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bin/make-in"]]
-		
+
 		make-at ALLOC_TAIL(parent) size
 	]
 
@@ -919,13 +919,13 @@ binary: context [
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		bin: make-at slot size
-		
+
 		s: GET_BUFFER(bin)
 		copy-memory as byte-ptr! s/offset src size
 		s/tail: as cell! (as byte-ptr! s/tail) + size
 		bin
 	]
-	
+
 	load: func [
 		src		 [byte-ptr!]
 		size	 [integer!]
@@ -988,6 +988,7 @@ binary: context [
 			bin [byte-ptr!]
 			bs	[red-bitset!]
 			s	[series!]
+			big [red-bigint!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
 
@@ -1038,6 +1039,13 @@ binary: context [
 			TYPE_BINARY [
 				_series/copy as red-series! spec as red-series! proto null no null
 			]
+			TYPE_HEX
+			TYPE_BIGINT [
+				big: as red-bigint! spec
+				s: GET_BUFFER(big)
+				len: 4 * big/size
+				proto: load as byte-ptr! s/offset len
+			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY spec]
 			]
@@ -1053,10 +1061,10 @@ binary: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
-		
+
 		serialize bin buffer no no no arg part no
 	]
-	
+
 	mold: func [
 		bin		[red-binary!]
 		buffer	[red-string!]
@@ -1069,7 +1077,7 @@ binary: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/mold"]]
-		
+
 		serialize bin buffer only? all? flat? arg part yes
 	]
 
@@ -1266,7 +1274,7 @@ binary: context [
 					bytes: unicode/cp-to-utf8 char/value src
 				]
 				TYPE_INTEGER [
-					int: as red-integer! cell		
+					int: as red-integer! cell
 						either int/value <= FFh [
 							int-value: int/value
 							src: as byte-ptr! :int-value
@@ -1282,7 +1290,7 @@ binary: context [
 				default [
 					either any [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
-						type = TYPE_FILE 
+						type = TYPE_FILE
 						type = TYPE_URL
 						type = TYPE_EMAIL
 						type = TYPE_TAG
