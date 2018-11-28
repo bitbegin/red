@@ -83,7 +83,7 @@ probe: func [
 	"Returns a value after printing its molded form"
 	value [any-type!]
 ][
-	print mold :value 
+	print mold :value
 	:value
 ]
 
@@ -108,14 +108,14 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
 		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
 		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
-		unset! url! word! image! date!
+		unset! url! word! image! date! hex! bigint!
 	]
 	test-list: union to-list [
 		handle! error! action! native! datatype! function! image! object! op! routine! vector!
 	]
-	
+
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
-	
+
 	foreach [name desc][
 		spec   "Returns the spec of a value that supports reflection"
 		body   "Returns the body of a value that supports reflection"
@@ -129,9 +129,9 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 			] off
 		]
 	]
-	
+
 	;-- Generates all type testing functions (action?, bitset?, binary?,...)
-	
+
 	foreach name test-list [
 		repend list [
 			load head change back tail form name "?:" 'func
@@ -139,9 +139,9 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 			compose [(name) = type? :value]
 		]
 	]
-	
+
 	;-- Generates all typesets testing functions (any-list?, any-block?,...)
-	
+
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
@@ -153,7 +153,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 			compose [find (name) type? :value]
 		]
 	]
-	
+
 	;-- Generates all conversion wrapper functions (to-bitset, to-binary, to-block,...)
 
 	foreach name to-list [
@@ -271,7 +271,7 @@ math: function [
 ][
 	parse body: copy/deep body rule: [
 		any [
-			pos: ['* (op: 'multiply) | quote / (op: 'divide)] 
+			pos: ['* (op: 'multiply) | quote / (op: 'divide)]
 			[ahead sub: paren! (sub/1: math as block! sub/1) | skip] (
 				end: skip pos: back pos 3
 				pos: change/only/part pos as paren! copy/part pos end end
@@ -390,7 +390,7 @@ load: function [
 		]
 	]
 	unless out [out: make block! 10]
-	
+
 	switch/default type?/word source [
 		file!	[
 			suffix: suffix? source
@@ -667,14 +667,14 @@ extract: function [
 	series	[series!]
 	width	[integer!]	 "Size of each entry (the skip)"
 	/index				 "Extract from an offset position"
-		pos [integer!]	 "The position" 
+		pos [integer!]	 "The position"
 	/into				 "Provide an output series instead of creating a new one"
 		output [series!] "Output series"
 ][
 	width: max 1 width
 	if pos [series: at series pos]
 	unless into [output: make series (length? series) / width]
-	
+
 	while [not tail? series][
 		append/only output series/1
 		series: skip series width
@@ -698,7 +698,7 @@ extract-boot-args: function [
 	]
 	;-- clean-up system/script/args
 	remove/part args: head args pos
-	
+
 	;-- set system/options/args
 	either empty? trim/head args [system/script/args: none][
 		unescape: quote (
@@ -732,7 +732,7 @@ collect: function [
 		collected [series!] "The buffer series (modified)"
 ][
 	keep: func [v /only][either only [append/only collected v][append collected v] v]
-	
+
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
 		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | binary! | into rule | skip]
@@ -775,7 +775,7 @@ clean-path: func [
 	/local out cnt f not-file?
 ][
 	not-file?: not file? file
-	
+
 	file: case [
 		any [only not-file?][
 			copy file
@@ -797,10 +797,10 @@ clean-path: func [
 		'else [append what-dir file]
 	]
 	if all [dir not dir? file][append file #"/"]
-	
+
 	out: make file! length? file
 	cnt: 0
-	
+
 	parse reverse file [
 		some [
 			"../" (cnt: cnt + 1)
@@ -864,7 +864,7 @@ path-thru: function [
 	hash: checksum form url 'MD5
 	file: head (remove back tail remove remove (form hash))
 	path: dirize append copy so/thru-cache copy/part file 2
-	unless exists? path [make-dir path] 
+	unless exists? path [make-dir path]
 	append path file
 ]
 
