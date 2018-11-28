@@ -195,7 +195,7 @@ red-bigint: context [
 			s		[series!]
 			p		[byte-ptr!]
 	][
-		len: either bint/used >= 0 [bint/used][ 0 - bint/used]
+		len: 4 * either bint/used >= 0 [bint/used][ 0 - bint/used]
 		len: len + size? bigint!
 		node: alloc-series len 1 0
 		s: as series! node/value
