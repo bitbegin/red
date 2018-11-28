@@ -988,7 +988,10 @@ binary: context [
 			bin [byte-ptr!]
 			bs	[red-bitset!]
 			s	[series!]
-			big [red-bigint!]
+			big	[red-bigint!]
+			bi	[bigint!]
+			d	[byte-ptr!]
+			p2	[byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
 
@@ -1043,7 +1046,19 @@ binary: context [
 			TYPE_BIGINT [
 				big: as red-bigint! spec
 				s: GET_BUFFER(big)
-				proto: load as byte-ptr! s/offset s/size
+				bi: as bigint! s/offset
+				len: 4 * either bi/used >= 0 [bi/used][0 - bi/used]
+				p: as byte-ptr! (bi + 1)
+				p: p + len - 1
+				d: allocate len
+				p2: d
+				loop len [
+					p2/1: p/1
+					p: p - 1
+					p2: p2 + 1
+				]
+				proto: load d len
+				free d
 			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY spec]
