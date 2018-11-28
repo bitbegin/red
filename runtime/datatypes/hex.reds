@@ -36,7 +36,7 @@ hex: context [
 		assert len > 0
 		bint: bigint/load-str as c-string! p len 16
 		big: make-at slot
-		big/node: bint
+		big/node: red-bigint/to-node bint
 	]
 
 	;--- Actions ---

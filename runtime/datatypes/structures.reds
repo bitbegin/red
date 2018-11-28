@@ -334,6 +334,6 @@ red-handle!: alias struct! [
 red-bigint!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]
-	node	[bigint!]								;-- node
+	node	[node!]								;-- node
 	_pad	[integer!]
 ]

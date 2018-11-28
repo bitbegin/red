@@ -22,11 +22,11 @@ red-bigint: context [
 		mold?		[logic!]
 		return: 	[integer!]
 		/local
+			s		[series!]
 			ibuf	[integer!]
 			ilen	[integer!]
 			ret		[logic!]
 			n		[integer!]
-			s		[series!]
 			i		[integer!]
 			bytes	[integer!]
 			pos		[integer!]
@@ -34,12 +34,13 @@ red-bigint: context [
 	][
 		;;@@ TBD Optimization, the string is ASCII only
 
+		s: GET_BUFFER(big)
 		ibuf: 0
 		ilen: 0
 		either mold? [
-			ret: bigint/form big/node 16 :ibuf :ilen
+			ret: bigint/form as bigint! s/offset 16 :ibuf :ilen
 		][
-			ret: bigint/form big/node 10 :ibuf :ilen
+			ret: bigint/form as bigint! s/offset 10 :ibuf :ilen
 		]
 		unless ret [fire [TO_ERROR(math overflow)]]
 		buf: as byte-ptr! ibuf
@@ -87,12 +88,15 @@ red-bigint: context [
 		/local
 			left	[red-bigint!]
 			right	[red-bigint!]
+			s1		[series!]
+			s2		[series!]
 			big		[red-bigint!]
 			bint	[bigint!]
 			int		[red-integer!]
 			ret		[integer!]
 	][
 		left: as red-bigint! stack/arguments
+		s1: GET_BUFFER(left)
 		right: left + 1
 
 		assert any [
@@ -107,62 +111,63 @@ red-bigint: context [
 				int: as red-integer! right
 				switch type [
 					OP_ADD [
-						bint: bigint/add-int left/node int/value false
+						bint: bigint/add-int as bigint! s1/offset int/value false
 					]
 					OP_SUB [
-						bint: bigint/sub-int left/node int/value false
+						bint: bigint/sub-int as bigint! s1/offset int/value false
 					]
 					OP_MUL [
-						bint: bigint/mul-int left/node int/value false
+						bint: bigint/mul-int as bigint! s1/offset int/value false
 					]
 					OP_DIV [
-						bint: bigint/div-int left/node int/value false
+						bint: bigint/div-int as bigint! s1/offset int/value false
 					]
 					OP_REM [
-						bint: bigint/remainder-int left/node int/value false
+						bint: bigint/remainder-int as bigint! s1/offset int/value false
 					]
 					OP_AND [
-						bint: bigint/and-uint* left/node int/value false
+						bint: bigint/and-uint* as bigint! s1/offset int/value false
 					]
 					OP_OR  [
-						bint: bigint/or-uint* left/node int/value false
+						bint: bigint/or-uint* as bigint! s1/offset int/value false
 					]
 					OP_XOR [
-						bint: bigint/xor-uint* left/node int/value false
+						bint: bigint/xor-uint* as bigint! s1/offset int/value false
 					]
 				]
 			]
 			TYPE_BIGINT TYPE_HEX [
+				s2: GET_BUFFER(right)
 				switch type [
 					OP_ADD [
-						bint: bigint/add left/node right/node false
+						bint: bigint/add as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_SUB [
-						bint: bigint/sub left/node right/node false
+						bint: bigint/sub as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_MUL [
-						bint: bigint/mul left/node right/node false
+						bint: bigint/mul as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_DIV [
-						bint: bigint/div left/node right/node false
+						bint: bigint/div as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_REM [
-						bint: bigint/remainder left/node right/node false
+						bint: bigint/remainder as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_AND [
-						bint: bigint/and* left/node right/node false
+						bint: bigint/and* as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_OR  [
-						bint: bigint/or* left/node right/node false
+						bint: bigint/or* as bigint! s1/offset as bigint! s2/offset false
 					]
 					OP_XOR [
-						bint: bigint/xor* left/node right/node false
+						bint: bigint/xor* as bigint! s1/offset as bigint! s2/offset false
 					]
 				]
 			]
 		]
 		big/header: TYPE_OF(left)
-		big/node: bint
+		big/node: to-node bint
 		SET_RETURN(big)
 	]
 
@@ -181,13 +186,32 @@ red-bigint: context [
 		big
 	]
 
+	to-node: func [
+		bint		[bigint!]
+		return:		[node!]
+		/local
+			len		[integer!]
+			node	[node!]
+			s		[series!]
+			p		[byte-ptr!]
+	][
+		len: either bint/used >= 0 [bint/used][ 0 - bint/used]
+		len: len + size? bigint!
+		node: alloc-series len 1 0
+		s: as series! node/value
+		p: as byte-ptr! s/offset
+		copy-memory p as byte-ptr! bint len
+		bigint/free* bint
+		node
+	]
+
 	;--- Actions ---
 
 	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-bigint!]
+		proto		[red-value!]
+		spec		[red-value!]
+		type		[integer!]
+		return:		[red-bigint!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/make"]]
 		as red-bigint! to proto spec type
@@ -203,7 +227,6 @@ red-bigint: context [
 			bint	[bigint!]
 			bin		[red-binary!]
 			big		[red-bigint!]
-			s		[series!]
 			sbin	[series!]
 			pbig	[byte-ptr!]
 			head	[byte-ptr!]
@@ -228,22 +251,25 @@ red-bigint: context [
 			]
 			TYPE_HEX [
 				big: as red-bigint! spec
-				bint: bigint/copy* big/node
+				make-at as red-value! proto
+				big: as red-bigint! proto
+				big/node: copy-series GET_BUFFER(big)
+				return proto
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BIGINT spec]]
 		]
 		make-at as red-value! proto
 		big: as red-bigint! proto
-		big/node: bint
+		big/node: to-node bint
 		proto
 	]
 
 	form: func [
-		big		[red-bigint!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
+		big			[red-bigint!]
+		buffer		[red-string!]
+		arg			[red-value!]
+		part 		[integer!]
+		return:		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/form"]]
 
@@ -251,19 +277,19 @@ red-bigint: context [
 	]
 
 	mold: func [
-		big		[red-bigint!]
-		buffer	[red-string!]
-		only?	[logic!]
-		all?	[logic!]
-		flat?	[logic!]
-		arg		[red-value!]
-		part	[integer!]
-		indent	[integer!]
-		return:	[integer!]
+		big			[red-bigint!]
+		buffer		[red-string!]
+		only?		[logic!]
+		all?		[logic!]
+		flat?		[logic!]
+		arg			[red-value!]
+		part		[integer!]
+		indent		[integer!]
+		return:		[integer!]
 		/local
-			formed [c-string!]
-			s	   [series!]
-			unit   [integer!]
+			formed	[c-string!]
+			s		[series!]
+			unit	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/mold"]]
 
@@ -278,6 +304,8 @@ red-bigint: context [
 		/local
 			res		[integer!]
 			int		[red-integer!]
+			s1		[series!]
+			s2		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/compare"]]
 
@@ -286,43 +314,36 @@ red-bigint: context [
 			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
 
+		s1: GET_BUFFER(value1)
 		switch TYPE_OF(value2) [
-			TYPE_BIGINT TYPE_HEX [res: bigint/compare value1/node value2/node]
+			TYPE_BIGINT TYPE_HEX [
+				s2: GET_BUFFER(value2)
+				res: bigint/compare as bigint! s1/offset as bigint! s2/offset
+			]
 			TYPE_INTEGER TYPE_CHAR [
 				int: as red-integer! value2
-				res: bigint/compare-int value1/node int/value
+				res: bigint/compare-int as bigint! s1/offset int/value
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
 		SIGN_COMPARE_RESULT(res 0)
 	]
 
-	copy*: func [
-		big			[red-bigint!]
-		dst			[red-bigint!]
-		return:		[red-bigint!]
-		/local
-			bint	[bigint!]
-	][
-		make-at as red-value! dst
-		bint: bigint/copy* big/node
-		dst/node: bint
-		dst
-	]
-
 	absolute: func [
 		return:		[red-bigint!]
 		/local
-			bint	[bigint!]
 			big		[red-bigint!]
+			s		[series!]
+			bint	[bigint!]
 			ret		[red-bigint!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/absolute"]]
 		big: as red-bigint! stack/arguments
-		bint: bigint/absolute* big/node false
+		s: GET_BUFFER(big)
+		bint: bigint/absolute* as bigint! s/offset false
 		ret: as red-bigint! stack/push*
 		make-at as red-value! ret
-		ret/node: bint
+		ret/node: to-node bint
 		stack/set-last as red-value! ret
 		ret
 	]
@@ -367,32 +388,40 @@ red-bigint: context [
 	]
 
 	even?: func [
-		big		[red-bigint!]
-		return: [logic!]
+		big			[red-bigint!]
+		return:		[logic!]
+		/local
+			s		[series!]
 	][
-		bigint/even?* big/node
+		s: GET_BUFFER(big)
+		bigint/even?* as bigint! s/offset
 	]
 
 	odd?: func [
-		big		[red-bigint!]
-		return: [logic!]
+		big			[red-bigint!]
+		return:		[logic!]
+		/local
+			s		[series!]
 	][
-		bigint/odd?* big/node
+		s: GET_BUFFER(big)
+		bigint/odd?* as bigint! s/offset
 	]
 
 	negate: func [
-		return: [red-bigint!]
+		return:		[red-bigint!]
 		/local
-			bint	[bigint!]
 			big		[red-bigint!]
+			s		[series!]
+			bint	[bigint!]
 			ret		[red-bigint!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/negate"]]
 		big: as red-bigint! stack/arguments
-		bint: bigint/negative* big/node false
+		s: GET_BUFFER(big)
+		bint: bigint/negative* as bigint! s/offset false
 		ret: as red-bigint! stack/push*
 		make-at as red-value! ret
-		ret/node: bint
+		ret/node: to-node bint
 		stack/set-last as red-value! ret
 		ret
 	]

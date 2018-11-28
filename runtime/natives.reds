@@ -1483,6 +1483,7 @@ natives: context [
 			num [red-integer!]
 			f	[red-float!]
 			big [red-bigint!]
+			s	[series!]
 			res [red-logic!]
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
@@ -1498,7 +1499,8 @@ natives: context [
 			]
 			TYPE_BIGINT [
 				big: as red-bigint! res
-				res/value: bigint/negative?* big/node
+				s: GET_BUFFER(big)
+				res/value: bigint/negative?* as bigint! s/offset
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
@@ -1513,6 +1515,7 @@ natives: context [
 			num [red-integer!]
 			f	[red-float!]
 			big [red-bigint!]
+			s	[series!]
 			res [red-logic!]
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
@@ -1528,7 +1531,8 @@ natives: context [
 			]
 			TYPE_BIGINT [
 				big: as red-bigint! res
-				res/value: bigint/positive?* big/node
+				s: GET_BUFFER(big)
+				res/value: bigint/positive?* as bigint! s/offset
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
@@ -1543,6 +1547,7 @@ natives: context [
 			i   [red-integer!]
 			f	[red-float!]
 			big [red-bigint!]
+			s	[series!]
 			res [red-value!]
 			ret [integer!]
 	][
@@ -1568,7 +1573,8 @@ natives: context [
 			]
 			TYPE_BIGINT [
 				big: as red-bigint! stack/arguments
-				ret: either bigint/zero?* big/node [0][either bigint/negative?* big/node [-1][1]]
+				s: GET_BUFFER(big)
+				ret: either bigint/zero?* as bigint! s/offset [0][either bigint/negative?* as bigint! s/offset [-1][1]]
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]

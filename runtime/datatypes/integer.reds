@@ -486,6 +486,7 @@ integer: context [
 			right [integer!]
 			res	  [integer!]
 			big	  [red-bigint!]
+			s	  [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
 
@@ -514,7 +515,8 @@ integer: context [
 			]
 			TYPE_BIGINT TYPE_HEX [
 				big: as red-bigint! value2
-				right: bigint/compare-int big/node left
+				s: GET_BUFFER(big)
+				right: bigint/compare-int as bigint! s/offset left
 				left: 0
 			]
 			default [RETURN_COMPARE_OTHER]
