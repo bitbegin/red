@@ -45,7 +45,8 @@ red-bigint: context [
 		unless ret [fire [TO_ERROR(math overflow)]]
 		buf: as byte-ptr! ibuf
 		pos: 1
-		if ilen > 64 [n: ilen / 64 + ilen + 4]
+		n: ilen
+		if ilen > 64 [n: n + (ilen / 64) + 4]
 
 		s: GET_BUFFER(buffer)
 		s: expand-series s s/size + n				;-- allocate enough memory
