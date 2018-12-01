@@ -123,15 +123,20 @@ system-dialect: make-profilable context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: v: none							;-- global parsing rules helpers
 
-		number!: 	  [byte! integer!]					;-- reserved for internal use only
-		bit-set!: 	  [byte! integer! logic!]			;-- reserved for internal use only
-		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
-		any-number!:  union number! any-float!			;-- reserved for internal use only
-		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
-		any-pointer!: union pointers! [function!]		;-- reserved for internal use only
-		poly!:		  union any-number! pointers!		;-- reserved for internal use only
-		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
-		type-sets:	  [									;-- reserved for internal use only
+		number!:		[								;-- reserved for internal use only
+			byte! char! int8! uint8!
+			integer! int32! size! uint32!
+			long! int64! ulong! uint64!
+			short! int16! ushort! uint16!
+		]
+		bit-set!:		[byte! integer! logic!]			;-- reserved for internal use only
+		any-float!:		[float! float32! float64!]		;-- reserved for internal use only
+		any-number!:	union number! any-float!		;-- reserved for internal use only
+		pointers!:		[pointer! struct! c-string!]	;-- reserved for internal use only
+		any-pointer!:	union pointers! [function!]		;-- reserved for internal use only
+		poly!:			union any-number! pointers!		;-- reserved for internal use only
+		any-type!:		union poly! [logic!]			;-- reserved for internal use only
+		type-sets:		[								;-- reserved for internal use only
 			number! poly! any-type! any-pointer!
 			any-number! bit-set!
 		]
@@ -181,7 +186,10 @@ system-dialect: make-profilable context [
 		func-pointer: ['function! set value block! (check-specs '- value)]
 
 		type-syntax: [
-			'logic! | 'integer! | 'byte! | 'int16!		;-- int16! needed for AVR8 backend
+			'logic! | 'integer! | 'int32! | 'size! | 'uint32!
+			| 'long! | 'int64! | 'ulong | 'uint64!
+			| 'short! | 'int16! | 'ushort! | 'uint16!
+			| 'byte! | 'uint8! | 'int8! | 'char!
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
