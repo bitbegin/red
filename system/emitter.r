@@ -244,13 +244,13 @@ emitter: make-profilable context [
 
 	store-global: func [
 		value type [word!] spec [block! word! none!]
-		/local size ptr by-val? pad-size list t f64?
+		/local size ptr by-val? pad-size list t f64? len
 	][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float64!] type][
+		if all [value = <last> not find [float! float64! long! int64! ulong! uint64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -284,10 +284,10 @@ emitter: make-profilable context [
 						not integer? value [value: 0]
 					]
 					value: debase/base to-hex value 16
-					insert value #{00000000}
 				]
+				if 8 > len: length? value [insert/dup value #{00} 8 - len]
 
-				pad-data-buf target/default-align
+				pad-data-buf 8
 				ptr: tail data-buf
 				either target/little-endian? [
 					value: tail value
@@ -355,13 +355,13 @@ emitter: make-profilable context [
 				type: either all [
 					paren? value
 					value/1 = 'pointer!
-					find [float! float64!] value/2/1
-				]['float!]['integer!]
+					find [float! float64! long! int64! ulong! uint64!] value/2/1
+				]['long!]['integer!]
 				store-global value type none
 			]
 			struct! [
 				pad-size: target/ptr-size
-				foreach-member spec [if find [float! float64!] type/1 [pad-size: 8 exit]]
+				foreach-member spec [if find [float! float64! long! int64! ulong! uint64!] type/1 [pad-size: 8 exit]]
 				pad-data-buf pad-size
 				ptr: tail data-buf
 				foreach [var type] spec [
@@ -378,7 +378,7 @@ emitter: make-profilable context [
 			]
 			array! [
 				type: first compiler/get-type value/1
-				if find [float! float64!] type [
+				if find [float! float64! long! int64! ulong! uint64!] type [
 					store-global 0 'integer! none			;-- insert a 32-bit padding to ensure /0 points to the length slot
 				]
 				store-global length? value 'integer! none	;-- store array size first
@@ -387,23 +387,25 @@ emitter: make-profilable context [
 				foreach item value [						;-- mixed types, use 32/64-bit for each slot
 					unless word? item [
 						t: first compiler/get-type item
-						if all [not f64? find [float! float64!] t][f64?: yes]
+						if all [not f64? find [float! float64! long! int64! ulong! uint64!] t][f64?: yes]
 						if type <> t [type: 'integer!]
 					]
 				]
 				either find value string! [
 					list: collect [
 						foreach item value [				 ;-- store array
-							either decimal? item [
-								store-global item 'float! none
-							][
-								either string? item [
-									keep item
-									keep store-global 0 'integer! none
-								][
-									store-global item 'integer! none
+							case [
+								binary? item [store-global item 'uint64! none]
+								decimal? item [store-global item 'float! none]
+								true [
+									either string? item [
+										keep item
+										keep store-global 0 'integer! none
+									][
+										store-global item 'integer! none
+									]
+									if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
 								]
-								if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
 							]
 						]
 					]
@@ -513,7 +515,7 @@ emitter: make-profilable context [
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
 			all [
-				find [float! float64!] type/1
+				find [float! float64! long! int64! ulong! uint64!] type/1
 				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
 				offset: offset + 8 - over 						;-- properly account for alignment
 			]

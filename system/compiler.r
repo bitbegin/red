@@ -1092,7 +1092,7 @@ system-dialect: make-profilable context [
 			parse list [
 				some [
 					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
-					| string! | char! | integer! | decimal!
+					| string! | char! | integer! | decimal! | binary!
 				] | (throw-error ["invalid literal array content:" mold list])
 			]
 			to paren! list
