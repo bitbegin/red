@@ -31,14 +31,20 @@ emitter: make-profilable context [
 
 	datatypes: to-hash [
 		int8!		1	signed
-		byte!		1	unsigned
-		int16!		2	signed
-		int32!		4	signed
-		integer!	4	signed
-		int64!		8	signed
+		char!		1	signed
 		uint8!		1	unsigned
+		byte!		1	unsigned
+		short!		2	signed
+		int16!		2	signed
+		ushort!		2	unsigned
 		uint16!		2	unsigned
+		integer!	4	signed
+		int32!		4	signed
+		size!		4	unsigned
 		uint32!		4	unsigned
+		long!		8	signed
+		int64!		8	signed
+		ulong!		8	unsigned
 		uint64!		8	unsigned
 		float32!	4	signed
 		float64!	8	signed
