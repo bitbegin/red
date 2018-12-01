@@ -260,9 +260,9 @@ emitter: make-profilable context [
 		ptr: tail data-buf
 
 		switch/default type [
-			integer! int32! [
+			integer! int32! size! uint32! [
 				case [
-					find [char! decimal!] type?/word value [value: to integer! value]
+					find [char! decimal! binary!] type?/word value [value: to integer! value]
 					find [true false] value [value: to integer! get value]
 					not integer? value [value: 0]
 				]
@@ -276,25 +276,44 @@ emitter: make-profilable context [
 					append ptr skip tail value negate size		;-- truncate if required
 				]
 			]
-			size! uint32! [
-				print "new type: size!"
+			long! int64! ulong! uint64! [
+				unless binary? value [
+					case [
+						find [char! decimal!] type?/word value [value: to integer! value]
+						find [true false] value [value: to integer! get value]
+						not integer? value [value: 0]
+					]
+					value: debase/base to-hex value 16
+					insert value #{00000000}
+				]
+
+				pad-data-buf target/default-align
+				ptr: tail data-buf
+				either target/little-endian? [
+					value: tail value
+					loop size [append ptr to char! (first value: skip value -1)]
+				][
+					append ptr skip tail value negate size		;-- truncate if required
+				]
 			]
-			long! int64! [
-				print "new type: long!"
+			short! int16! ushort! uint16! [
+				case [
+					find [char! decimal! binary!] type?/word value [value: to integer! value]
+					find [true false] value [value: to integer! get value]
+					not integer? value [value: 0]
+				]
+				value: value and 65536
+				pad-data-buf target/default-align
+				ptr: tail data-buf
+				value: debase/base to-hex value 16
+				either target/little-endian? [
+					value: tail value
+					loop size [append ptr to char! (first value: skip value -1)]
+				][
+					append ptr skip tail value negate size		;-- truncate if required
+				]
 			]
-			ulong! uint64! [
-				print "new type: ulong!"
-			]
-			short! int16! [
-				print "new type: short!"
-			]
-			ushort! uint16! [
-				print "new type: ushort!"
-			]
-			char! int8! [
-				print "new type: char!"
-			]
-			byte! uint8! [
+			byte! uint8! char! int8! [
 				either integer? value [
 					value: to char! value and 255		;-- truncate if required
 				][

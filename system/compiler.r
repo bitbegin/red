@@ -187,7 +187,7 @@ system-dialect: make-profilable context [
 
 		type-syntax: [
 			'logic! | 'integer! | 'int32! | 'size! | 'uint32!
-			| 'long! | 'int64! | 'ulong | 'uint64!
+			| 'long! | 'int64! | 'ulong! | 'uint64!
 			| 'short! | 'int16! | 'ushort! | 'uint16!
 			| 'byte! | 'uint8! | 'int8! | 'char!
 			| 'float! | 'float32! | 'float64!
@@ -709,7 +709,7 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		get-type: func [value /local type][
+		get-type: func [value /local type len][
 			switch/default type?/word value [
 				word! 	 [resolve-type value]
 				integer! [[integer!]]
@@ -750,6 +750,14 @@ system-dialect: make-profilable context [
 				logic!	 [[logic!]]
 				char!	 [[byte!]]
 				decimal! [[float!]]
+				binary!	 [
+					len: length? value
+					case [
+						len <= 8	[[uint64!]]
+						;len <= 16	[[uint128!]]
+						true		[throw-error ["not accepted binary! length: " len]]
+					]
+				]
 				paren!	 [
 					switch/default value/1 [
 						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
@@ -893,7 +901,7 @@ system-dialect: make-profilable context [
 			n
 		]
 
-		cast: func [obj [object!] /quiet /local value ctype type][
+		cast: func [obj [object!] /quiet /local value ctype type len][
 			value: obj/data
 			ctype: resolve-aliased obj/type
 			type: get-type value
@@ -906,13 +914,13 @@ system-dialect: make-profilable context [
 			]
 			if any [
 				all [type/1 = 'function! not find [function! pointer! integer!] ctype/1]
-				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
-				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
-				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
-				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
+				all [find [float! float64!] ctype/1 not [find any-number! type/1]]
+				all [find [float! float64!] type/1  not [find any-number! ctype/1]]
+				;all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
+				all [find [byte! uint8! char! int8! short! int16! ushort! uint16!] ctype/1 find [c-string! pointer! struct!] type/1]
 				all [
 					find [c-string! pointer! struct!] ctype/1
-					find [byte! logic!] type/1
+					find [byte! uint8! char! int8! short! int16! ushort! uint16! logic!] type/1
 				]
 			][
 				backtrack value
@@ -924,26 +932,81 @@ system-dialect: make-profilable context [
 			unless literal? value [return value]	;-- shield the following literal conversions
 
 			switch ctype/1 [
-				byte! [
+				byte! uint8! [
 					switch type/1 [
-						integer! [value: to char! value and 255]
-						logic! 	 [value: pick [#"^(01)" #"^(00)"] value]
+						integer! int32! size! uint32!
+						short! int16! ushort! uint16! [value: to char! value and 255]
+						long! int64! ulong! uint64! [value: to char! last value]
+						logic!	[value: pick [#"^(01)" #"^(00)"] value]
 					]
 				]
-				integer! [
-					if find [byte! logic! float! float32! float64!] type/1 [
-						value: to integer! value
+				integer! int32! [
+					switch type/1 [
+						byte! uint8! char! int8! logic!
+						size! uint32! short! int16! ushort! uint16!
+						float! float32! float64! [value: to integer! value]
+						long! int64! ulong! uint64! [
+							value: to integer! either 4 < len: length? value [
+								skip value len - 4
+							][value]
+						]
 					]
 				]
 				logic! [
 					switch type/1 [
-						byte! 	 [value: value <> null]
-						integer! [value: value <> 0]
+						byte! uint8! char! int8! [value: value <> null]
+						integer! int32! size! uint32!
+						short! int16! ushort! uint16!
+						float! float32! float64! [value: value <> 0]
 					]
 				]
 				float! float32! [
-					if type/1 = 'integer! [
-						value: to decimal! value
+					switch type/1 [
+						byte! uint8! char! int8!
+						integer! int32! size! uint32!
+						short! int16! ushort! uint16! [value: to decimal! value]
+					]
+				]
+				size! uint32! [
+					switch type/1 [
+						byte! uint8! char! int8! logic!
+						integer! int32! short! int16! ushort! uint16!
+						float! float32! float64! [value: to integer! value]
+						long! int64! ulong! uint64! [
+							value: to integer! either 4 < len: length? value [
+								skip value len - 4
+							][value]
+						]
+					]
+				]
+				short! int16! [
+					switch type/1 [
+						integer! int32! size! uint32! [value: to char! value and 65536]
+						long! int64! ulong! uint64! [value: to char! last value]
+						logic!	[value: to integer! value]
+					]
+				]
+				ushort! uint16! [
+					switch type/1 [
+						integer! int32! size! uint32! [value: to char! value and 65536]
+						long! int64! ulong! uint64! [value: to char! last value]
+						logic!	[value: to integer! value]
+					]
+				]
+				long! int64! [
+					switch type/1 [
+						byte! uint8! char! int8! logic!
+						integer! int32! short! int16! ushort! uint16!
+						float! float32! float64! [value: debase/base to-hex value 16]
+						logic!	[value: pick [#{01} #{00}] value]
+					]
+				]
+				ulong! uint64! [
+					switch type/1 [
+						byte! uint8! char! int8! logic!
+						integer! int32! short! int16! ushort! uint16!
+						float! float32! float64! [value: debase/base to-hex value 16]
+						logic!	[value: pick [#{01} #{00}] value]
 					]
 				]
 			]
@@ -3424,6 +3487,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
+				binary!		[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
 				issue!		[comp-directive]
 			][
