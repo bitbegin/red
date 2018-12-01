@@ -57,7 +57,7 @@ loader: make-profilable context [
 		current-script: line: none
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
-	
+
 	relative-path?: func [file [file!]][
 		not find "/~" first file
 	]
@@ -83,11 +83,11 @@ loader: make-profilable context [
 		system/script/path: path/1
 		path/2
 	]
-	
+
 	pop-system-path: does [
 		system/script/path: take/last ssp-stack
 	]
-	
+
 	check-macro-parameters: func [args [paren!]][
 		unless parse args [some word!][
 			throw-error ["only words can be used as macro parameters:" mold args]
@@ -112,14 +112,14 @@ loader: make-profilable context [
 				]
 			]
 			payload/2 = 'contains [
-				do bind/copy 
+				do bind/copy
 					compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
 					job
 			]
 			'else [do bind/copy payload job]
 		]
 	]
-	
+
 	copy-deep: func [s [series!]][
 		s: copy/deep s
 		forall s [
@@ -138,7 +138,7 @@ loader: make-profilable context [
 	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value path][
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
-		]	
+		]
  		macro: copy-deep macro
 		parse :macro rule: [
 			some [
@@ -151,7 +151,7 @@ loader: make-profilable context [
 					]
 				)
 				| pos: [
-					word! 		(type: word!) 
+					word! 		(type: word!)
 					| set-word! (type: set-word!)
 					| get-word! (type: get-word!)
 				] (
@@ -190,7 +190,7 @@ loader: make-profilable context [
 				line: line + 1
 				if ins? [s: insert s rejoin [" #L " line " "]]
 			]
-		)] 
+		)]
 		ws:	[ws-chars | (ins?: yes) lf-count]
 		braces: ["{" any [(ins?: no) lf-count | non-cbracket] "}"]
 
@@ -205,7 +205,7 @@ loader: make-profilable context [
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
 				| [hex-delim | ws]
-				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
+				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support
 				e: [hex-delim | ws-all | #";" to lf | end] (
 					either find [2 4 8] c [
 						e: change/part s to integer! to issue! value e
@@ -231,8 +231,8 @@ loader: make-profilable context [
 		append stack/1 1							;-- insert root header starting size
 		line: 1
 
-		store-line: [			
-			header: last stack				
+		store-line: [
+			header: last stack
 			idx: index? s
 			mark: to pair! reduce [line idx]
 			either all [
@@ -241,7 +241,7 @@ loader: make-profilable context [
 				prev/2 = idx 						;-- test if previous marker is at the same series position
 			][
 				change back tail header mark		;-- replace last marker by a more accurate one
-			][			
+			][
 				append header mark					;-- append line marker to header
 			]
 		]
@@ -263,7 +263,7 @@ loader: make-profilable context [
 			opt 'not ['find block! skip | ['any | 'all] block!]
 			| set name word! set opr skip set value any-type!
 		]
-		
+
 		parse/case src blk: [
 			s: (do store-line)
 			some [
@@ -339,7 +339,7 @@ loader: make-profilable context [
 							0
 						]
 						name: system/script/path/:name
-						
+
 						insert e reduce [
 							#pop-path value
 							#script last scripts-stk	;-- put back the parent origin
@@ -400,7 +400,7 @@ loader: make-profilable context [
 					]
 				)
 				| p: [path! | set-path!] :p into [some [defs | skip]]	;-- process macros in paths
-				
+
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
@@ -413,11 +413,11 @@ loader: make-profilable context [
 				  )
 				| skip
 			]
-		]		
-		change stack/1 length? stack/1				;-- update root header size	
+		]
+		change stack/1 length? stack/1				;-- update root header size
 		insert src stack/1							;-- return source with hidden root header
 	]
-	
+
 	prefix-cache: func [file [file!] /local path][
 		path: either empty? ssp-stack [system/script/path][first ssp-stack]
 		path: skip system/script/path length? path
@@ -429,7 +429,7 @@ loader: make-profilable context [
 		/local src err path ssp pushed? raw cache? new
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
-		
+
 		cache?: all [
 			encap?
 			file? input
@@ -439,7 +439,7 @@ loader: make-profilable context [
 			]
 		]
 		if any [own cache?][raw: input]
-		
+
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
 			pushed?: yes
@@ -457,7 +457,7 @@ loader: make-profilable context [
 				]
 				pushed?: yes
 			]
-			
+
 			if error? set/any 'err try [			;-- read source file
 				src: as-string either any [cache? all [encap? own]][
 					if all [cache? new][raw: new]
@@ -479,7 +479,7 @@ loader: make-profilable context [
 		]
 		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
-		
+
 		unless block? src [
 			expand-string src						;-- process string-level compiler directives
 			if error? set/any 'err try [src: lexer/process as-binary src][	;-- convert source to blocks
