@@ -30,16 +30,16 @@ emitter: make-profilable context [
 	] none
 
 	datatypes: to-hash [
-		;int8!		1	signed
+		int8!		1	signed
 		byte!		1	unsigned
-		;int16!		2	signed
-		;int32!		4	signed
+		int16!		2	signed
+		int32!		4	signed
 		integer!	4	signed
-		;int64!		8	signed
-		;uint8!		1	unsigned
-		;uint16!	2	unsigned
-		;uint32!	4	unsigned
-		;uint64!	8	unsigned
+		int64!		8	signed
+		uint8!		1	unsigned
+		uint16!		2	unsigned
+		uint32!		4	unsigned
+		uint64!		8	unsigned
 		float32!	4	signed
 		float64!	8	signed
 		float!		8	signed
@@ -53,14 +53,28 @@ emitter: make-profilable context [
 	datatype-ID: [
 		logic!		1
 		integer!	2
-		byte!	    3
+		int32!		2
+		byte!		3
+		uint8!		3
 		float32!	4
 		float!		5
 		float64!	5
-		c-string!   6
-		byte-ptr!   7
+		c-string!	6
+		byte-ptr!	7
 		int-ptr!	8
 		function!	9
+		char!		10
+		int8!		10
+		short!		11
+		int16!		11
+		ushort!		12
+		uint16!		12
+		size!		13
+		uint32!		13
+		long!		14
+		int64!		14
+		ulong!		15
+		uint64!		15
 		struct!		1000
 	]
 
@@ -240,7 +254,7 @@ emitter: make-profilable context [
 		ptr: tail data-buf
 
 		switch/default type [
-			integer! [
+			integer! int32! [
 				case [
 					find [char! decimal!] type?/word value [value: to integer! value]
 					find [true false] value [value: to integer! get value]
@@ -256,7 +270,25 @@ emitter: make-profilable context [
 					append ptr skip tail value negate size		;-- truncate if required
 				]
 			]
-			byte! [
+			size! uint32! [
+				print "new type: size!"
+			]
+			long! int64! [
+				print "new type: long!"
+			]
+			ulong! uint64! [
+				print "new type: ulong!"
+			]
+			short! int16! [
+				print "new type: short!"
+			]
+			ushort! uint16! [
+				print "new type: ushort!"
+			]
+			char! int8! [
+				print "new type: char!"
+			]
+			byte! uint8! [
 				either integer? value [
 					value: to char! value and 255		;-- truncate if required
 				][
