@@ -36,8 +36,8 @@ init-text-list: func [
 		while [str < tail][
 			type: TYPE_OF(str)
 			if ANY_STRING?(type) [
-				c-str: unicode/to-utf16 str
-				value: string/rs-length? str
+				value: -1
+				c-str: unicode/to-utf16-len str :value yes
 				if len < value [len: value str-saved: c-str]
 				
 				SendMessage 
@@ -140,11 +140,11 @@ insert-list-item: func [
 	len: as-integer SendMessage hWnd msg 0 0
 	if pos > len [pos: len]
 
-	str: unicode/to-utf16 item
+	len: -1
+	str: unicode/to-utf16-len item :len yes
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
 	SendMessage hWnd msg pos as-integer str
 	unless drop? [
-		len: string/rs-length? item
 		if len > GetWindowLong hWnd wc-offset - 4 [
 			SetWindowLong hWnd wc-offset - 4 len
 			update-list-hbar hWnd str len
