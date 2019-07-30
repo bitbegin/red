@@ -693,7 +693,6 @@ update-base-text: func [
 		GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
 		GdipDeleteBrush hBrush
 	][
-		rect/height: as float32! 1e6	;-- allow some room for rendering, otherwise stops at height
 		GdipMeasureString graphic unicode/to-utf16 text -1 hFont :rect format bbox null null
 	]
 
