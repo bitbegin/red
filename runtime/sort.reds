@@ -477,7 +477,7 @@ _sort: context [
 	partition-in-blocks: func [
 		base	[byte-ptr!]
 		num		[integer!]
-		pivot	[UNIT! value]
+		pivot	[byte-ptr!]
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
@@ -533,8 +533,7 @@ _sort: context [
 				m: 0
 				while [m < block_l][
 					end_l/1: as byte! m
-					temp: as byte-ptr! pivot
-					unless negative? cmp elem temp op flags [
+					unless negative? cmp elem pivot op flags [
 						end_l: end_l + 1
 					]
 					elem: elem + width
@@ -549,8 +548,7 @@ _sort: context [
 				while [m < block_r][
 					elem: elem - width
 					end_r/1: as byte! m
-					temp: as byte-ptr! pivot
-					if negative? cmp elem temp op flags [
+					if negative? cmp elem pivot op flags [
 						end_r: end_r + 1
 					]
 					m: m + 1
@@ -632,16 +630,15 @@ _sort: context [
 		return:	[logic!]
 		/local
 			cmp i j t swaptype
-			_base mp temp l r
-			unit	[UNIT! value]
+			_base mp l r
+			pivot
 	][
 		_base: base
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 		mp: base + (npivot * width)
 		SORT_SWAP(base mp)
-		temp: as byte-ptr! unit
-		SORT_COPY(base temp)
+		pivot: base
 		base: base + width
 		num: num - 1
 
@@ -649,7 +646,7 @@ _sort: context [
 		r: num
 		while [l < r][
 			mp: base + (l * width)
-			either negative? cmp mp temp op flags [
+			either negative? cmp mp pivot op flags [
 				l: l + 1
 			][
 				break
@@ -657,7 +654,7 @@ _sort: context [
 		]
 		while [l < r][
 			mp: base + (r * width) - width
-			either not negative? cmp mp temp op flags [
+			either not negative? cmp mp pivot op flags [
 				r: r - 1
 			][
 				break
@@ -665,7 +662,7 @@ _sort: context [
 		]
 		base: base + (l * width)
 		num: r - l
-		pnum/value: partition-in-blocks base num unit width op flags cmpfunc
+		pnum/value: partition-in-blocks base num pivot width op flags cmpfunc
 		pnum/value: pnum/value + l
 		mp: _base + (pnum/value * width)
 		SORT_SWAP(_base mp)
@@ -683,16 +680,15 @@ _sort: context [
 		return:	[integer!]
 		/local
 			cmp i j t swaptype
-			_base mp np temp l r
-			unit	[UNIT! value]
+			_base mp np l r
+			pivot
 	][
 		_base: base
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 		mp: base + (npivot * width)
 		SORT_SWAP(base mp)
-		temp: as byte-ptr! unit
-		SORT_COPY(base temp)
+		pivot: base
 		base: base + width
 		num: num - 1
 
@@ -701,7 +697,7 @@ _sort: context [
 		forever [
 			while [l < r][
 				mp: base + (l * width)
-				either not negative? cmp temp mp op flags [
+				either not negative? cmp pivot mp op flags [
 					l: l + 1
 				][
 					break
@@ -709,7 +705,7 @@ _sort: context [
 			]
 			while [l < r][
 				mp: base + (r * width) - width
-				either negative? cmp temp mp op flags [
+				either negative? cmp pivot mp op flags [
 					r: r - 1
 				][
 					break
@@ -733,11 +729,10 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc	[integer!]
 		/local
-			cmp i j t swaptype
+			i j t swaptype
 			random gen modulus pos m other mp np
 	][
 		if num >= 8 [
-			cmp: as cmpfunc! cmpfunc
 			SORT_SWAPINIT(base width)
 			random: num
 			random: random xor (random << 13)
@@ -755,6 +750,7 @@ _sort: context [
 				mp: base + ((pos - 1 + m) * width)
 				np: base + (other * width)
 				SORT_SWAP(mp np)
+				m: m + 1
 			]
 		]
 	]
@@ -827,7 +823,7 @@ _sort: context [
 	recurse: func [
 		base	[byte-ptr!]
 		num		[integer!]
-		pred	[UNIT! value]
+		pred	[byte-ptr!]
 		pred?	[logic!]
 		limit	[integer!]
 		width	[integer!]
@@ -840,7 +836,6 @@ _sort: context [
 			npivot likely-sorted
 			cmp i j t swaptype m n mp np
 			temp mid left right left-num right-num
-			unit	[UNIT! value]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -874,7 +869,7 @@ _sort: context [
 				]
 			]
 			if pred? [
-				mp: as byte-ptr! pred
+				mp: pred
 				np: base + (npivot * width)
 				unless negative? cmp mp np op flags [
 					mid: partition-equal base num width npivot op flags cmpfunc
@@ -894,20 +889,19 @@ _sort: context [
 			was-partitioned: was-p
 			left: base
 			left-num: mid
-			temp: as byte-ptr! unit
 			right: base + (mid * width)
 			right-num: num - mid
-			SORT_COPY(right temp)
+			temp: right
 			right: right + width
 			right-num: right-num - 1
 			either left-num < right-num [
 				recurse left left-num pred pred? limit width op flags cmpfunc
 				base: right
 				num: right-num
-				pred: unit
+				pred: temp
 				pred?: true
 			][
-				recurse right right-num unit true limit width op flags cmpfunc
+				recurse right right-num temp true limit width op flags cmpfunc
 				base: left
 				num: left-num
 			]
@@ -923,10 +917,9 @@ _sort: context [
 		cmpfunc	[integer!]
 		/local
 			limit
-			unit	[UNIT! value]
 	][
 		limit: 1 + log-b num
-		recurse base num unit false limit width op flags cmpfunc
+		recurse base num base false limit width op flags cmpfunc
 	]
 
 	;-- max heapify
