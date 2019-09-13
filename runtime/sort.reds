@@ -44,15 +44,7 @@ _sort: context [
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
-	#define SORT_COPY(a b) [
-		either zero? swaptype [
-			i: as int-ptr! a
-			j: as int-ptr! b
-			j/1: i/1
-		][
-			copyfunc a b width swaptype
-		]
-	]
+	#define SORT_COPY(a b) [copyfunc a b width swaptype]
 
 	#define SORT_SWAP_N(a b n) [
 		cnt: n
@@ -123,18 +115,7 @@ _sort: context [
 		swaptype	[integer!]
 		/local cnt i j ii jj
 	][
-		either swaptype > 1 [
-			cnt: n
-			i: a
-			j: b
-			until [
-				j/1: i/1
-				i: i + 1
-				j: j + 1
-				cnt: cnt - 1
-				zero? cnt
-			]
-		][
+		either zero? swaptype [
 			cnt: n / 4
 			ii: as int-ptr! a
 			jj: as int-ptr! b
@@ -142,6 +123,17 @@ _sort: context [
 				jj/1: ii/1
 				ii: ii + 1
 				jj: jj + 1
+				cnt: cnt - 1
+				zero? cnt
+			]
+		][
+			cnt: n
+			i: a
+			j: b
+			until [
+				j/1: i/1
+				i: i + 1
+				j: j + 1
 				cnt: cnt - 1
 				zero? cnt
 			]
