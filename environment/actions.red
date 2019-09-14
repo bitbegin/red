@@ -461,6 +461,7 @@ sort: make action! [[
 		/all "Compare all fields"
 		/reverse "Reverse sort order"
 		/stable "Stable sorting"
+		/pbqsort
 		return:  [series!]
 	]
 	#get-definition ACT_SORT

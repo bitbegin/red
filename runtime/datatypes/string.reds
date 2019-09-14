@@ -2060,6 +2060,7 @@ string: context [
 		all?		[logic!]
 		reverse?	[logic!]
 		stable?		[logic!]
+		pbqsort?	[logic!]
 		return:		[red-string!]
 		/local
 			s		[series!]

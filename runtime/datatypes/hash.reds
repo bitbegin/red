@@ -133,6 +133,7 @@ hash: context [
 		all?		[logic!]
 		reverse?	[logic!]
 		stable?		[logic!]
+		pbqsort?	[logic!]
 		return:		[red-hash!]
 		/local
 			blk		[red-block!]
@@ -140,7 +141,7 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/sort"]]
 
 		blk: as red-block! hash
-		block/sort blk case? skip comparator part all? reverse? stable?
+		block/sort blk case? skip comparator part all? reverse? stable? pbqsort?
 		_hashtable/clear hash/table blk/head block/rs-length? blk
 		_hashtable/put-all hash/table blk/head 1
 		hash

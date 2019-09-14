@@ -1218,6 +1218,7 @@ block: context [
 		all?		[logic!]
 		reverse?	[logic!]
 		stable?		[logic!]
+		pbqsort?	[logic!]
 		return:		[red-block!]
 		/local
 			s		[series!]
@@ -1316,7 +1317,11 @@ block: context [
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
-			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			either pbqsort? [
+				_sort/pbqsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			][
+				_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			]
 		]
 		collector/active?: saved
 		ownership/check as red-value! blk words/_sort null blk/head 0

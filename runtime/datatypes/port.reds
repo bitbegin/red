@@ -636,6 +636,7 @@ port: context [
 		all?	 [logic!]
 		reverse? [logic!]
 		stable?  [logic!]
+		pbqsort? [logic!]
 		return:  [red-value!]
 		/local
 			actors [red-object!]
