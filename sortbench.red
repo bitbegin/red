@@ -82,17 +82,37 @@ test-all: function [size][
 		prin "			"
 		f: get in gen-vector dists/1
 		v: f size
-		v2: copy v
-		s: now/time/precise
-		sort v2
-		e: now/time/precise
-		prin to integer! (to float! e - s) * 1000
+		t: none
+		loop 5 [
+			v2: copy v
+			s: now/time/precise
+			sort v2
+			e: now/time/precise
+			d: (to float! e - s) * 1000
+			either t = none [
+				t: d
+			][
+				t: t + d
+			]
+		]
+		clear v2
+		prin to integer! t / 5
 		prin "ms			"
-		v3: copy v
-		s: now/time/precise
-		sort/pbqsort v3
-		e: now/time/precise
-		prin to integer! (to float! e - s) * 1000
+		t: none
+		loop 5 [
+			v2: copy v
+			s: now/time/precise
+			sort/pbqsort v2
+			e: now/time/precise
+			d: (to float! e - s) * 1000
+			either t = none [
+				t: d
+			][
+				t: t + d
+			]
+		]
+		clear v clear v2
+		prin to integer! t / 5
 		print "ms"
 	]
 ]
