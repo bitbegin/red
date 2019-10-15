@@ -75,17 +75,15 @@ win-convert-point: func [
 	x		[integer!]
 	y		[integer!]
 	view	[integer!]
+	return:	[CGPoint! value]
 	/local
-		rc	[NSRect!]
+		pt	[CGPoint! value]
 ][
-	x: objc_msgSend [
+	pt: objc_msgSend_pt [
 		objc_msgSend [self sel_getUid "contentView"]
 		sel_getUid "convertPoint:fromView:" x y view
 	]
-	y: system/cpu/edx
-	rc: as NSRect! :x
-	system/cpu/edx: y
-	system/cpu/eax: x
+	pt
 ]
 
 add-window-handler: func [class [integer!]][

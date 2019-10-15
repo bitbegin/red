@@ -119,10 +119,9 @@ button-mouse-down: func [
 		p-int	[int-ptr!]
 		window	[integer!]
 		type	[integer!]
-		y		[integer!]
-		x		[integer!]
 		bound	[NSRect!]
 		rc		[NSRect!]
+		pt		[CGPoint! value]
 ][
 	if 0 <> objc_getAssociatedObject self RedEnableKey [exit]	;-- button is disabled
 
@@ -141,11 +140,9 @@ button-mouse-down: func [
 		p-int: (as int-ptr! event) + 1
 		type: p-int/value
 		rc: as NSRect! (p-int + 1)
-		x: objc_msgSend [self sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
-		y: system/cpu/edx
-		rc: as NSRect! :x
+		pt: objc_msgSend_pt [self sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
 
-		inside?: CGRectContainsPoint bound/x bound/y bound/w bound/h rc/x rc/y
+		inside?: CGRectContainsPoint bound/x bound/y bound/w bound/h pt/x pt/y
 		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 		switch type [
 			NSLeftMouseDragged [

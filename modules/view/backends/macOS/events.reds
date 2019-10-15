@@ -242,8 +242,7 @@ get-event-offset: func [
 		offset	[red-pair!]
 		rc		[NSRect!]
 		frame	[NSRect! value]
-		y		[integer!]
-		x		[integer!]
+		pt		[CGPoint! value]
 		v		[integer!]
 ][
 	type: evt/type
@@ -254,11 +253,9 @@ get-event-offset: func [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
 			either zero? event [offset/x: 0 offset/y: 0][
 				rc: as NSRect! (as int-ptr! event) + 2
-				x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
-				y: system/cpu/edx
-				rc: as NSRect! :x
-				offset/x: as-integer rc/x
-				offset/y: as-integer rc/y
+				pt: objc_msgSend_pt [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
+				offset/x: as-integer pt/x
+				offset/y: as-integer pt/y
 			]
 			as red-value! offset
 		]
@@ -507,18 +504,14 @@ process-mouse-tracking: func [
 	event	[integer!]
 	return: [integer!]
 	/local
-		y	[integer!]
-		x	[integer!]
-		pt	[CGPoint!]
+		pt	[CGPoint! value]
 		n 	[integer!]
 		v	[integer!]
 		w	[integer!]
 ][
 	w: window
 	if zero? w [
-		x: objc_msgSend [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
-		y: system/cpu/edx
-		pt: as CGPoint! :x
+		pt: objc_msgSend_pt [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
 		n: objc_msgSend [
 			objc_getClass "NSWindow" sel_getUid "windowNumberAtPoint:belowWindowWithWindowNumber:"
 			pt/x pt/y 0
@@ -531,12 +524,10 @@ process-mouse-tracking: func [
 		if zero? v [return 0]
 
 		either zero? window [
-			x: objc_msgSend [w sel_getUid "convertScreenToBase:" pt/x pt/y]
+			pt: objc_msgSend_pt [w sel_getUid "convertScreenToBase:" pt/x pt/y]
 		][
-			x: objc_msgSend [event sel_getUid "locationInWindow"]
+			pt: objc_msgSend_pt [event sel_getUid "locationInWindow"]
 		]
-		y: system/cpu/edx
-		pt: as CGPoint! :x
 
 		v: objc_msgSend [v sel_getUid "hitTest:" pt/x pt/y]
 

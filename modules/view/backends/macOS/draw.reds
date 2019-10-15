@@ -708,11 +708,8 @@ draw-text-box: func [
 		layout? [logic!]
 		layout	[integer!]
 		tc		[integer!]
-		idx		[integer!]
-		len		[integer!]
-		y		[integer!]
-		x		[integer!]
-		pt		[CGPoint!]
+		range	[NSRange! value]
+		pt		[CGPoint! value]
 		clr		[integer!]
 ][
 	values: object/get-values tbox
@@ -737,14 +734,11 @@ draw-text-box: func [
 	int: int + 1
 	tc: int/value
 
-	idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
-	len: system/cpu/edx
-	x: 0
-	pt: as CGPoint! :x
+	range: objc_msgSend_range [layout sel_getUid "glyphRangeForTextContainer:" tc]
 	pt/x: as float32! pos/x
 	pt/y: as float32! pos/y
-	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len pt/x pt/y]
-	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
+	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" range/idx range/len pt/x pt/y]
+	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" range/idx range/len pt/x pt/y]
 ]
 
 OS-draw-text: func [
