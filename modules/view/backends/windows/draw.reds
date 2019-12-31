@@ -13,15 +13,19 @@ Red/System [
 #include %text-box.reds
 
 draw-state!: alias struct! [
-	block		[this!]
-	pen-clr		[integer!]
-	brush-clr	[integer!]
-	pen-join	[integer!]
-	pen-cap		[integer!]
-	pen-type	[integer!]
-	brush-type	[integer!]
-	pen			[this!]
-	brush		[this!]
+	block			[this!]
+	pen-clr			[integer!]
+	brush-clr		[integer!]
+	pen-join		[integer!]
+	pen-cap			[integer!]
+	pen				[this!]
+	brush			[this!]
+	pen?			[logic!]
+	brush?			[logic!]
+	bitmap-brush?	[logic!]
+	bitmap-brush	[this!]
+	grad-pen		[gradient! value]
+	grad-brush		[gradient! value]
 ]
 
 #enum DRAW-BRUSH-TYPE! [
@@ -63,8 +67,7 @@ draw-begin: func [
 	ctx/pen-width:	as float32! 1.0
 	ctx/pen-join: D2D1_LINE_JOIN_MITER
 	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
-	ctx/pen-style:	0
-	ctx/pen-type:	DRAW_BRUSH_COLOR
+	ctx/pen-style:	null
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
 
@@ -105,6 +108,12 @@ draw-begin: func [
 	dc/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/brush: as this! brush/value
 
+	ctx/pen?: yes
+	ctx/brush?: no
+	ctx/bitmap-brush?: no
+	init-gradient ctx/grad-pen
+	init-gradient ctx/grad-brush
+
 	if hWnd <> null [
 		values: get-face-values hWnd
 		clr: as red-tuple! values + FACE_OBJ_COLOR
@@ -122,13 +131,41 @@ draw-begin: func [
 	ctx
 ]
 
+init-gradient: func [
+	grad		[gradient!]
+][
+	grad/on?: off
+	grad/matrix-on?: off
+	grad/offset-on?: off
+	grad/focal-on?: off
+	grad/handle-on?: off
+]
+
+release-gradient: func [
+	grad		[gradient!]
+	/local
+		IUnk	[IUnknown]
+][
+	if grad/on? [
+		if grad/handle-on? [
+			COM_SAFE_RELEASE(IUnk grad/handle)
+		]
+		COM_SAFE_RELEASE(IUnk grad/stop)
+	]
+]
+
 release-ctx: func [
 	ctx			[draw-ctx!]
 	/local
-		IUnk [IUnknown]
+		IUnk	[IUnknown]
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	if ctx/bitmap-brush? [
+		COM_SAFE_RELEASE(IUnk ctx/bitmap-brush)
+	]
+	release-gradient ctx/grad-pen
+	release-gradient ctx/grad-brush
 	release-pen-style ctx
 ]
 
@@ -181,14 +218,10 @@ draw-end: func [
 release-pen-style: func [
 	ctx			[draw-ctx!]
 	/local
-		sthis	[this!]
-		style	[ID2D1StrokeStyle]
+		IUnk	[IUnknown]
 ][
-	if ctx/pen-style <> 0 [
-		sthis: as this! ctx/pen-style
-		style: as ID2D1StrokeStyle sthis/vtbl
-		style/Release sthis
-		ctx/pen-style: 0
+	unless null? ctx/pen-style [
+		COM_SAFE_RELEASE(IUnk ctx/pen-style)
 	]
 ]
 
@@ -212,48 +245,41 @@ update-pen-style: func [
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreateStrokeStyle d2d-factory prop null 0 :style
-	ctx/pen-style: as integer! style/value
+	ctx/pen-style: as this! style/value
 ]
 
 OS-draw-pen: func [
-	ctx		[draw-ctx!]
-	color	[integer!]
-	off?	[logic!]
+	ctx			[draw-ctx!]
+	color		[integer!]
+	off?		[logic!]
 	/local
+		IUnk	[IUnknown]
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
-		unk		[IUnknown]
-		d3d-clr [D3DCOLORVALUE]
-		pen		[ptr-value!]
-		dc		[ID2D1DeviceContext]
 ][
-	if ctx/pen-type <> DRAW_BRUSH_COLOR [
-		this: as this! ctx/dc
-		dc: as ID2D1DeviceContext this/vtbl
-		COM_SAFE_RELEASE(unk ctx/pen)
-		d3d-clr: to-dx-color color null
-		dc/CreateSolidColorBrush this d3d-clr null :pen
-		ctx/pen: as this! pen/value
-		ctx/pen-color: color
-	]
-	ctx/pen-type: as-integer not off?
-	if ctx/pen-color <> color [
-		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
-		if ctx/pen-type <> DRAW_BRUSH_NONE [
-			ctx/pen-color: color
-			this: as this! ctx/pen
-			brush: as ID2D1SolidColorBrush this/vtbl
-			brush/SetColor this to-dx-color color null
+	ctx/pen?: not off?
+	if ctx/grad-pen/on? [
+		if ctx/grad-pen/handle-on? [
+			COM_SAFE_RELEASE(IUnk ctx/grad-pen/handle)
 		]
+		ctx/grad-pen/handle-on?: off
+		ctx/grad-pen/on?: off
+	]
+	if all [not off? ctx/pen-color <> color][
+		ctx/pen-color: color
+		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
+		this: as this! ctx/pen
+		brush: as ID2D1SolidColorBrush this/vtbl
+		brush/SetColor this to-dx-color color null
 	]
 ]
 
 OS-draw-text: func [
-	ctx		[draw-ctx!]
-	pos		[red-pair!]
-	text	[red-string!]
-	catch?	[logic!]
-	return:	[logic!]
+	ctx			[draw-ctx!]
+	pos			[red-pair!]
+	text		[red-string!]
+	catch?		[logic!]
+	return:		[logic!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -286,6 +312,176 @@ OS-draw-text: func [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
 	true
+]
+
+update-handle: func [
+	grad		[gradient!]
+	handle		[this!]
+	tx			[float32!]
+	ty			[float32!]
+	/local
+		m		[D2D_MATRIX_3X2_F value]
+		IUnk	[IUnknown]
+][
+	matrix2d/translate grad/matrix (as float32! 0.0) - tx (as float32! 0.0) - ty m
+	copy-memory as byte-ptr! grad/matrix as byte-ptr! m size? D2D_MATRIX_3X2_F
+	grad/matrix-on?: on
+
+	either grad/handle-on? [
+		COM_SAFE_RELEASE(IUnk grad/handle)
+	][
+		grad/handle-on?: on
+	]
+	grad/handle: handle
+]
+
+check-grad-points: func [
+	ctx			[draw-ctx!]
+	grad		[gradient!]
+	upper-x		[float32!]
+	upper-y		[float32!]
+	lower-x		[float32!]
+	lower-y		[float32!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		handle	[this!]
+		hv		[com-ptr! value]
+		lprops	[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES value]
+		rprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
+		t		[float32!]
+		t2		[float32!]
+		tx		[float32!]
+		ty		[float32!]
+		delta	[float32!]
+		IUnk	[IUnknown]
+][
+	unless grad/on? [exit]
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	handle: null
+	case [
+		grad/type = linear [
+			either grad/offset-on? [
+				lprops/startPoint.x: upper-x + grad/offset/x
+				lprops/startPoint.y: upper-y + grad/offset/y
+				lprops/endPoint.x: upper-x + grad/offset2/x
+				lprops/endPoint.y: upper-y + grad/offset2/y
+			][
+				lprops/startPoint.x: upper-x
+				lprops/startPoint.y: upper-y
+				lprops/endPoint.x: lower-x
+				lprops/endPoint.y: lower-y
+			]
+			tx: lprops/startPoint.x
+			ty: lprops/startPoint.y
+			dc/CreateLinearGradientBrush this :lprops null grad/stop :hv
+			handle: hv/value
+		]
+		grad/type = radial [
+			if upper-x > lower-x [
+				t: lower-x
+				lower-x: upper-x
+				upper-x: t
+			]
+			if upper-y > lower-y [
+				t: lower-y
+				lower-y: upper-y
+				upper-y: t
+			]
+			either grad/offset-on? [
+				rprops/center.x: lower-x + upper-x / as float32! 2.0
+				rprops/center.y: lower-y + upper-y / as float32! 2.0
+				rprops/radius.x: grad/offset2/x
+				rprops/radius.y: grad/offset2/y
+				either grad/focal-on? [
+					rprops/offset.x: grad/focal/x
+					rprops/offset.y: grad/focal/x
+				][
+					rprops/offset.x: as float32! 0.0
+					rprops/offset.y: as float32! 0.0
+				]
+			][
+				rprops/center.x: lower-x + upper-x / as float32! 2.0
+				rprops/center.y: lower-y + upper-y / as float32! 2.0
+				tx: upper-x - lower-x / as float32! 2.0
+				ty: upper-y - lower-y / as float32! 2.0
+				delta: tx
+				if tx > ty [delta: ty]
+				rprops/radius.x: delta
+				rprops/radius.y: delta
+				rprops/offset.x: as float32! 0.0
+				rprops/offset.y: as float32! 0.0
+			]
+			tx: rprops/center.x
+			ty: rprops/center.y
+			dc/CreateRadialGradientBrush this :rprops null grad/stop :hv
+			handle: hv/value
+		]
+		true [0]
+	]
+	either null? handle [
+		COM_SAFE_RELEASE(IUnk grad/handle)
+		grad/handle-on?: off
+	][
+		update-handle grad handle tx ty
+	]
+]
+
+check-grad-line: func [
+	ctx			[draw-ctx!]
+	grad		[gradient!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+][
+	check-grad-points ctx grad
+		as float32! upper/x
+		as float32! upper/y
+		as float32! lower/x
+		as float32! lower/y
+]
+
+get-shape-pen: func [
+	ctx			[draw-ctx!]
+	bounds		[RECT_F!]
+	return:		[this!]
+][
+	unless ctx/pen? [
+		return null
+	]
+	unless ctx/grad-pen/on? [
+		return ctx/pen
+	]
+
+	check-grad-points ctx ctx/grad-pen
+		bounds/left
+		bounds/top
+		bounds/right
+		bounds/bottom
+	ctx/grad-pen/handle
+]
+
+get-shape-brush: func [
+	ctx			[draw-ctx!]
+	bounds		[RECT_F!]
+	return:		[this!]
+][
+	unless ctx/brush? [
+		return null
+	]
+	if ctx/bitmap-brush? [
+		return ctx/bitmap-brush
+	]
+	unless ctx/grad-brush/on? [
+		return ctx/brush
+	]
+
+	check-grad-points ctx ctx/grad-brush
+		bounds/left
+		bounds/top
+		bounds/right
+		bounds/bottom
+	ctx/grad-brush/handle
 ]
 
 OS-draw-shape-beginpath: func [
@@ -329,6 +525,9 @@ OS-draw-shape-endpath: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		hr		[integer!]
+		m		[D2D_MATRIX_3X2_F value]
+		bounds	[RECT_F! value]
+		bthis	[this!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 ][
@@ -342,14 +541,20 @@ OS-draw-shape-endpath: func [
 	hr: gsink/Close sthis
 	gsink/Release sthis
 
+	matrix2d/identity m
+	gpath/GetBounds pthis :m :bounds
+
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	bthis: get-shape-brush ctx :bounds
+	unless null? bthis [
+		dc/FillGeometry this as int-ptr! pthis bthis null
 	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	bthis: get-shape-pen ctx :bounds
+	unless null? bthis [
+		dc/DrawGeometry this as int-ptr! pthis bthis ctx/pen-width ctx/pen-style
 	]
+
 	gpath/Release pthis
 
 	ctx/sub/path: 0
@@ -652,26 +857,6 @@ OS-draw-anti-alias: func [
 	dc/SetAntialiasMode this either on? [0][1]
 ]
 
-calculate-gradient-pos: func [
-	brush		[this!]
-	path		[this!]
-	type		[integer!]
-	/local
-		radial	[ID2D1RadialGradientBrush]
-][
-	either type = linear [
-		0
-	][
-		radial: as ID2D1RadialGradientBrush brush/vtbl
-		;@@ get the centroid of the shape or just use the center of the bounding box?
-		;@@ check how does SVG or other graphic libraries do it.
-		;radial/SetCenter brush
-		;radial/SetGradientOriginOffset brush
-		;radial/SetRadiusX brush
-		;radial/SetRadiusY brush
-	]
-]
-
 _OS-draw-polygon: func [
 	ctx			[draw-ctx!]
 	start		[red-pair!]
@@ -687,6 +872,9 @@ _OS-draw-polygon: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		point	[D2D_POINT_2F value]
+		m		[D2D_MATRIX_3X2_F value]
+		bounds	[RECT_F! value]
+		bthis	[this!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 ][
@@ -713,32 +901,34 @@ _OS-draw-polygon: func [
 	hr: gsink/Close sthis
 	gsink/Release sthis
 
+	matrix2d/identity m
+	gpath/GetBounds pthis :m :bounds
+
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		if ctx/brush-type = DRAW_BRUSH_GRADIENT_SMART [
-			calculate-gradient-pos ctx/brush pthis ctx/grad-type
-		]
-		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	bthis: get-shape-brush ctx :bounds
+	unless null? bthis [
+		dc/FillGeometry this as int-ptr! pthis bthis null
 	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		if ctx/pen-type = DRAW_BRUSH_GRADIENT_SMART [
-			calculate-gradient-pos ctx/pen pthis ctx/grad-type
-		]
-		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	bthis: get-shape-pen ctx :bounds
+	unless null? bthis [
+		dc/DrawGeometry this as int-ptr! pthis bthis ctx/pen-width ctx/pen-style
 	]
+
 	gpath/Release pthis
 ]
 
 OS-draw-line: func [
-	ctx	   [draw-ctx!]
-	point  [red-pair!]
-	end	   [red-pair!]
+	ctx			[draw-ctx!]
+	point		[red-pair!]
+	end			[red-pair!]
 	/local
 		pt0		[red-pair!]
 		pt1		[red-pair!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		bounds	[RECT_F! value]
+		bthis	[this!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -746,48 +936,49 @@ OS-draw-line: func [
 	pt1: pt0 + 1
 
 	either pt1 = end [
-		dc/DrawLine
-			this
-			as float32! pt0/x as float32! pt0/y
-			as float32! pt1/x as float32! pt1/y
-			ctx/pen
-			ctx/pen-width
-			ctx/pen-style
+		bounds/left: as float32! pt0/x
+		bounds/top: as float32! pt0/y
+		bounds/right: as float32! pt1/x
+		bounds/bottom: as float32! pt1/y
+		bthis: get-shape-pen ctx :bounds
+		unless null? bthis [
+			dc/DrawLine
+				this
+				as float32! pt0/x as float32! pt0/y
+				as float32! pt1/x as float32! pt1/y
+				bthis
+				ctx/pen-width
+				ctx/pen-style
+		]
 	][
 		_OS-draw-polygon ctx point end no
 	]
 ]
 
 OS-draw-fill-pen: func [
-	ctx		[draw-ctx!]
-	color	[integer!]									;-- 00bbggrr format
-	off?	[logic!]
-	alpha?	[logic!]
+	ctx			[draw-ctx!]
+	color		[integer!]									;-- 00bbggrr format
+	off?		[logic!]
+	alpha?		[logic!]
 	/local
+		IUnk	[IUnknown]
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
-		unk		[IUnknown]
-		d3d-clr [D3DCOLORVALUE]
-		pen		[ptr-value!]
-		dc		[ID2D1DeviceContext]
 ][
-	if ctx/brush-type <> DRAW_BRUSH_COLOR [
-		this: as this! ctx/dc
-		dc: as ID2D1DeviceContext this/vtbl
-		COM_SAFE_RELEASE(unk ctx/brush)
-		d3d-clr: to-dx-color color null
-		dc/CreateSolidColorBrush this d3d-clr null :pen
-		ctx/brush: as this! pen/value
-		ctx/brush-color: color
-	]
-	ctx/brush-type: as-integer not off?
-	if ctx/brush-color <> color [
-		if ctx/brush-type <> DRAW_BRUSH_NONE [
-			ctx/brush-color: color
-			this: ctx/brush
-			brush: as ID2D1SolidColorBrush this/vtbl
-			brush/SetColor this to-dx-color color null
+	ctx/brush?: not off?
+	if ctx/grad-brush/on? [
+		if ctx/grad-brush/handle-on? [
+			COM_SAFE_RELEASE(IUnk ctx/grad-brush/handle)
 		]
+		ctx/grad-brush/handle-on?: off
+		ctx/grad-brush/on?: off
+	]
+
+	if all [not off? ctx/brush-color <> color][
+		ctx/brush-color: color
+		this: as this! ctx/brush
+		brush: as ID2D1SolidColorBrush this/vtbl
+		brush/SetColor this to-dx-color color null
 	]
 ]
 
@@ -811,6 +1002,7 @@ OS-draw-box: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		rc		[RECT_F! value]
+		bthis	[this!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -819,11 +1011,14 @@ OS-draw-box: func [
 	rc/bottom: as float32! lower/y
 	rc/left: as float32! upper/x
 	rc/top: as float32! upper/y
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		dc/FillRectangle this rc ctx/brush 
+
+	bthis: get-shape-brush ctx :rc
+	unless null? bthis [
+		dc/FillRectangle this rc bthis
 	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
+	bthis: get-shape-pen ctx :rc
+	unless null? bthis [
+		dc/DrawRectangle this rc bthis ctx/pen-width ctx/pen-style
 	]
 ]
 
@@ -895,6 +1090,9 @@ OS-draw-spline: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		point	[D2D_POINT_2F value]
+		m		[D2D_MATRIX_3X2_F value]
+		bounds	[RECT_F! value]
+		bthis	[this!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		pt		[red-pair!]
@@ -967,13 +1165,18 @@ OS-draw-spline: func [
 	hr: gsink/Close sthis
 	gsink/Release sthis
 
+	matrix2d/identity m
+	gpath/GetBounds pthis :m :bounds
+
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	bthis: get-shape-brush ctx :bounds
+	unless null? bthis [
+		dc/FillGeometry this as int-ptr! pthis bthis null
 	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	bthis: get-shape-pen ctx :bounds
+	unless null? bthis [
+		dc/DrawGeometry this as int-ptr! pthis bthis ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
 ]
@@ -1006,12 +1209,9 @@ do-draw-ellipse: func [
 	ellipse/y: cy + ry
 	ellipse/radiusX: rx
 	ellipse/radiusY: ry
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
+	;-- TBD
 		dc/FillEllipse this ellipse ctx/brush
-	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
-	]
 ]
 
 OS-draw-circle: func [
@@ -1162,12 +1362,9 @@ OS-draw-arc: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
+	;-- TBD
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
-	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
-	]
 	gpath/Release pthis
 ]
 
@@ -1192,6 +1389,9 @@ OS-draw-curve: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		point	[D2D_POINT_2F value]
+		m		[D2D_MATRIX_3X2_F value]
+		bounds	[RECT_F! value]
+		bthis	[this!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 ][
@@ -1232,13 +1432,18 @@ OS-draw-curve: func [
 	hr: gsink/Close sthis
 	gsink/Release sthis
 
+	matrix2d/identity m
+	gpath/GetBounds pthis :m :bounds
+
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	bthis: get-shape-brush ctx :bounds
+	unless null? bthis [
+		dc/FillGeometry this as int-ptr! pthis bthis null
 	]
-	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	bthis: get-shape-pen ctx :bounds
+	unless null? bthis [
+		dc/DrawGeometry this as int-ptr! pthis bthis ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
 ]
@@ -1510,15 +1715,11 @@ _OS-draw-brush-bitmap: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateImageBrush this bmp :props null :brush
-	either brush? [
-		COM_SAFE_RELEASE(unk ctx/brush)
-		ctx/brush: as this! brush/value
-		ctx/brush-type: DRAW_BRUSH_IMAGE
-	][
-		COM_SAFE_RELEASE(unk ctx/pen)
-		ctx/pen: as this! brush/value
-		ctx/pen-type: DRAW_BRUSH_IMAGE
+	if ctx/bitmap-brush? [
+		COM_SAFE_RELEASE(unk ctx/bitmap-brush)
 	]
+	ctx/bitmap-brush?: yes
+	ctx/bitmap-brush: as this! brush/value
 ]
 
 OS-draw-brush-bitmap: func [
@@ -1603,17 +1804,12 @@ OS-draw-grad-pen: func [
 	spread		[integer!]
 	brush?		[logic!]
 	/local
-		dc		[ID2D1DeviceContext]
-		this	[this!]
-		unk		[IUnknown]
-		gprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
+		grad	[gradient!]
+		IUnk	[IUnknown]
+		point	[red-pair!]
 		gstops	[D2D1_GRADIENT_STOP]
-		x		[float!]
-		y		[float!]
-		start	[float!]
-		stop	[float!]
-		brush	[ptr-value!]
-		int		[red-integer!]
+		tstops	[D2D1_GRADIENT_STOP]
+		nstops	[D2D1_GRADIENT_STOP]
 		f		[red-float!]
 		head	[red-value!]
 		next	[red-value!]
@@ -1623,13 +1819,64 @@ OS-draw-grad-pen: func [
 		p		[float!]
 		wrap	[integer!]
 		sc		[com-ptr! value]
-		pt		[red-pair!]
-		gtype	[integer!]
+		dc		[ID2D1DeviceContext]
+		this	[this!]
 ][
-	this: as this! ctx/dc
-	dc: as ID2D1DeviceContext this/vtbl
+	grad: either brush? [
+		ctx/brush?: yes
+		ctx/grad-brush
+	][
+		ctx/pen?: yes
+		ctx/grad-pen
+	]
+	unless grad/on? [
+		COM_SAFE_RELEASE(IUnk grad/stop)
+		grad/on?: on
+	]
+	grad/spread: spread
+	grad/type: type
 
-	gstops: grad-stops
+	grad/focal-on?: off
+	case [
+		type = linear [
+			either skip-pos? [
+				grad/offset-on?: off
+			][
+				grad/offset-on?: on
+				point: as red-pair! positions
+				grad/offset/x: as float32! point/x
+				grad/offset/y: as float32! point/y
+				point: point + 1
+				grad/offset2/x: as float32! point/x
+				grad/offset2/y: as float32! point/y
+			]
+		]
+		type = radial [
+			either skip-pos? [
+				grad/offset-on?: off
+			][
+				grad/offset-on?: on
+				point: as red-pair! positions
+				grad/offset/x: as float32! point/x
+				grad/offset/y: as float32! point/y
+				grad/offset2/x: get-float32 as red-integer! point + 1
+				grad/offset2/y: grad/offset2/x
+				if focal? [
+					grad/focal-on?: on
+					point: point + 2
+					grad/focal/x: as float32! point/x
+					grad/focal/y: as float32! point/y
+				]
+			]
+		]
+		true [
+			grad/offset-on?: off
+		]
+	]
+	matrix2d/identity as D2D_MATRIX_3X2_F grad/matrix
+
+	gstops: grad-stops + 1
+	nstops: gstops
 	n: count - 1
 	delta: as float! n
 	delta: 1.0 / delta
@@ -1646,6 +1893,20 @@ OS-draw-grad-pen: func [
 		gstops: gstops + 1
 	]
 
+	tstops: grad-stops + 1
+	if tstops/position > as float32! 0.0 [			;-- first one should be always 0.0
+		copy-memory as byte-ptr! grad-stops as byte-ptr! tstops size? D2D1_GRADIENT_STOP
+		grad-stops/position: as float32! 0.0
+		count: count + 1
+		nstops: grad-stops
+	]
+	tstops: gstops - 1
+	if tstops/position < as float32! 1.0 [			;-- last one should be always 1.0
+		copy-memory as byte-ptr! gstops as byte-ptr! tstops size? D2D1_GRADIENT_STOP
+		gstops/position: as float32! 1.0
+		count: count + 1
+	]
+
 	case [
 		spread = _pad		[wrap: 0]
 		spread = _repeat	[wrap: 1]
@@ -1653,38 +1914,11 @@ OS-draw-grad-pen: func [
 		true [wrap: 0]
 	]
 
-	ctx/grad-type: type
-	either type = linear [
-		0
-	][
-		dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
-		either skip-pos? [gtype: DRAW_BRUSH_GRADIENT_SMART][
-			gtype: DRAW_BRUSH_GRADIENT
-			pt: as red-pair! positions
-			gprops/center.x: as float32! pt/x
-			gprops/center.y: as float32! pt/y
-			gprops/radius.x: get-float32 as red-integer! pt + 1
-			gprops/radius.y: gprops/radius.x
-			if focal? [
-				pt: pt + 2
-				gprops/offset.x: as float32! pt/x
-				gprops/offset.x: as float32! pt/y
-			]
-		]
-		dc/CreateRadialGradientBrush this gprops null sc/value :brush
-	]
-
-	COM_SAFE_RELEASE(unk sc/value)
-
-	either brush? [
-		COM_SAFE_RELEASE(unk ctx/brush)
-		ctx/brush: as this! brush/value
-		ctx/brush-type: gtype
-	][
-		COM_SAFE_RELEASE(unk ctx/pen)
-		ctx/pen: as this! brush/value
-		ctx/pen-type: gtype
-	]
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	sc/value: null
+	dc/CreateGradientStopCollection this nstops count 0 wrap :sc
+	grad/stop: sc/value
 ]
 
 OS-set-clip: func [
@@ -1843,12 +2077,31 @@ OS-draw-state-push: func [
 	state/brush-clr: ctx/brush-color
 	state/pen-join: ctx/pen-join
 	state/pen-cap: ctx/pen-cap
-	state/pen-type: ctx/pen-type
-	state/brush-type: ctx/brush-type
+	state/pen?: ctx/pen?
 	state/pen: ctx/pen
-	state/brush: ctx/brush
 	COM_ADD_REF(unk state/pen)
+	state/brush?: ctx/brush?
+	state/brush: ctx/brush
 	COM_ADD_REF(unk state/brush)
+	state/bitmap-brush?: ctx/bitmap-brush?
+	state/bitmap-brush: ctx/bitmap-brush
+	if state/bitmap-brush? [
+		COM_ADD_REF(unk state/bitmap-brush)
+	]
+	copy-memory as byte-ptr! state/grad-pen as byte-ptr! ctx/grad-pen size? gradient!
+	copy-memory as byte-ptr! state/grad-brush as byte-ptr! ctx/grad-brush size? gradient!
+	if state/grad-pen/on? [
+		COM_ADD_REF(unk state/grad-pen/stop)
+		if state/grad-pen/handle-on? [
+			COM_ADD_REF(unk state/grad-pen/handle)
+		]
+	]
+	if state/grad-brush/on? [
+		COM_ADD_REF(unk state/grad-brush/stop)
+		if state/grad-brush/handle-on? [
+			COM_ADD_REF(unk state/grad-brush/handle)
+		]
+	]
 ]
 
 OS-draw-state-pop: func [
@@ -1867,12 +2120,29 @@ OS-draw-state-pop: func [
 	ctx/brush-color: state/brush-clr
 	ctx/pen-join: state/pen-join
 	ctx/pen-cap: state/pen-cap
-	ctx/pen-type: state/pen-type
-	ctx/brush-type: state/brush-type
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	ctx/pen: state/pen
 	ctx/brush: state/brush
+	if ctx/bitmap-brush? [
+		COM_SAFE_RELEASE(IUnk ctx/bitmap-brush)
+	]
+	ctx/bitmap-brush?: state/bitmap-brush?
+	ctx/bitmap-brush: state/bitmap-brush
+	if ctx/grad-pen/on? [
+		COM_SAFE_RELEASE(IUnk ctx/grad-pen/stop)
+		if ctx/grad-pen/handle-on? [
+			COM_SAFE_RELEASE(IUnk ctx/grad-pen/handle)
+		]
+	]
+	if ctx/grad-brush/on? [
+		COM_SAFE_RELEASE(IUnk ctx/grad-brush/stop)
+		if ctx/grad-brush/handle-on? [
+			COM_SAFE_RELEASE(IUnk ctx/grad-brush/handle)
+		]
+	]
+	copy-memory as byte-ptr! ctx/grad-pen as byte-ptr! state/grad-pen size? gradient!
+	copy-memory as byte-ptr! ctx/grad-brush as byte-ptr! state/grad-brush size? gradient!
 	update-pen-style ctx
 ]
 

@@ -162,6 +162,13 @@ D2D1_HWND_RENDER_TARGET_PROPERTIES: alias struct! [
 	presentOptions		[integer!]
 ]
 
+D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES: alias struct! [
+	startPoint.x		[float32!]
+	startPoint.y		[float32!]
+	endPoint.x			[float32!]
+	endPoint.y			[float32!]
+]
+
 D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES: alias struct! [
 	center.x			[float32!]
 	center.y			[float32!]
@@ -239,12 +246,21 @@ CreateSolidColorBrush*: alias function! [
 	return:		[integer!]
 ]
 
+CreateLinearGradientBrush*: alias function! [
+	this		[this!]
+	gprops		[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES]
+	props		[D2D1_BRUSH_PROPERTIES]
+	stops		[this!]
+	brush		[com-ptr!]
+	return:		[integer!]
+]
+
 CreateRadialGradientBrush*: alias function! [
 	this		[this!]
 	gprops		[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES]
 	props		[D2D1_BRUSH_PROPERTIES]
 	stops		[this!]
-	brush		[ptr-ptr!]
+	brush		[com-ptr!]
 	return:		[integer!]
 ]
 
@@ -266,7 +282,7 @@ DrawLine*: alias function! [
 	pt1.y		[float32!]
 	brush		[this!]
 	width		[float32!]
-	style		[integer!]
+	style		[this!]
 ]
 
 DrawRectangle*: alias function! [
@@ -274,7 +290,7 @@ DrawRectangle*: alias function! [
 	rect		[RECT_F!]
 	brush		[this!]
 	strokeWidth [float32!]
-	strokeStyle [integer!]
+	strokeStyle [this!]
 ]
 
 FillRectangle*: alias function! [
@@ -288,7 +304,7 @@ DrawEllipse*: alias function! [
 	ellipse		[D2D1_ELLIPSE]
 	brush		[this!]
 	width		[float32!]
-	style		[integer!]
+	style		[this!]
 ]
 
 FillEllipse*: alias function! [
@@ -755,7 +771,7 @@ DrawBitmap*: alias function! [
 	CreateBitmapBrush				[CreateBitmapBrush*]
 	CreateSolidColorBrush			[CreateSolidColorBrush*]
 	CreateGradientStopCollection	[CreateGradientStopCollection*]
-	CreateLinearGradientBrush		[integer!]
+	CreateLinearGradientBrush		[CreateLinearGradientBrush*]
 	CreateRadialGradientBrush		[CreateRadialGradientBrush*]
 	CreateCompatibleRenderTarget	[function! [this [this!] size [SIZE_F! value] target [ptr-ptr!] return: [integer!]]]
 	CreateLayer						[integer!]
@@ -767,7 +783,7 @@ DrawBitmap*: alias function! [
 	FillRoundedRectangle			[integer!]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
-	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [integer!] return: [integer!]]]
+	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]
 	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] opacityBrush [this!] return: [integer!]]]
 	FillMesh						[integer!]
 	FillOpacityMask					[integer!]
@@ -860,7 +876,7 @@ ID2D1PathGeometry: alias struct! [
 	AddRef							[AddRef!]
 	Release							[Release!]
 	GetFactory						[integer!]
-	GetBounds						[integer!]
+	GetBounds						[function! [this [this!] trans [D2D_MATRIX_3X2_F] bounds [RECT_F!] return: [integer!]]]
 	GetWidenedBounds				[integer!]
 	StrokeContainsPoint				[integer!]
 	FillContainsPoint				[integer!]

@@ -209,22 +209,6 @@ Red/System [
 		y		[integer!]	
 	]
 
-	gradient!: alias struct! [
-		extra           [integer!]                              ;-- used when pen width > 1
-		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
-		points-data     [tagPOINT]                              ;-- preallocated for performance reasons
-		matrix			[integer!]
-		colors			[int-ptr!]
-		colors-pos		[float32-ptr!]
-		spread			[integer!]
-		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
-		count           [integer!]                              ;-- gradient stops count
-		data            [tagPOINT]                              ;-- figure coordinates
-		positions?      [logic!]                                ;-- true if positions are defined, false otherwise
-		created?        [logic!]                                ;-- true if gradient brush created, false otherwise
-		transformed?	[logic!]								;-- true if transformation applied
-	]
-
 	curve-info!: alias struct! [
 		type    [integer!]
 		control [tagPOINT]
@@ -235,27 +219,6 @@ Red/System [
 		start-y     [float!]
 		end-x       [float!]
 		end-y       [float!]
-	]
-
-	other!: alias struct! [
-		gradient-pen			[gradient!]
-		gradient-fill			[gradient!]
-		gradient-pen?			[logic!]
-		gradient-fill?			[logic!]
-		matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
-		paint					[tagPAINTSTRUCT]
-		edges					[tagPOINT]					;-- polygone edges buffer
-		types					[byte-ptr!]					;-- point type buffer
-		last-point?				[logic!]
-		path-last-point			[tagPOINT]
-		prev-shape				[curve-info!]
-		connect-subpath			[integer!]
-		matrix-order			[integer!]
-		anti-alias?				[logic!]
-		GDI+?					[logic!]
-		D2D?					[logic!]
-		pattern-image-fill		[integer!]
-		pattern-image-pen		[integer!]
 	]
 
 	#either legacy = none [
@@ -279,25 +242,53 @@ Red/System [
 			next			[shadow!]
 		]
 
+		matrix3x2!: alias struct! [
+			_11				[float32!]
+			_12				[float32!]
+			_21				[float32!]
+			_22				[float32!]
+			_31				[float32!]
+			_32				[float32!]
+		]
+
+		gradient!: alias struct! [
+			on?				[logic!]
+			spread			[integer!]
+			type			[integer!]
+			matrix-on?		[logic!]
+			matrix			[matrix3x2! value]
+			stop			[this!]									;-- gradient stops
+			offset-on?		[logic!]
+			offset			[POINT_2F value]						;-- figure coordinates
+			offset2			[POINT_2F value]
+			focal-on?		[logic!]
+			focal			[POINT_2F value]
+			handle-on?		[logic!]
+			handle			[this!]
+		]
+
 		draw-ctx!: alias struct! [
 			dc				[ptr-ptr!]
 			target			[int-ptr!]
 			hwnd			[int-ptr!]			;-- Window's handle
 			pen				[this!]
 			brush			[this!]
+			pen?			[logic!]
+			brush?			[logic!]
+			bitmap-brush?	[logic!]
+			bitmap-brush	[this!]
+			grad-pen		[gradient! value]
+			grad-brush		[gradient! value]
 			pen-join		[integer!]
 			pen-cap			[integer!]
 			pen-width		[float32!]
-			pen-style		[integer!]
+			pen-style		[this!]
 			pen-color		[integer!]
 			brush-color		[integer!]
 			font-color		[integer!]
 			bitmap			[int-ptr!]
 			image			[int-ptr!]			;-- original image handle
 			scale-ratio		[float32!]
-			pen-type		[integer!]
-			brush-type		[integer!]
-			grad-type		[integer!]			;-- gradient type: radial, linear
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]
@@ -307,6 +298,41 @@ Red/System [
 			shadows			[shadow! value]
 		]
 	][
+		other!: alias struct! [
+			gradient-pen			[gradient!]
+			gradient-fill			[gradient!]
+			gradient-pen?			[logic!]
+			gradient-fill?			[logic!]
+			matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
+			paint					[tagPAINTSTRUCT]
+			edges					[tagPOINT]					;-- polygone edges buffer
+			types					[byte-ptr!]					;-- point type buffer
+			last-point?				[logic!]
+			path-last-point			[tagPOINT]
+			prev-shape				[curve-info!]
+			connect-subpath			[integer!]
+			matrix-order			[integer!]
+			anti-alias?				[logic!]
+			GDI+?					[logic!]
+			D2D?					[logic!]
+			pattern-image-fill		[integer!]
+			pattern-image-pen		[integer!]
+		]
+		gradient!: alias struct! [
+			extra           [integer!]                              ;-- used when pen width > 1
+			path-data       [PATHDATA]                              ;-- preallocated for performance reasons
+			points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+			matrix			[integer!]
+			colors			[int-ptr!]
+			colors-pos		[float32-ptr!]
+			spread			[integer!]
+			type            [integer!]                              ;-- gradient on fly (just before drawing figure)
+			count           [integer!]                              ;-- gradient stops count
+			data            [tagPOINT]                              ;-- figure coordinates
+			positions?      [logic!]                                ;-- true if positions are defined, false otherwise
+			created?        [logic!]                                ;-- true if gradient brush created, false otherwise
+			transformed?	[logic!]								;-- true if transformation applied
+		]
 		draw-ctx!: alias struct! [
 			dc				[int-ptr!]			;-- OS drawing object
 			hwnd			[int-ptr!]			;-- Window's handle
