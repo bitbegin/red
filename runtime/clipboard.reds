@@ -305,7 +305,9 @@ clipboard: context [
 							OS-image/GdipCreateBitmapFromGdiDib
 								p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize  :bmp
 						]
-						val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
+						val: as red-value! stack/push*
+						OS-image/load-handle as red-image! val as int-ptr! bmp
+						OS-image/GdipDisposeImage bmp
 						GlobalUnlock hMem
 					]
 					break
@@ -339,7 +341,10 @@ clipboard: context [
 				blk		[red-block!]
 				img		[red-image!]
 				df		[DROPFILES!]
-				bmdata	[BitmapData!]
+				p4		[int-ptr!]
+				w		[integer!]
+				h		[integer!]
+				count	[integer!]
 				hdr		[BITMAPV5HEADER!]
 				msg		[tagMSG value]
 		][
@@ -413,7 +418,10 @@ clipboard: context [
 
 				TYPE_IMAGE	[
 					img: as red-image! data
-					if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0 [
+					w: IMAGE_WIDTH(img/size)
+					h: IMAGE_HEIGHT(img/size)
+					count: w * h
+					if count > 0 [
 						;-- put image in the "PNG" format for it's better portability
 						;; see https://stackoverflow.com/a/15691001 on rationale
 						fmts/1: RegisterClipboardFormat "PNG"
@@ -431,9 +439,8 @@ clipboard: context [
 
 						;-- also put the image in DIB format for compatibility
 						fmts/2: CF_DIBV5
-						bmdata: as BitmapData! OS-image/lock-bitmap img no
-						assert not null? bmdata
-						len: bmdata/width * bmdata/height * 4
+						p4: image/acquire-buffer img null
+						len: count * 4
 						hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
 						if hMem/2 <> 0 [
 							p: GlobalLock hMem/2
@@ -441,8 +448,8 @@ clipboard: context [
 								set-memory p #"^@" size? BITMAPV5HEADER!
 								hdr: as BITMAPV5HEADER! p
 								hdr/Size: size? BITMAPV5HEADER!
-								hdr/Width: bmdata/width
-								hdr/Height: 0 - bmdata/height	;-- top-down image
+								hdr/Width: w
+								hdr/Height: 0 - h				;-- top-down image
 								hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
 								hdr/Compression: 3				;-- BI_BITFIELDS
 								hdr/SizeImage: len
@@ -452,12 +459,11 @@ clipboard: context [
 								hdr/BlueMask:  000000FFh
 								hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
 								hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-								assert bmdata/pixelFormat = PixelFormat32bppARGB
-								copy-memory p + hdr/Size bmdata/scan0 len
+								OS-image/revert p4 as int-ptr! (p + hdr/Size) count
 								GlobalUnlock hMem/2
 							]
 						]
-						OS-image/unlock-bitmap img as integer! bmdata
+						image/release-buffer img 0 no
 					];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
 				];; TYPE_IMAGE
 

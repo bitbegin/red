@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %image-crop.reds
+
 image: context [
 	verbose: 0
 
@@ -18,12 +20,10 @@ image: context [
 		bitmap	[int-ptr!]
 		return: [int-ptr!]
 		/local
-			stride	[integer!]
-			data	[int-ptr!]
+			s	[series!]
 	][
-		stride: 0
-		bitmap/value: OS-image/lock-bitmap img yes
-		OS-image/get-data bitmap/value :stride
+		s: GET_BUFFER(img)
+		as int-ptr! s/offset
 	]
 
 	release-buffer: func [
@@ -31,10 +31,37 @@ image: context [
 		bitmap	  [integer!]
 		modified? [logic!]
 	][
-		OS-image/unlock-bitmap img bitmap
 		if modified? [
 			ownership/check as red-value! img words/_poke as red-value! img -1 -1
 		]
+	]
+
+	get-pixel: func [
+		img		[red-image!]
+		offset	[integer!]
+		return:	[integer!]
+		/local
+			s	[series!]
+			p	[int-ptr!]
+	][
+		s: GET_BUFFER(img)
+		p: (as int-ptr! s/offset) + offset
+		assert p < as int-ptr! s/tail
+		p/value
+	]
+
+	set-pixel: func [
+		img		[red-image!]
+		offset	[integer!]
+		pixel	[integer!]
+		/local
+			s	[series!]
+			p	[int-ptr!]
+	][
+		s: GET_BUFFER(img)
+		p: (as int-ptr! s/offset) + offset
+		assert p < as int-ptr! s/tail
+		p/value: pixel
 	]
 
 	rs-pick: func [
@@ -44,7 +71,7 @@ image: context [
 		/local
 			pixel [integer!]
 	][
-		pixel: OS-image/get-pixel img/node offset
+		pixel: get-pixel img offset
 		tuple/rs-make [
 			pixel and 00FF0000h >> 16
 			pixel and FF00h >> 8
@@ -88,16 +115,26 @@ image: context [
 		]
 	]
 
-	init-image: func [
+	;-- from Red's image! format
+	make-binary: func [
 		img		[red-image!]
-		handle  [node!]
-		return: [red-image!]
+		width	[integer!]
+		height	[integer!]
+		bp		[byte-ptr!]
+		/local
+			size	[integer!]
+			s		[series!]
+			d		[byte-ptr!]
 	][
+		size: width * height * 4
 		img/head: 0
-		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
-		img/node: handle
+		img/size: width << 16 or height
+		img/node: alloc-bytes size
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
-		img
+		s: GET_BUFFER(img)
+		d: as byte-ptr! s/offset
+		copy-memory d bp size
+		s/tail: as cell! (as byte-ptr! s/tail) + size
 	]
 
 	resize: func [
@@ -105,18 +142,172 @@ image: context [
 		width	[integer!]
 		height	[integer!]
 		return: [red-image!]
+		/local
+			s		[series!]
+			src		[int-ptr!]
+			sw		[integer!]
+			sh		[integer!]
+			d		[int-ptr!]
+			ret		[red-image!]
 	][
-		init-image as red-image! stack/push* as node! OS-image/resize img width height
+		s: GET_BUFFER(img)
+		src: as int-ptr! s/offset
+		sw: IMAGE_WIDTH(img/size)
+		sh: IMAGE_HEIGHT(img/size)
+		d: image-crop/resize src sw sh width height
+		if null? d [
+			return as red-image! none-value
+		]
+		ret: as red-image! stack/push*
+		make-binary ret width height as byte-ptr! d
+		free as byte-ptr! d
+		ret
+	]
+
+	clone: func [
+		src		[red-image!]
+		dst		[red-image!]
+		part	[integer!]
+		size	[red-pair!]
+		part?	[logic!]
+		return: [red-image!]
+		/local
+			width	[integer!]
+			height	[integer!]
+			offset	[integer!]
+			s		[series!]
+			ps		[byte-ptr!]
+			pd		[byte-ptr!]
+			x		[integer!]
+			y		[integer!]
+			w		[integer!]
+			h		[integer!]
+			size2	[integer!]
+	][
+		width: IMAGE_WIDTH(src/size)
+		height: IMAGE_HEIGHT(src/size)
+		offset: src/head
+
+		if any [
+			width <= 0
+			height <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: null
+			return dst
+		]
+
+		s: GET_BUFFER(src)
+		ps: as byte-ptr! s/offset
+		if all [zero? offset not part?][
+			make-binary dst width height ps
+			return dst
+		]
+
+		x: offset % width
+		y: offset / width
+		either all [part? TYPE_OF(size) = TYPE_PAIR][
+			w: width - x
+			h: height - y
+			if size/x < w [w: size/x]
+			if size/y < h [h: size/y]
+		][
+			either zero? part [
+				w: 0 h: 0
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
+				]
+			]
+		]
+		if any [
+			w <= 0
+			h <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: null
+			return dst
+		]
+		size2: w * h * 4
+		dst/size: h << 16 or w
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		dst/node: alloc-bytes size2
+		s: GET_BUFFER(dst)
+		pd: as byte-ptr! s/offset
+		image-crop/crop ps width height x y pd w h
+		s/tail: as cell! (as byte-ptr! s/tail) + size2
+		dst
+	]
+
+	make-image: func [
+		img		[red-image!]
+		width	[integer!]
+		height	[integer!]
+		rgb		[byte-ptr!]
+		alpha	[byte-ptr!]
+		color	[red-tuple!]
+		return: [logic!]
+		/local
+			s		[series!]
+			count	[integer!]
+			data	[int-ptr!]
+			a		[integer!]
+			r		[integer!]
+			g		[integer!]
+			b		[integer!]
+	][
+		if any [zero? width zero? height][
+			img/header: TYPE_NONE
+			return false
+		]
+		count: width * height
+		img/size: height << 16 or width
+		img/header: TYPE_IMAGE
+		img/head: 0
+		img/node: alloc-bytes count * 4
+		s: GET_BUFFER(img)
+		s/tail: as cell! (as byte-ptr! s/tail) + (count * 4)
+		data: as int-ptr! s/offset
+		either null? color [
+			loop count [
+				either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
+				either null? rgb [r: 255 g: 255 b: 255][
+					r: as-integer rgb/1
+					g: as-integer rgb/2
+					b: as-integer rgb/3
+					rgb: rgb + 3
+				]
+				data/value: r << 16 or (g << 8) or b or (a << 24)
+				data: data + 1
+			]
+		][
+			r: color/array1
+			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
+			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
+			loop count [
+				data/value: r
+				data: data + 1
+			]
+		]
+		true
 	]
 
 	load-binary: func [
 		data	[red-binary!]
 		return: [red-image!]
+		/local
+			img	[red-image!]
 	][
 		either known-image? data [
-			init-image
-				as red-image! stack/push*
-				OS-image/load-binary binary/rs-head data binary/rs-length? data
+			img: as red-image! stack/push*
+			OS-image/load-binary img binary/rs-head data binary/rs-length? data
+			img
 		][as red-image! none-value]
 	]
 
@@ -132,19 +323,15 @@ image: context [
 		slot	[red-value!]
 		src		[red-string!]
 		return:	[red-image!]
-		/local
-			img   [red-image!]
-			hr    [int-ptr!]
 	][
-		hr: OS-image/load-image src
-		if null? hr [fire [TO_ERROR(access cannot-open) src]]
-		img: as red-image! slot
-		init-image img hr
-		img
+		unless OS-image/load-image as red-image! slot src [
+			fire [TO_ERROR(access cannot-open) src]
+		]
+		as red-image! slot
 	]
 
 	delete: func [img [red-image!]][
-		OS-image/delete img
+		0
 	]
 
 	encode: func [
@@ -179,8 +366,6 @@ image: context [
 			bin		[red-binary!]
 			s		[series!]
 			p		[byte-ptr!]
-			stride	[integer!]
-			bitmap	[integer!]
 			i		[integer!]
 			pixel	[integer!]
 			data	[int-ptr!]
@@ -198,9 +383,8 @@ image: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + bytes
 		p: as byte-ptr! s/offset
 
-		stride: 0
-		bitmap: OS-image/lock-bitmap img no
-		data: OS-image/get-data bitmap :stride
+		s: GET_BUFFER(img)
+		data: as int-ptr! s/offset
 
 		either type = EXTRACT_ARGB [
 			copy-memory p as byte-ptr! data bytes
@@ -220,7 +404,6 @@ image: context [
 				i: i + 1
 			]
 		]
-		OS-image/unlock-bitmap img bitmap
 		bin
 	]
 
@@ -234,8 +417,6 @@ image: context [
 			sz		[integer!]
 			s		[series!]
 			p		[byte-ptr!]
-			stride	[integer!]
-			bitmap	[integer!]
 			pixel	[integer!]
 			tp		[red-tuple!]
 			int		[red-integer!]
@@ -249,9 +430,8 @@ image: context [
 		if zero? sz [return bin]
 
 		offset: img/head
-		stride: 0
-		bitmap: OS-image/lock-bitmap img yes
-		data: OS-image/get-data bitmap :stride
+		s: GET_BUFFER(img)
+		data: as int-ptr! s/offset
 		end: data + sz
 
 		type: TYPE_OF(bin)
@@ -289,7 +469,6 @@ image: context [
 					color: int/value
 				]
 				default [
-					OS-image/unlock-bitmap img bitmap
 					fire [TO_ERROR(script invalid-arg) bin]
 				]
 			]
@@ -316,7 +495,6 @@ image: context [
 				]
 			]
 		]
-		OS-image/unlock-bitmap img bitmap
 		ownership/check as red-value! img words/_poke as red-value! bin img/head 0
 		bin
 	]
@@ -437,8 +615,7 @@ image: context [
 		if negative? x [x: 0]
 		y: pair/y
 		if negative? y [y: 0]
-		img/size: y << 16 or x
-		img/node: OS-image/make-image x y rgb alpha color
+		make-image img x y rgb alpha color
 		img
 	]
 
@@ -485,9 +662,8 @@ image: context [
 			formed	[c-string!]
 			pixel	[integer!]
 			count	[integer!]
-			bitmap	[integer!]
+			s		[series!]
 			data	[int-ptr!]
-			stride	[integer!]
 			size	[integer!]
 			end		[int-ptr!]
 	][
@@ -513,9 +689,8 @@ image: context [
 			return part - 5
 		]
 
-		stride: 0
-		bitmap: OS-image/lock-bitmap img no
-		data: OS-image/get-data bitmap :stride
+		s: GET_BUFFER(img)
+		data: as int-ptr! s/offset
 		end: data + (width * height)
 		data: data + img/head
 		size: as-integer end - data
@@ -543,7 +718,6 @@ image: context [
 			]
 			part: part - 6
 			if all [OPTION?(arg) part <= 0][
-				OS-image/unlock-bitmap img bitmap
 				return part
 			]
 			if pixel >>> 24 <> 255 [alpha?: yes]
@@ -570,14 +744,12 @@ image: context [
 				]
 				part: part - 2
 				if all [OPTION?(arg) part <= 0][
-					OS-image/unlock-bitmap img bitmap
 					return part
 				]
 				data: data + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
-		OS-image/unlock-bitmap img bitmap
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 2												;-- #"}" and #"]"
 	]
@@ -667,7 +839,7 @@ image: context [
 			g: as-integer p/2
 			b: as-integer p/3
 			a: either TUPLE_SIZE?(color) > 3 [255 - as-integer p/4][255]
-			OS-image/set-pixel img/node offset a << 24 or (r << 16) or (g << 8) or b
+			set-pixel img offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
 		as red-value! data
@@ -745,11 +917,12 @@ image: context [
 		op		[integer!]									;-- type of comparison
 		return:	[integer!]
 		/local
-			type  [integer!]
-			res   [integer!]
-			bmp1  [integer!]
-			bmp2  [integer!]
-			same? [logic!]
+			type	[integer!]
+			res		[integer!]
+			s		[series!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/compare"]]
 
@@ -780,15 +953,11 @@ image: context [
 					res: 1
 				][
 					either zero? arg1/size [res: 0][
-						type: 0
-						bmp1: OS-image/lock-bitmap arg1 no
-						bmp2: OS-image/lock-bitmap arg2 no
-						res: compare-memory
-							as byte-ptr! OS-image/get-data bmp1 :type
-							as byte-ptr! OS-image/get-data bmp2 :type
-							IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
-						OS-image/unlock-bitmap arg1 bmp1
-						OS-image/unlock-bitmap arg2 bmp2
+						s: GET_BUFFER(arg1)
+						p1: as byte-ptr! s/offset
+						s: GET_BUFFER(arg2)
+						p2: as byte-ptr! s/offset
+						res: compare-memory p1 p2 IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
 					]
 				]
 			]
@@ -870,7 +1039,7 @@ image: context [
 	]
 
 	copy: func [
-		img	    	[red-image!]
+		img			[red-image!]
 		new			[red-image!]
 		part-arg	[red-value!]
 		deep?		[logic!]
@@ -918,7 +1087,7 @@ image: context [
 			if negative? offset [offset: 0 part: img/head]
 		]
 
-		OS-image/clone img new part as red-pair! part-arg part?
+		clone img new part as red-pair! part-arg part?
 	]
 
 	init: does [
