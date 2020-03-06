@@ -284,30 +284,6 @@ OS-image: context [
 		true
 	]
 
-	;-- ARGB(OS's bitmap) to ABGR(Red's format), or revert
-	revert: func [
-		src		[int-ptr!]
-		dst		[int-ptr!]
-		count	[integer!]
-		/local
-			offset	[integer!]
-			old		[integer!]
-			p		[byte-ptr!]
-			b		[byte!]
-	][
-		offset: 1
-		loop count [
-			old: src/offset
-			p: as byte-ptr! :old
-			b: p/1
-			p/1: p/3
-			p/3: b
-			p/4: #"^(FF)" - p/4
-			dst/1: old
-			offset: offset + 1
-		]
-	]
-
 	;-- from ARGB(OS's bitmap) to ABGR(Red's format), Red's a = 255 - os's a
 	make-binary: func [
 		img		[red-image!]
@@ -316,7 +292,6 @@ OS-image: context [
 		src		[int-ptr!]
 		return:	[red-image!]
 		/local
-			count	[integer!]
 			size	[integer!]
 			s		[series!]
 			dst		[int-ptr!]
@@ -325,16 +300,15 @@ OS-image: context [
 			p		[byte-ptr!]
 			b		[byte!]
 	][
-		count: width * height
-		size: count * 4
+		size: width * height * 4
 		img/head: 0
-		img/size: width << 16 or height
+		img/size: height << 16 or width
 		img/node: alloc-bytes size
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		s: GET_BUFFER(img)
 		dst: as int-ptr! s/offset
 		offset: 1
-		revert src dst count
+		copy-memory as byte-ptr! dst as byte-ptr! src size
 		s/tail: as cell! (as byte-ptr! s/tail) + size
 		img
 	]

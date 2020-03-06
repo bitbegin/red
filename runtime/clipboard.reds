@@ -341,7 +341,7 @@ clipboard: context [
 				blk		[red-block!]
 				img		[red-image!]
 				df		[DROPFILES!]
-				p4		[int-ptr!]
+				p2		[byte-ptr!]
 				w		[integer!]
 				h		[integer!]
 				count	[integer!]
@@ -439,7 +439,7 @@ clipboard: context [
 
 						;-- also put the image in DIB format for compatibility
 						fmts/2: CF_DIBV5
-						p4: image/acquire-buffer img null
+						p2: as byte-ptr! image/acquire-buffer img null
 						len: count * 4
 						hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
 						if hMem/2 <> 0 [
@@ -459,7 +459,7 @@ clipboard: context [
 								hdr/BlueMask:  000000FFh
 								hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
 								hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-								OS-image/revert p4 as int-ptr! (p + hdr/Size) count
+								copy-memory p + hdr/Size p2 len
 								GlobalUnlock hMem/2
 							]
 						]

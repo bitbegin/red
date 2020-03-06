@@ -128,7 +128,7 @@ image: context [
 	][
 		size: width * height * 4
 		img/head: 0
-		img/size: width << 16 or height
+		img/size: height << 16 or width
 		img/node: alloc-bytes size
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		s: GET_BUFFER(img)

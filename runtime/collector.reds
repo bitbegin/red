@@ -185,6 +185,7 @@ collector: context [
 					if series/extra <> 0 [keep as node! series/extra]
 				]
 				TYPE_BINARY
+				TYPE_IMAGE
 				TYPE_VECTOR
 				TYPE_BITSET [
 					;probe ["bitset, type: " TYPE_OF(value)]
@@ -244,11 +245,6 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
-				#if OS = 'macOS [
-				TYPE_IMAGE [
-					image: as red-image! value
-					keep image/node
-				]]
 				default [0]
 			]
 			value: value + 1
