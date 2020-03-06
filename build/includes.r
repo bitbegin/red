@@ -120,6 +120,8 @@ write %build/bin/sources.r set-cache [
 			%get-word.reds
 			%hash.reds
 			%image.reds
+			%image-crop.reds
+			%vector2d.reds
 			%integer.reds
 			%issue.reds
 			%lit-path.reds
@@ -166,6 +168,7 @@ write %build/bin/sources.r set-cache [
 			%COM.reds
 			%image-gdiplus.reds
 			%image-quartz.reds
+			%image-empty.reds
 			%win32-ansi.reds
 			%win32-print.reds
 		]

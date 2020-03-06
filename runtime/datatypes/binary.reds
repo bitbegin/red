@@ -1022,11 +1022,7 @@ binary: context [
 				from-integer p4/1 proto
 			]
 			TYPE_IMAGE [
-				#either find [Windows macOS Android] OS [
-					proto: image/extract-data as red-image! spec EXTRACT_ARGB
-				][
-					proto
-				]
+				proto: image/extract-data as red-image! spec EXTRACT_ARGB
 			]
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)

@@ -245,17 +245,47 @@ image: context [
 		dst
 	]
 
+	make-rgba: func [
+		img			[red-image!]
+		width		[integer!]
+		height		[integer!]
+		rgba		[byte-ptr!]
+		return:		[logic!]
+		/local
+			s		[series!]
+			size	[integer!]
+			data	[byte-ptr!]
+	][
+		if any [zero? width zero? height][
+			img/header: TYPE_NONE
+			return false
+		]
+		size: width * height * 4
+		img/size: height << 16 or width
+		img/header: TYPE_IMAGE
+		img/head: 0
+		img/node: alloc-bytes size
+		s: GET_BUFFER(img)
+		s/tail: as cell! (as byte-ptr! s/tail) + size
+		data: as byte-ptr! s/offset
+		unless null? rgba [
+			copy-memory data rgba size
+		]
+		true
+	]
+
 	make-image: func [
-		img		[red-image!]
-		width	[integer!]
-		height	[integer!]
-		rgb		[byte-ptr!]
-		alpha	[byte-ptr!]
-		color	[red-tuple!]
-		return: [logic!]
+		img			[red-image!]
+		width		[integer!]
+		height		[integer!]
+		rgb			[byte-ptr!]
+		alpha		[byte-ptr!]
+		color		[red-tuple!]
+		return:		[logic!]
 		/local
 			s		[series!]
 			count	[integer!]
+			size	[integer!]
 			data	[int-ptr!]
 			a		[integer!]
 			r		[integer!]
@@ -267,12 +297,13 @@ image: context [
 			return false
 		]
 		count: width * height
+		size: count * 4
 		img/size: height << 16 or width
 		img/header: TYPE_IMAGE
 		img/head: 0
-		img/node: alloc-bytes count * 4
+		img/node: alloc-bytes size
 		s: GET_BUFFER(img)
-		s/tail: as cell! (as byte-ptr! s/tail) + (count * 4)
+		s/tail: as cell! (as byte-ptr! s/tail) + size
 		data: as int-ptr! s/offset
 		either null? color [
 			loop count [

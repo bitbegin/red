@@ -268,6 +268,7 @@ OS-image: context [
 		0
 	]
 
+	;-- public interface
 	load-image: func [
 		img			[red-image!]
 		src			[red-string!]
@@ -284,7 +285,7 @@ OS-image: context [
 		true
 	]
 
-	;-- from ARGB(OS's bitmap) to ABGR(Red's format), Red's a = 255 - os's a
+	;-- from ARGB(OS's bitmap)
 	make-binary: func [
 		img		[red-image!]
 		width	[integer!]
@@ -334,6 +335,7 @@ OS-image: context [
 		true
 	]
 
+	;-- public interface
 	;-- load os's binary format
 	load-binary: func [
 		img		[red-image!]
@@ -366,6 +368,7 @@ OS-image: context [
 		ret
 	]
 
+	;-- public interface
 	encode: func [
 		image	[red-image!]
 		slot	[red-value!]

@@ -17,14 +17,10 @@ put system/codecs 'png context [
 	suffixes: [%.png]
 	
 	encode: routine [img [image!] where [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
-			stack/set-last as cell! image/encode img where IMAGE_PNG
-		]
+		stack/set-last as cell! image/encode img where IMAGE_PNG
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
-			stack/set-last as cell! image/decode data
-		]
+		stack/set-last as cell! image/decode data
 	]
 ]

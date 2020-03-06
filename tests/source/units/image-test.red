@@ -13,6 +13,16 @@ Red [
 
 ; FIXME: linux compiler can't swallow this, using do
 do [if all [system/view value? 'image! datatype? get 'image!] [
+===start-group=== "image encode"
+	--test-- "image encode 1"
+		save %test.png make image! 10x10
+		img: load %test.png
+		save %test.png img
+		delete %test.png
+		--assert true
+
+===end-group===
+]]
 
 img: make image! 2x2
 ===start-group=== "image range(integer index)"
@@ -214,15 +224,6 @@ img: make image! 2x2
 		img2: copy img
 		--assert img = img2
 
-	--test-- "#3769 (#1555 regression)"
-		save %test.png make image! 10x10
-		img: load %test.png
-		save %test.png img
-		delete %test.png
-		--assert true
-
 ===end-group===
-
-]]
 
 ~~~end-file~~~

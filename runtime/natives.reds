@@ -3095,11 +3095,7 @@ natives: context [
 					result: map/set-many blk as red-hash! series size
 				]
 				TYPE_IMAGE [
-					#either OS = 'Windows [
-						image/set-many blk as red-image! series size
-					][
-						--NOT_IMPLEMENTED--
-					]
+					image/set-many blk as red-image! series size
 				]
 				default [
 					set-many blk as red-value! series size no no

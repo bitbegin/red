@@ -502,7 +502,6 @@ Red [
 		bin
 	]
 
-#if find [Windows macOS] OS [
 	redImage: func [
 		width	[integer!]
 		height	[integer!]
@@ -513,9 +512,6 @@ Red [
 			img		[red-image!]
 			rgb		[byte-ptr!]
 			sz		[integer!]
-			stride	[integer!]
-			bitmap	[integer!]
-			data	[int-ptr!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-image!)
 		CHECK_VALID_BYTE_PTR_RET(src red-image! names/redImage)
@@ -532,18 +528,13 @@ Red [
 		
 		rgb: null
 		if format = RGB_BUFFER [rgb: src]
-		img/node: OS-image/make-image width height rgb null null
+		image/make-image img width height rgb null null
 		
 		if format = RGBA_BUFFER [
-			stride: 0
-			bitmap: OS-image/lock-bitmap img yes
-			data: OS-image/get-data bitmap :stride
-			copy-memory as byte-ptr! data src sz * 4
-			OS-image/unlock-bitmap img bitmap
+			image/make-rgba img width height rgb
 		]
 		img
 	]
-]
 	
 	;redVector: func [
 	;	
