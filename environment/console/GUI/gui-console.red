@@ -209,8 +209,9 @@ gui-console-ctx: context [
 	add-gui-print: routine [][
 		gui-console-buffer: ALLOC_TAIL(root)
 		gui-console-buffer/header: TYPE_UNSET
-		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
-			as int-ptr! :rs-print-gui
+		dyn-print/add-red as int-ptr! :red-print-gui as int-ptr! :red-print-flush
+		#if debug? = no [
+			dyn-print/add-rs as int-ptr! :rs-print-gui as int-ptr! :rs-print-flush
 		]
 	]
 
@@ -280,6 +281,10 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 		#call [gui-console-ctx/terminal/vprint str lf?]
 	]
 
+	red-print-flush: func [][
+		#call [gui-console-ctx/terminal/refresh]
+	]
+
 	rs-print-gui: func [
 		cstr	[c-string!]
 		size	[integer!]
@@ -300,6 +305,10 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 			str/cache: null
 		]
 		red-print-gui str lf?
+	]
+
+	rs-print-flush: func [][
+		red-print-flush
 	]
 ]
 

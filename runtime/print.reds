@@ -23,8 +23,11 @@ dyn-print: context [
 		nl?		[logic!]
 	]
 
+	flush!: alias function! []
+
 	ptr-array!: alias struct! [
 		ptr		[int-ptr!]
+		flush	[int-ptr!]
 	]
 
 	red-prints: as ptr-array! 0
@@ -46,9 +49,9 @@ dyn-print: context [
 
 	;-- public APIs
 
-	add: func [
+	add-red: func [
 		red-print	[int-ptr!]			;-- function pointer for Red print
-		rs-print	[int-ptr!]			;-- function pointer for Red/System print
+		red-flush	[int-ptr!]
 		/local
 			p		[ptr-array!]
 	][
@@ -56,12 +59,22 @@ dyn-print: context [
 			CHECK_SIZE(red-prints red-size red-cnt)
 			p: red-prints + red-cnt
 			p/ptr: red-print
+			p/flush: red-flush
 			red-cnt: red-cnt + 1
 		]
+	]
+
+	add-rs: func [
+		rs-print	[int-ptr!]			;-- function pointer for Red/System print
+		rs-flush	[int-ptr!]
+		/local
+			p		[ptr-array!]
+	][
 		if rs-print <> null [
 			CHECK_SIZE(rs-prints rs-size rs-cnt)
 			p: rs-prints + rs-cnt
 			p/ptr: rs-print
+			p/flush: rs-flush
 			rs-cnt: rs-cnt + 1
 		]
 	]
@@ -105,12 +118,38 @@ dyn-print: context [
 		]
 	]
 
+	red-flush: func [
+		/local
+			p	[ptr-array!]
+			f	[flush!]
+	][
+		p: red-prints
+		loop red-cnt [
+			f: as flush! p/flush
+			f
+			p: p + 1
+		]
+	]
+
+	rs-flush: func [
+		/local
+			p	[ptr-array!]
+			f	[flush!]
+	][
+		p: rs-prints
+		loop rs-cnt [
+			f: as flush! p/flush
+			f
+			p: p + 1
+		]
+	]
+
 	;-- utils functions
 
 	init: does [
 		red-prints: as ptr-array! allocate red-size * size? ptr-array!
 		rs-prints: as ptr-array! allocate rs-size * size? ptr-array!
-		#if sub-system = 'console [add as int-ptr! :red-print-cli null]
+		#if sub-system = 'console [add-red as int-ptr! :red-print-cli as int-ptr! :red-print-flush]
 	]
 
 	remove-print: func [
@@ -177,5 +216,8 @@ dyn-print: context [
 			]
 			fflush 0
 		]
+	]
+	red-print-flush: func [][
+		fflush 0
 	]]
 ]
