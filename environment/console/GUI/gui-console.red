@@ -242,6 +242,7 @@ ask: function [
 	/hide
 	return:  [string!]
 ][
+	flush
 	gui-console-ctx/show-caret
 
 	line: make string! 8

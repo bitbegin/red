@@ -612,6 +612,7 @@ ask: function [
 	/hide
 	return:  [string!]
 ][
+	flush
 	buffer: make string! 1
 	_set-buffer-history buffer head system/console/history
 	_read-input question hide
