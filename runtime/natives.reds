@@ -720,6 +720,7 @@ natives: context [
 	flush*: func [check? [logic!]][
 		#typecheck flush
 		dyn-print/red-flush
+		stack/set-last unset-value
 	]
 	
 	equal?*: func [
