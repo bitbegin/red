@@ -716,6 +716,11 @@ natives: context [
 		last-lf?: lf?
 		stack/set-last unset-value
 	]
+
+	flush*: func [check? [logic!]][
+		#typecheck flush
+		dyn-print/red-flush
+	]
 	
 	equal?*: func [
 		check?  [logic!]
@@ -3368,6 +3373,7 @@ natives: context [
 			:set*
 			:print*
 			:prin*
+			:flush*
 			:equal?*
 			:not-equal?*
 			:strict-equal?*

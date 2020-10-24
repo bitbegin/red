@@ -233,6 +233,12 @@ prin: make native! [[
 	#get-definition NAT_PRIN
 ]
 
+flush: make native! [[
+		"flush the print's buffer"
+	]
+	#get-definition NAT_FLUSH
+]
+
 equal?: make native! [[
 		"Returns TRUE if two values are equal"
 		value1 [any-type!]
