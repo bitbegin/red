@@ -245,12 +245,23 @@ ask: function [
 	flush
 	gui-console-ctx/show-caret
 
-	line: make string! 8
-	line: insert line question
-
 	vt: gui-console-ctx/terminal
+	either all [
+		not empty? last vt/lines
+		not vt/prin?
+	][
+		line: make string! 8
+		line: insert line question
+		vt/pos: 0
+	][
+		line: last vt/lines
+		remove back tail vt/lines
+		vt/pos: length? line
+		line: tail line
+		line: insert line question
+	]
 	vt/line: line
-	vt/pos: 0
+	;vt/pos: 0
 	vt/add-line head line
 	vt/line-pos: length? vt/lines
 	vt/ask?: yes
