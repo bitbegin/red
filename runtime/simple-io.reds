@@ -467,7 +467,72 @@ simple-io: context [
 					st_ino_l	  [integer!]
 					;...optional padding skipped
 				]
-
+				statx!: alias struct! [
+					mask		[integer!]
+					blksize		[integer!]
+					attrs_l		[integer!]
+					attrs_h		[integer!]
+					nlink		[integer!]
+					uid			[integer!]
+					gid			[integer!]
+					mode		[integer!]
+					ino_l		[integer!]
+					ino_h		[integer!]
+					size_l		[integer!]
+					size_h		[integer!]
+					blocks_l	[integer!]
+					blocks_h	[integer!]
+					mask_l		[integer!]
+					mask_h		[integer!]
+					atime1		[integer!]
+					atime2		[integer!]
+					atime3		[integer!]
+					atime4		[integer!]
+					btime1		[integer!]
+					btime2		[integer!]
+					btime3		[integer!]
+					btime4		[integer!]
+					ctime1		[integer!]
+					ctime2		[integer!]
+					ctime3		[integer!]
+					ctime4		[integer!]
+					mtime1		[integer!]
+					mtime2		[integer!]
+					mtime3		[integer!]
+					mtime4		[integer!]
+					rmajor		[integer!]
+					rminor		[integer!]
+					major		[integer!]
+					minor		[integer!]
+					pad1		[integer!]
+					pad2		[integer!]
+					pad3		[integer!]
+					pad4		[integer!]
+					pad5		[integer!]
+					pad6		[integer!]
+					pad7		[integer!]
+					pad8		[integer!]
+					pad9		[integer!]
+					pad10		[integer!]
+					pad11		[integer!]
+					pad12		[integer!]
+					pad13		[integer!]
+					pad14		[integer!]
+					pad15		[integer!]
+					pad16		[integer!]
+					pad17		[integer!]
+					pad18		[integer!]
+					pad19		[integer!]
+					pad20		[integer!]
+					pad21		[integer!]
+					pad22		[integer!]
+					pad23		[integer!]
+					pad24		[integer!]
+					pad25		[integer!]
+					pad26		[integer!]
+					pad27		[integer!]
+					pad28		[integer!]
+				]
 				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
 					#define DIRENT_NAME_OFFSET 19
 				][
@@ -507,6 +572,26 @@ simple-io: context [
 							restrict	[stat!]
 							return:		[integer!]
 						]
+					]
+					LIBC-file cdecl [
+						_statx: "statx" [
+							fd			[integer!]
+							name		[c-string!]
+							flag		[integer!]
+							mask		[integer!]
+							statbuf		[statx!]
+							return:		[integer!]
+						]
+					]
+				]
+				#syscall [
+					sys_statx: 383 [
+						fd			[integer!]
+						name		[c-string!]
+						flag		[integer!]
+						mask		[integer!]
+						statbuf		[statx!]
+						return:		[integer!]
 					]
 				]
 			]
@@ -690,6 +775,7 @@ simple-io: context [
 		return:	 [integer!]
 		/local
 			s	 [stat! value]
+			sx	 [statx! value]
 	][
 		#case [
 			OS = 'Windows [
@@ -700,8 +786,9 @@ simple-io: context [
 				s/st_size
 			]
 			true [ ; else
-				_stat 3 file s
-				s/st_size
+				set-memory as byte-ptr! sx null-byte size? statx!
+				if 0 <> _statx file "" 1000h 0FFFh sx [print-line "error!" return 0]
+				sx/size_l
 			]
 		]
 	]
